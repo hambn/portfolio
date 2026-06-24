@@ -36,10 +36,10 @@ function blogIndexPlugin() {
   };
 }
 
-// Served from https://hambn.github.io/portfolio/ — change `base` if the repo
-// is renamed or moved to a user/custom-domain site (then use '/').
+// Served from https://hgh.dev/ (custom domain, root). Use '/portfolio/' again
+// if moved back to a project page under github.io.
 export default defineConfig({
-  base: '/portfolio/',
+  base: '/',
   plugins: [blogIndexPlugin()],
   esbuild: {
     // Design components use classic JSX against a global React (see globals.js).

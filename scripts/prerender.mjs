@@ -15,8 +15,8 @@ import { buildBlogIndex } from './blog-index.mjs';
 const root = fileURLToPath(new URL('..', import.meta.url));
 const dist = join(root, 'dist');
 const contents = join(root, 'public', 'contents');
-const SITE = 'https://hambn.github.io/portfolio';
-const BASE = '/portfolio';
+const SITE = 'https://hgh.dev';
+const BASE = '';
 
 const readJSON = (p) => JSON.parse(readFileSync(join(contents, p), 'utf8'));
 const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -31,7 +31,31 @@ const resume = readJSON('home/resume.json');
 const links = readJSON('links/links.json');
 const posts = JSON.parse(buildBlogIndex(join(contents, 'blogs')).json);
 
-const template = readFileSync(join(dist, 'index.html'), 'utf8');
+// Identity meta that's the same on every page (author, avatar, social handles,
+// JSON-LD) lives in the static index.html and would otherwise stay hardcoded.
+// Rewrite it once from contents/ so the JSON files stay the single source.
+const sameAs = [
+  links.github && (links.github.url || `https://github.com/${links.github.username}`),
+  links.gitlab && (links.gitlab.url || `https://gitlab.com/${links.gitlab.username}`),
+  links.x && (links.x.url || `https://x.com/${links.x.handle}`),
+  links.telegram && (links.telegram.url || `https://t.me/${links.telegram.handle}`),
+  links.linkedin && (links.linkedin.url || `https://linkedin.com/in/${links.linkedin.handle}`),
+].filter(Boolean);
+
+const jsonLd = JSON.stringify({
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: profile.name,
+  alternateName: profile.handle,
+  jobTitle: profile.title || '',
+  sameAs,
+}, null, 2);
+
+const template = readFileSync(join(dist, 'index.html'), 'utf8')
+  .replace(/(<meta name="author" content=")[^"]*(")/, `$1${esc(profile.name)}$2`)
+  .replace(/(<meta property="og:image" content=")[^"]*(")/, `$1${esc(profile.avatar)}$2`)
+  .replace(/(<meta name="twitter:creator" content=")[^"]*(")/, `$1@${esc(links.x?.handle || profile.handle)}$2`)
+  .replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/, `<script type="application/ld+json">\n${jsonLd}\n</script>`);
 
 /** Apply per-route <head> meta + inject body content into the shell. */
 function page({ title, desc, path, type = 'website', content, robots = false }) {
