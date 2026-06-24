@@ -59,28 +59,35 @@ export function DiscordCard({ userId, lanyardData, apiEndpoint }) {
     try { return localStorage.getItem('dc_card_collapsed') === '1'; } catch { return false; }
   });
 
-  // Normalize API response — handle { success, data } or bare Lanyard format
+  // Normalize API response — { success, data }, flat api.portfolio.hgh.dev
+  // ({ username, status, avatar }), or bare Lanyard ({ discord_user, ... }).
   const normalize = (d) => {
     if (!d || typeof d !== 'object') return null;
     if (d.success && d.data) return d.data;
-    if (d.discord_user || d.discord_status) return d;
+    if (d.username || d.discord_user || d.discord_status) return d;
     return null;
   };
 
-  // Prefer live API data, fall back to Lanyard WebSocket
-  const raw      = apiData || lanyardData;
-  const status   = raw?.discord_status || 'offline';
-  const user     = raw?.discord_user;
-  const displayName = user?.global_name || user?.username || null;
-  const handle      = user?.username || null;
-  const avatarId = user?.avatar;
-  const avatarUrl = (avatarId && user?.id)
-    ? `https://cdn.discordapp.com/avatars/${user.id}/${avatarId}.${avatarId.startsWith('a_') ? 'gif' : 'png'}?size=128`
-    : null;
+  // Prefer live API data, fall back to Lanyard WebSocket. The two shapes
+  // differ: the flat API gives a full avatar URL + top-level fields, Lanyard
+  // nests under discord_user and ships an avatar hash. Map both to one set.
+  const raw    = apiData || lanyardData;
+  const flat   = !!raw?.username && !raw?.discord_user;
+  const status = (flat ? raw.status : raw?.discord_status) || 'offline';
+  const user   = flat ? raw : raw?.discord_user;
+  const displayName = (flat ? raw.displayName || raw.username : user?.global_name || user?.username) || null;
+  const handle      = (flat ? raw.username : user?.username) || null;
+  const avatarUrl = flat
+    ? raw.avatar || null
+    : (user?.avatar && user?.id)
+      ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.${user.avatar.startsWith('a_') ? 'gif' : 'png'}?size=128`
+      : null;
 
   const activities   = raw?.activities || [];
   const customStatus = activities.find(a => a.type === 4);
-  const gameActivity = activities.find(a => a.type === 0);
+  // Everything except the custom-status entry is a real activity to show.
+  const liveActivities = activities.filter(a => a.type !== 4);
+  const ACT_LABEL = { 0: 'playing', 1: 'streaming', 2: 'listening to', 3: 'watching', 5: 'competing in' };
 
   const profileUrl = `https://discord.com/users/${userId}`;
   const dotColor   = DC.STATUS_COLOR[status] || DC.STATUS_COLOR.offline;
@@ -126,6 +133,7 @@ export function DiscordCard({ userId, lanyardData, apiEndpoint }) {
   const getGameImgSrc = (activity) => {
     if (!activity?.assets?.large_image) return null;
     const img = activity.assets.large_image;
+    if (img.startsWith('spotify:')) return `https://i.scdn.co/image/${img.slice(8)}`;
     if (img.startsWith('mp:')) return `https://media.discordapp.net/${img.slice(3)}`;
     return `https://cdn.discordapp.com/app-assets/${activity.application_id}/${img}.png`;
   };
@@ -239,42 +247,44 @@ export function DiscordCard({ userId, lanyardData, apiEndpoint }) {
           </a>
         </div>
 
-        {/* Game / rich activity */}
-        {gameActivity && (
-          <div style={{ padding:'12px 20px', borderBottom:`1px solid ${DC.div}`,
+        {/* Live activities — listening, playing, watching… (custom status excluded) */}
+        {liveActivities.map((act, i) => (
+          <div key={act.id || i} style={{ padding:'12px 20px', borderBottom:`1px solid ${DC.div}`,
             display:'flex', alignItems:'center', gap:'12px',
             background:'rgba(88,101,242,0.06)' }}>
             <span style={{ width:'7px', height:'7px', borderRadius:'50%', background:DC.blurple,
               boxShadow:`0 0 7px ${DC.blurple}99`, flexShrink:0 }}></span>
             <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ fontSize:'10px', color:DC.faint, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:'2px' }}>playing</div>
+              <div style={{ fontSize:'10px', color:DC.faint, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:'2px' }}>
+                {ACT_LABEL[act.type] || 'activity'}
+              </div>
               <div style={{ fontWeight:'700', fontSize:'14px', color:DC.blurpleLt,
                 overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                {gameActivity.name}
+                {act.details || act.name}
               </div>
-              {gameActivity.details && (
+              {act.state && (
                 <div style={{ fontSize:'11px', color:DC.muted, marginTop:'2px',
                   overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                  {gameActivity.details}
+                  {act.state}
                 </div>
               )}
-              {gameActivity.state && (
+              {act.details && act.name && (
                 <div style={{ fontSize:'11px', color:DC.faint, marginTop:'1px',
                   overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                  {gameActivity.state}
+                  {act.name}
                 </div>
               )}
             </div>
-            {getGameImgSrc(gameActivity) && (
+            {getGameImgSrc(act) && (
               <img
-                src={getGameImgSrc(gameActivity)}
-                alt={gameActivity.assets?.large_text || ''}
+                src={getGameImgSrc(act)}
+                alt={act.assets?.large_text || ''}
                 style={{ width:'44px', height:'44px', borderRadius:'6px', flexShrink:0, objectFit:'cover' }}
                 onError={e => { e.target.style.display = 'none'; }}
               />
             )}
           </div>
-        )}
+        ))}
 
         {/* Footer bar */}
         <div style={{ borderTop:`1px solid ${DC.div}`, height:'10px' }}></div>
