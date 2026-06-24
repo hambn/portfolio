@@ -15,8 +15,10 @@ import { buildBlogIndex } from './blog-index.mjs';
 const root = fileURLToPath(new URL('..', import.meta.url));
 const dist = join(root, 'dist');
 const contents = join(root, 'public', 'contents');
-const SITE = 'https://hgh.dev';
-const BASE = '';
+// SITE = canonical origin (sitemap/OG/canonical). BASE = route prefix, '' at root.
+// Both env-overridable; keep in sync with vite's base (BASE_PATH).
+const SITE = (process.env.SITE_URL || 'https://hgh.dev').replace(/\/+$/, '');
+const BASE = (process.env.BASE_PATH || '/').replace(/\/+$/, '');
 
 const readJSON = (p) => JSON.parse(readFileSync(join(contents, p), 'utf8'));
 const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -180,5 +182,8 @@ const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://w
   .map((u) => `  <url><loc>${SITE}/${u}</loc></url>`)
   .join('\n')}\n</urlset>\n`;
 writeFileSync(join(dist, 'sitemap.xml'), sitemap);
+
+// robots.txt — keep its Sitemap line on the same origin as everything else.
+writeFileSync(join(dist, 'robots.txt'), `User-agent: *\nAllow: /\n\nSitemap: ${SITE}/sitemap.xml\n`);
 
 console.log(`[prerender] wrote ${5 + posts.length} pages + 404 + sitemap (${urls.length} urls)`);

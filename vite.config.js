@@ -36,10 +36,10 @@ function blogIndexPlugin() {
   };
 }
 
-// Served from https://hgh.dev/ (custom domain, root). Use '/portfolio/' again
-// if moved back to a project page under github.io.
+// base = deploy route. Default '/' (custom domain hgh.dev). Override per env,
+// e.g. BASE_PATH=/portfolio/ for a github.io project page.
 export default defineConfig({
-  base: '/',
+  base: process.env.BASE_PATH || '/',
   plugins: [blogIndexPlugin()],
   esbuild: {
     // Design components use classic JSX against a global React (see globals.js).
