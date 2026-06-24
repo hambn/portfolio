@@ -44,6 +44,21 @@ Static React portfolio, built with Vite, deployed to GitHub Pages at
 │     ├─ links/            links.json (every card is config-driven)
 │     └─ blogs/            *.md posts (drop a file to publish; no title = draft)
 │
+├─ api/                    Backend (api.portfolio.hgh.dev) — proxies Spotify/
+│  ├─ index.js             Discord/Steam for the link cards. Worker logic;
+│  │                       keep CF-vanilla. Deploy: `npm run api:deploy`.
+│  ├─ server.js            Node adapter (shims caches/KV) → `npm run api:serve`
+│  │                       self-hosts the same index.js. No CI.
+│  ├─ wrangler.toml        Guide: .claude/api.md
+│  └─ tools/spotify-auth.html   one-off PKCE helper
+│
+├─ deployment/             self-host the stack (run compose from repo root)
+│  ├─ Dockerfile.web       site build → nginx
+│  ├─ Dockerfile.api       Node → api/server.js
+│  ├─ nginx.conf           SPA fallback
+│  └─ docker-compose.yml   web :8080 + api :8787
+│
+├─ .dockerignore           kept at root — Docker needs it at the build context
 └─ .github/workflows/deploy.yml   build + deploy to Pages on push to main
 ```
 
