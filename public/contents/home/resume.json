@@ -2,40 +2,50 @@
   "items": [
     {
       "type": "work",
-      "role": "devops engineer",
-      "company": "company name",
-      "location": "city, country",
+      "role": "DevOps Engineer",
+      "company": "Taban Smart Electronic Commerce",
+      "location": "Tehran, Tehran Province, Iran",
       "employment": "full-time",
-      "start": "2024",
+      "start": "Jul 2024",
       "end": "present",
       "description": [
-        "infrastructure automation with terraform and ansible",
-        "kubernetes cluster management and monitoring",
-        "ci/cd pipeline design and implementation"
+        "Monitoring and observability with Elastic Stack (ELK) and Grafana",
+        "Infrastructure automation and CI/CD pipeline management",
+        "Container orchestration and deployment workflows"
       ]
     },
     {
       "type": "work",
-      "role": "linux sysadmin",
-      "company": "previous company",
-      "location": "city, country",
-      "employment": "full-time",
-      "start": "2022",
-      "end": "2024",
+      "role": "DevOps Engineer",
+      "company": "Taban Smart Electronic Commerce",
+      "location": "Tehran, Tehran Province, Iran",
+      "employment": "internship",
+      "start": "Apr 2024",
+      "end": "Jul 2024",
       "description": [
-        "linux server administration and hardening",
-        "monitoring stack setup (prometheus, grafana)",
-        "bash scripting and automation"
+        "Containerization with Docker and version control via GitLab",
+        "Assisted in setting up CI/CD pipelines and infrastructure tooling"
       ]
     },
     {
       "type": "education",
-      "degree": "b.sc. computer science",
-      "school": "your university",
-      "location": "city, country",
-      "start": "2018",
-      "end": "2022"
+      "degree": "Bachelor's degree, Computer Engineering",
+      "school": "Technical and Vocational University",
+      "location": "Mazandaran, Mahmudabad, Iran",
+      "start": "Sep 2022",
+      "end": "present"
+    },
+    {
+      "type": "education",
+      "degree": "Bachelor's degree, Computer Engineering",
+      "school": "Shamsipour Technical and Vocational College",
+      "location": "Tehran, Tehran Province, Iran",
+      "start": "Sep 2023",
+      "end": "Jun 2025",
+      "description": [
+        "Guest student for 4 semesters"
+      ]
     }
   ],
-  "skills": ["linux", "kubernetes", "terraform", "docker", "nixos", "ansible", "bash", "python", "git", "prometheus"]
+  "skills": ["linux", "kubernetes", "terraform", "docker", "nixos", "ansible", "bash", "python", "git", "prometheus", "elasticsearch", "grafana", "gitlab"]
 }
