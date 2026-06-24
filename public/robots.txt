@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://hambn.github.io/portfolio/sitemap.xml
+Sitemap: https://hgh.dev/sitemap.xml
