@@ -1,0 +1,25 @@
+# Self-host the whole stack: static site + API.
+# Run from repo root:  docker compose -f deployment/docker-compose.yml up -d --build
+services:
+  web:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile.web
+      args:
+        BASE_PATH: ${BASE_PATH:-/}
+        SITE_URL: ${SITE_URL:-https://hgh.dev}
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile.api
+    ports:
+      - "8787:8787"
+    environment:
+      # Pulled from host env / a .env file beside this compose file.
+      SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
+      STEAM_API_KEY: ${STEAM_API_KEY:-}
+    restart: unless-stopped

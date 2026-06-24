@@ -1,0 +1,8 @@
+# Self-hosted API — runs the unmodified Worker via the Node adapter (server.js).
+# Zero npm deps; root package.json is copied only for its "type": "module".
+FROM node:20-alpine
+WORKDIR /app
+COPY package.json ./
+COPY api ./api
+EXPOSE 8787
+CMD ["node", "api/server.js"]
