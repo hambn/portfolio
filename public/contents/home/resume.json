@@ -1,0 +1,41 @@
+{
+  "items": [
+    {
+      "type": "work",
+      "role": "devops engineer",
+      "company": "company name",
+      "location": "city, country",
+      "employment": "full-time",
+      "start": "2024",
+      "end": "present",
+      "description": [
+        "infrastructure automation with terraform and ansible",
+        "kubernetes cluster management and monitoring",
+        "ci/cd pipeline design and implementation"
+      ]
+    },
+    {
+      "type": "work",
+      "role": "linux sysadmin",
+      "company": "previous company",
+      "location": "city, country",
+      "employment": "full-time",
+      "start": "2022",
+      "end": "2024",
+      "description": [
+        "linux server administration and hardening",
+        "monitoring stack setup (prometheus, grafana)",
+        "bash scripting and automation"
+      ]
+    },
+    {
+      "type": "education",
+      "degree": "b.sc. computer science",
+      "school": "your university",
+      "location": "city, country",
+      "start": "2018",
+      "end": "2022"
+    }
+  ],
+  "skills": ["linux", "kubernetes", "terraform", "docker", "nixos", "ansible", "bash", "python", "git", "prometheus"]
+}

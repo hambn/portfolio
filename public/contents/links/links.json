@@ -1,0 +1,50 @@
+{
+  "email": {
+    "address": "contact@hgh.dev"
+  },
+  "discord": {
+    "userId": "601127931921563669",
+    "apiEndpoint": "https://api.portfolio.hgh.dev/discord"
+  },
+  "spotify": {
+    "userId": "79l2pto8uczqrq46ihzqukw57",
+    "apiEndpoint": "https://portfolio.ghasempour-hamed.workers.dev/spotify"
+  },
+  "github": {
+    "username": "hambn",
+    "url": "https://github.com/hambn"
+  },
+  "gitlab": {
+    "username": "ham_bn",
+    "url": "https://gitlab.com/ham_bn"
+  },
+  "steam": {
+    "handle": "ham_bn",
+    "url": "https://steamcommunity.com/id/ham_bn/",
+    "apiEndpoint": "https://api.portfolio.hgh.dev/steam"
+  },
+  "x": {
+    "handle": "hambn4",
+    "url": "https://x.com/hambn4"
+  },
+  "telegram": {
+    "handle": "ham_bn",
+    "url": "https://t.me/ham_bn"
+  },
+  "linkedin": {
+    "handle": "hambn",
+    "url": "https://linkedin.com/in/hambn",
+    "name": "hamed ghasempour",
+    "headline": "DevOps Engineer · Infrastructure · Containers · NixOS",
+    "location": "Tehran, Tehran Province, Iran",
+    "connections": "500+",
+    "followers": 654,
+    "banner": "https://media.licdn.com/dms/image/v2/D4E16AQG2YGYtDEHN3g/profile-displaybackgroundimage-shrink_200_800/B4EZ7vbbzvJkAY-/0/1782133407269?e=2147483647&v=beta&t=uCBRpzLUId5CU-Z1XvGX8xuXv9Qn35j2MY4nwtJCgEA",
+    "avatar": "https://media.licdn.com/dms/image/v2/C4E03AQEBKsV1-m5gQA/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1661180933624?e=2147483647&v=beta&t=qc44lMYQFNIwMMsgefBZRxGyQYx0O1lJnDwcSsoZuno",
+    "about": "DevOps engineer focused on infrastructure, containers, and homelab setups. I enjoy building reliable systems and automating everything.",
+    "skills": ["Docker", "Kubernetes", "NixOS", "Terraform", "Linux", "CI/CD", "Ansible"],
+    "experience": [
+      { "title": "DevOps Engineer", "company": "Self-employed / Freelance", "duration": "2022 – Present" }
+    ]
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "portfolio",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node scripts/prerender.mjs && touch dist/.nojekyll",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@fontsource/jetbrains-mono": "^5.2.8",
+    "highlight.js": "^11.11.1",
+    "marked": "^18.0.5",
+    "mermaid": "^11.15.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "jsdom": "^29.1.1",
+    "vite": "^5.4.10"
+  }
+}

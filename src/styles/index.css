@@ -1,0 +1,6 @@
+/* hambn Design System — Global entry point */
+/* Import order: colors → typography → spacing → components */
+@import "./tokens/colors.css";
+@import "./tokens/typography.css";
+@import "./tokens/spacing.css";
+@import "./core.css";

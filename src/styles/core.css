@@ -1,0 +1,115 @@
+/* hambn Design System — Core Component Styles */
+
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; }
+body { background-color: var(--background); color: var(--foreground); font-family: var(--font-mono); font-size: var(--text-base); line-height: var(--leading-normal); }
+a { color: inherit; text-decoration: none; }
+button, input, select, textarea { font-family: var(--font-mono); }
+img, svg { display: block; max-width: 100%; }
+
+/* ── Button ── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+  font-family: var(--font-mono); font-weight: var(--fw-medium); font-size: var(--text-sm);
+  border-radius: var(--radius-md); cursor: pointer; border: 1px solid transparent;
+  transition: background var(--transition-base), color var(--transition-base), border-color var(--transition-base), opacity var(--transition-base);
+  text-decoration: none; white-space: nowrap; outline: none; user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn:focus-visible { box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring); }
+.btn:disabled, .btn[disabled] { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
+
+.btn-default   { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
+.btn-default:hover:not(:disabled)   { background: var(--primary-hover); border-color: var(--primary-hover); }
+.btn-secondary { background: var(--secondary); color: var(--secondary-foreground); border-color: var(--border); }
+.btn-secondary:hover:not(:disabled) { background: var(--background-emphasis); }
+.btn-ghost  { background: transparent; color: var(--foreground-muted); border-color: transparent; }
+.btn-ghost:hover:not(:disabled)  { background: var(--background-muted); color: var(--foreground); }
+.btn-outline { background: transparent; color: var(--foreground); border-color: var(--border-strong); }
+.btn-outline:hover:not(:disabled) { background: var(--background-muted); border-color: var(--border-strong); }
+.btn-destructive { background: var(--destructive); color: #fff; border-color: var(--destructive); }
+.btn-destructive:hover:not(:disabled) { opacity: 0.88; }
+
+.btn-sm   { font-size: var(--text-xs);   padding: 5px 10px; border-radius: var(--radius-sm); }
+.btn-md   { font-size: var(--text-sm);   padding: 7px 14px; }
+.btn-lg   { font-size: var(--text-base); padding: 10px 20px; border-radius: var(--radius-lg); }
+.btn-icon { padding: 8px; aspect-ratio: 1; }
+.btn-icon.btn-sm { padding: 5px; }
+
+/* ── Badge ── */
+.badge {
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  font-family: var(--font-mono); font-size: var(--text-xs); font-weight: var(--fw-medium);
+  border-radius: var(--radius-full); padding: 2px 9px;
+  white-space: nowrap; border: 1px solid transparent; line-height: 1.5;
+}
+.badge-default     { background: var(--primary-subtle); color: var(--primary); border-color: rgba(249,115,22,0.25); }
+.badge-secondary   { background: var(--background-muted); color: var(--foreground-muted); border-color: var(--border); }
+.badge-outline     { background: transparent; color: var(--foreground-muted); border-color: var(--border-strong); }
+.badge-success     { background: var(--success-subtle); color: var(--success); border-color: rgba(34,197,94,0.25); }
+.badge-warning     { background: var(--warning-subtle); color: var(--warning); border-color: rgba(234,179,8,0.25); }
+.badge-destructive { background: var(--destructive-subtle); color: var(--destructive); border-color: rgba(239,68,68,0.25); }
+.badge-info        { background: var(--info-subtle); color: var(--info); border-color: rgba(59,130,246,0.25); }
+
+/* ── Card ── */
+.card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); overflow: hidden;
+  transition: border-color var(--transition-base);
+}
+.card:hover { border-color: var(--border-strong); }
+.card-header  { padding: var(--space-5) var(--space-6); border-bottom: 1px solid var(--border); }
+.card-content { padding: var(--space-5) var(--space-6); }
+.card-footer  { padding: var(--space-4) var(--space-6); border-top: 1px solid var(--border); }
+
+/* ── Input ── */
+.input {
+  background: var(--input); border: 1px solid var(--border); border-radius: var(--radius-md);
+  color: var(--foreground); font-family: var(--font-mono); font-size: var(--text-sm);
+  padding: 8px 12px; width: 100%; transition: border-color var(--transition-base), box-shadow var(--transition-base);
+  outline: none; line-height: var(--leading-normal);
+}
+.input::placeholder { color: var(--foreground-subtle); }
+.input:focus  { border-color: var(--ring); box-shadow: 0 0 0 1px var(--ring); }
+.input:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ── Avatar ── */
+.avatar {
+  border-radius: var(--radius-full); overflow: hidden; flex-shrink: 0;
+  background: var(--background-muted); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-weight: var(--fw-semibold);
+  color: var(--foreground-muted); user-select: none;
+}
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
+.avatar-sm  { width: 28px;  height: 28px;  font-size: var(--text-xs); }
+.avatar-md  { width: 40px;  height: 40px;  font-size: var(--text-sm); }
+.avatar-lg  { width: 56px;  height: 56px;  font-size: var(--text-base); }
+.avatar-xl  { width: 80px;  height: 80px;  font-size: var(--text-xl); }
+.avatar-2xl { width: 112px; height: 112px; font-size: var(--text-2xl); }
+
+/* ── Divider ── */
+.divider { border: none; border-top: 1px solid var(--border); margin: 0; }
+
+/* ── Status dot ── */
+.status-dot {
+  display: inline-block; border-radius: var(--radius-full);
+  width: 8px; height: 8px; flex-shrink: 0;
+}
+.status-online  { background: var(--success); box-shadow: 0 0 6px var(--success); }
+.status-idle    { background: var(--warning); }
+.status-dnd     { background: var(--destructive); }
+.status-offline { background: var(--foreground-faint); }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: var(--radius-full); }
+::-webkit-scrollbar-thumb:hover { background: var(--foreground-subtle); }
+
+/* ── Selection ── */
+::selection { background: var(--primary-subtle); color: var(--foreground); }
+
+/* ── Focus ring helper ── */
+.focus-ring:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }

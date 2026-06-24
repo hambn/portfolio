@@ -1,0 +1,195 @@
+import { ICON_PATHS } from './shared.jsx';
+const { useState } = React;
+
+let _liStyleDone = false;
+function ensureLiStyles() {
+  if (_liStyleDone) return;
+  _liStyleDone = true;
+  const el = document.createElement('style');
+  el.textContent = `
+    .li-hdr-btn{opacity:0.55;transition:opacity 0.12s,color 0.12s;background:none;border:none;cursor:pointer;
+      display:flex;align-items:center;gap:5px;color:#b0b7be;padding:4px 7px;border-radius:4px;
+      font-size:11px;font-family:inherit;white-space:nowrap;}
+    .li-hdr-btn:hover{opacity:1;color:#e7e9ea;}
+    .li-view-btn{transition:background 0.15s,border-color 0.15s,color 0.15s;}
+    .li-view-btn:hover{background:rgba(112,181,249,0.18) !important;border-color:#70b5f9 !important;color:#fff !important;}
+    .li-body{overflow:hidden;transition:max-height 0.35s ease,opacity 0.22s ease;}
+    .li-body.open{max-height:2000px;opacity:1;}
+    .li-body.closed{max-height:0;opacity:0;pointer-events:none;}
+    @media(max-width:540px){
+      .li-hdr-label{display:none;}
+      .li-hdr-btn{padding:4px 5px;}
+    }
+  `;
+  document.head.appendChild(el);
+}
+
+export function LinkedInCard({ handle, url, name, headline, location, connections, followers, banner, avatar }) {
+  ensureLiStyles();
+
+  const profileHref = url || `https://linkedin.com/in/${handle}`;
+  const [imgError,    setImgError]    = useState(false);
+  const [bannerError, setBannerError] = useState(false);
+  const [copied,      setCopied]      = useState(false);
+  const [collapsed,   setCollapsed]   = useState(() => {
+    try { return localStorage.getItem('li_card_collapsed') === '1'; } catch { return false; }
+  });
+
+  // NOTE: LinkedIn profile HTML cannot be fetched from the browser due to CORS.
+  // All profile fields come from contents/links/links.json — no proxy, no server.
+
+  const toggleCollapse = () => {
+    const next = !collapsed;
+    setCollapsed(next);
+    try { localStorage.setItem('li_card_collapsed', next ? '1' : '0'); } catch {}
+  };
+
+  const copyLink = () => {
+    const done = () => { setCopied(true); setTimeout(() => setCopied(false), 2000); };
+    try {
+      navigator.clipboard.writeText(profileHref).then(done).catch(() => {
+        const el = document.createElement('textarea');
+        el.value = profileHref; document.body.appendChild(el); el.select();
+        document.execCommand('copy'); document.body.removeChild(el); done();
+      });
+    } catch {
+      const el = document.createElement('textarea');
+      el.value = profileHref; document.body.appendChild(el); el.select();
+      document.execCommand('copy'); document.body.removeChild(el); done();
+    }
+  };
+
+  const showAvatar = avatar && !imgError;
+
+  const LI = {
+    card:   '#1d2226',
+    banner: 'linear-gradient(125deg, #004182 0%, #0A66C2 55%, #005fa3 100%)',
+    border: '#38434f',
+    div:    'rgba(255,255,255,0.08)',
+    blue:   '#0A66C2',
+    blueLt: '#70b5f9',
+    text:   '#e7e9ea',
+    muted:  '#b0b7be',
+    faint:  '#6d7a86',
+    bgHead: 'rgba(0,0,0,0.55)',
+  };
+
+  return (
+    <div style={{ background: LI.card, border: `1px solid ${LI.border}`, borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+
+      {/* ── Header bar — always visible (mirrors Spotify header) ── */}
+      <div style={{ background: LI.bgHead, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: collapsed ? 'none' : `1px solid ${LI.border}` }}>
+
+        {/* Icon + wordmark — clickable */}
+        <a href={profileHref} target="_blank" rel="noopener noreferrer"
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', flexShrink: 0 }}>
+          <div style={{ background: LI.blue, borderRadius: '4px', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <svg viewBox="0 0 24 24" fill="white" width="13" height="13"><path d={ICON_PATHS.linkedin}/></svg>
+          </div>
+          <span style={{ fontWeight: '700', fontSize: '13px', color: LI.blueLt, letterSpacing: '0.08em', textTransform: 'uppercase' }}>linkedin</span>
+        </a>
+
+        <div style={{ flex: 1 }} />
+
+        {/* Copy link */}
+        <button onClick={copyLink} className="li-hdr-btn" title="Copy profile link">
+          {copied
+            ? <svg viewBox="0 0 24 24" fill="none" stroke={LI.blueLt} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>
+            : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+          }
+          <span className="li-hdr-label" style={{ color: copied ? LI.blueLt : 'inherit' }}>
+            {copied ? 'copied!' : 'copy link'}
+          </span>
+        </button>
+
+        {/* Open profile */}
+        <button className="li-hdr-btn" title="Open on LinkedIn"
+          onClick={() => window.open(profileHref, '_blank', 'noopener,noreferrer')}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/>
+            <line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+          <span className="li-hdr-label">open profile</span>
+        </button>
+
+        {/* Collapse toggle */}
+        <button onClick={toggleCollapse} className="li-hdr-btn" title={collapsed ? 'Expand' : 'Collapse'}
+          style={{ padding: '4px 5px' }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="15" height="15"
+            style={{ transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 0.25s' }}>
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </button>
+      </div>
+
+      {/* ── Collapsible body ── */}
+      <div className={`li-body ${collapsed ? 'closed' : 'open'}`}>
+
+        {/* Banner */}
+        <div style={{ height: '100px', background: LI.banner, position: 'relative', flexShrink: 0 }}>
+          {banner && !bannerError && (
+            <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+              <img src={banner} alt="" onError={() => setBannerError(true)}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            </div>
+          )}
+          {/* Avatar overlapping banner */}
+          <div style={{ position: 'absolute', bottom: '-38px', left: '22px' }}>
+            {showAvatar ? (
+              <img src={avatar} alt={name || handle} onError={() => setImgError(true)}
+                style={{ width: '76px', height: '76px', borderRadius: '50%', border: '3px solid #1d2226', display: 'block', objectFit: 'cover' }} />
+            ) : (
+              <div style={{ width: '76px', height: '76px', borderRadius: '50%', border: '3px solid #1d2226', background: LI.blue, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg viewBox="0 0 24 24" fill="white" width="38" height="38"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Identity */}
+        <div style={{ padding: '46px 22px 18px', borderBottom: `1px solid ${LI.div}` }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ flex: '1 1 220px', minWidth: 0 }}>
+              {name && (
+                <div style={{ fontWeight: '700', fontSize: '20px', color: LI.text, lineHeight: 1.2, marginBottom: '4px' }}>{name}</div>
+              )}
+              {headline && (
+                <div style={{ fontSize: '13px', color: LI.muted, lineHeight: 1.5, marginBottom: '8px' }}>{headline}</div>
+              )}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
+                {location && (
+                  <span style={{ fontSize: '12px', color: LI.faint, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                    {location}
+                  </span>
+                )}
+                {connections && (
+                  <span style={{ fontSize: '12px', color: LI.blueLt, fontWeight: '600' }}>{connections} connections</span>
+                )}
+                {followers != null && (
+                  <span style={{ fontSize: '12px', color: LI.faint }}>{Number(followers).toLocaleString()} followers</span>
+                )}
+              </div>
+            </div>
+
+            {/* View profile pill */}
+            <a href={profileHref} target="_blank" rel="noopener noreferrer" className="li-view-btn"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 16px',
+                border: `1px solid ${LI.blue}`, borderRadius: '100px', flexShrink: 0,
+                color: LI.blueLt, fontSize: '12px', fontWeight: '600', textDecoration: 'none' }}>
+              <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d={ICON_PATHS.linkedin}/></svg>
+              View profile
+            </a>
+          </div>
+        </div>
+
+        {/* Footer spacer */}
+        <div style={{ height: '10px' }}></div>
+      </div>
+    </div>
+  );
+}
