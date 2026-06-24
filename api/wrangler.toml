@@ -1,0 +1,15 @@
+name = "portfolio"
+main = "index.js"
+compatibility_date = "2026-06-23"
+
+# No secrets/IDs committed here. Everything is injected at deploy via --var
+# (see `api:deploy` in package.json) from env / GitHub Actions secrets.
+[vars]
+CACHE_VERSION = "0"
+
+# KV id is injected at deploy from $SPOTIFY_KV_ID (envsubst → wrangler.gen.toml).
+# Create the namespace once: wrangler kv namespace create SPOTIFY_KV
+# This file is a template — deploy via `npm run api:deploy`, not raw wrangler.
+[[kv_namespaces]]
+binding = "SPOTIFY_KV"
+id = "${SPOTIFY_KV_ID}"

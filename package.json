@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && node scripts/prerender.mjs && touch dist/.nojekyll",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "api:serve": "node api/server.js",
+    "api:deploy": "envsubst < api/wrangler.toml > api/wrangler.gen.toml && wrangler deploy --config api/wrangler.gen.toml --var CACHE_VERSION:$(date +%s) STEAM_ID:$STEAM_ID DISCORD_ID:$DISCORD_ID SPOTIFY_CLIENT_ID:$SPOTIFY_CLIENT_ID SPOTIFY_REFRESH_TOKEN:$SPOTIFY_REFRESH_TOKEN STEAM_API_KEY:$STEAM_API_KEY"
   },
   "dependencies": {
     "@fontsource/jetbrains-mono": "^5.2.8",
@@ -17,7 +19,6 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "jsdom": "^29.1.1",
     "vite": "^5.4.10"
   }
 }

@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spotify Auth</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #0a0a0a;
+      font-family: 'Courier New', monospace;
+      color: #e0e0e0;
+    }
+
+    .card {
+      background: #111;
+      border: 1px solid #222;
+      border-radius: 12px;
+      padding: 40px;
+      width: 100%;
+      max-width: 520px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .spotify-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #1DB954;
+      flex-shrink: 0;
+    }
+
+    h1 {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #aaa;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    label {
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #555;
+    }
+
+    input {
+      background: #0a0a0a;
+      border: 1px solid #222;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      color: #e0e0e0;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus { border-color: #1DB954; }
+    input::placeholder { color: #333; }
+
+    button {
+      background: #1DB954;
+      color: #000;
+      border: none;
+      border-radius: 6px;
+      padding: 12px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      text-transform: uppercase;
+    }
+
+    button:hover { opacity: 0.85; }
+    button:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    .result {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .result.visible { display: flex; }
+
+    .result-label {
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #1DB954;
+    }
+
+    .token-box {
+      background: #0a0a0a;
+      border: 1px solid #1DB954;
+      border-radius: 6px;
+      padding: 12px 14px;
+      font-size: 11px;
+      word-break: break-all;
+      line-height: 1.6;
+      color: #e0e0e0;
+      cursor: pointer;
+      transition: background 0.2s;
+      position: relative;
+    }
+
+    .token-box:hover { background: #111; }
+
+    .copy-hint {
+      font-size: 10px;
+      color: #444;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .copied {
+      font-size: 10px;
+      color: #1DB954;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      display: none;
+    }
+
+    .error {
+      display: none;
+      background: #1a0a0a;
+      border: 1px solid #3a1010;
+      border-radius: 6px;
+      padding: 12px 14px;
+      font-size: 12px;
+      color: #e05555;
+      line-height: 1.5;
+    }
+
+    .error.visible { display: block; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #1a1a1a;
+    }
+
+    .note {
+      font-size: 11px;
+      color: #444;
+      line-height: 1.6;
+    }
+
+    .note span { color: #666; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <div class="spotify-dot"></div>
+      <h1>Spotify Token Generator</h1>
+    </div>
+
+    <div id="setup" style="display:flex;flex-direction:column;gap:16px;">
+      <div class="field">
+        <label>Client ID</label>
+        <input id="clientId" type="text" placeholder="paste your spotify app client id" />
+      </div>
+      <div class="field">
+        <label>Redirect URI</label>
+        <input id="redirectUri" type="text" value="" placeholder="leave blank to auto-detect" />
+      </div>
+      <button id="loginBtn" onclick="startAuth()">Login with Spotify</button>
+    </div>
+
+    <div id="errorBox" class="error"></div>
+
+    <div id="result" class="result">
+      <hr class="divider" />
+      <div class="result-label">Refresh Token</div>
+      <div class="token-box" id="tokenBox" onclick="copyToken()"></div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span class="copy-hint" id="copyHint">click to copy</span>
+        <span class="copied" id="copiedMsg">✓ copied</span>
+      </div>
+      <hr class="divider" />
+      <p class="note">
+        Paste this into your Cloudflare Worker as <span>SPOTIFY_REFRESH_TOKEN</span> secret.<br/>
+        You can close this page after that.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    // Auto-fill redirect URI with current page URL
+    document.getElementById('redirectUri').value = window.location.href.split('?')[0];
+
+    function generateRandom(length) {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
+      const arr = new Uint8Array(length);
+      crypto.getRandomValues(arr);
+      return Array.from(arr).map(b => chars[b % chars.length]).join('');
+    }
+
+    async function generateChallenge(verifier) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(verifier);
+      const digest = await crypto.subtle.digest('SHA-256', data);
+      return btoa(String.fromCharCode(...new Uint8Array(digest)))
+        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+
+    function showError(msg) {
+      const box = document.getElementById('errorBox');
+      box.textContent = msg;
+      box.classList.add('visible');
+    }
+
+    async function startAuth() {
+      const clientId = document.getElementById('clientId').value.trim();
+      const redirectUri = document.getElementById('redirectUri').value.trim();
+
+      if (!clientId) { showError('Enter your Spotify app Client ID.'); return; }
+      if (!redirectUri) { showError('Redirect URI is required.'); return; }
+
+      const verifier = generateRandom(64);
+      const challenge = await generateChallenge(verifier);
+      const state = generateRandom(16);
+
+      localStorage.setItem('pkce_verifier', verifier);
+      localStorage.setItem('pkce_state', state);
+      localStorage.setItem('pkce_client_id', clientId);
+      localStorage.setItem('pkce_redirect_uri', redirectUri);
+
+      const params = new URLSearchParams({
+        client_id: clientId,
+        response_type: 'code',
+        redirect_uri: redirectUri,
+        scope: 'user-read-currently-playing user-read-playback-state user-read-recently-played user-top-read user-read-private user-follow-read playlist-read-private playlist-read-collaborative',
+        code_challenge_method: 'S256',
+        code_challenge: challenge,
+        state,
+      });
+
+      window.location = 'https://accounts.spotify.com/authorize?' + params.toString();
+    }
+
+    async function handleCallback() {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+      const state = params.get('state');
+      const error = params.get('error');
+
+      if (!code) return;
+
+      if (error) { showError('Spotify returned an error: ' + error); return; }
+
+      const savedState = localStorage.getItem('pkce_state');
+      if (state !== savedState) { showError('State mismatch — possible CSRF. Try again.'); return; }
+
+      const verifier = localStorage.getItem('pkce_verifier');
+      const clientId = localStorage.getItem('pkce_client_id');
+      const redirectUri = localStorage.getItem('pkce_redirect_uri');
+
+      if (!verifier || !clientId || !redirectUri) {
+        showError('Session data missing. Make sure you started the flow from this same page/tab.');
+        return;
+      }
+
+      document.getElementById('loginBtn').disabled = true;
+      document.getElementById('loginBtn').textContent = 'Exchanging token...';
+
+      try {
+        const res = await fetch('https://accounts.spotify.com/api/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            grant_type: 'authorization_code',
+            code,
+            redirect_uri: redirectUri,
+            client_id: clientId,
+            code_verifier: verifier,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (data.error) {
+          showError('Token exchange failed: ' + data.error_description || data.error);
+          document.getElementById('loginBtn').disabled = false;
+          document.getElementById('loginBtn').textContent = 'Login with Spotify';
+          return;
+        }
+
+        // Clean URL
+        window.history.replaceState({}, '', window.location.pathname);
+
+        // Show token
+        document.getElementById('tokenBox').textContent = data.refresh_token;
+        document.getElementById('result').classList.add('visible');
+        document.getElementById('setup').style.display = 'none';
+
+        // Clear session
+        localStorage.clear();
+
+      } catch (e) {
+        showError('Network error: ' + e.message);
+        document.getElementById('loginBtn').disabled = false;
+        document.getElementById('loginBtn').textContent = 'Login with Spotify';
+      }
+    }
+
+    function copyToken() {
+      const token = document.getElementById('tokenBox').textContent;
+      navigator.clipboard.writeText(token).then(() => {
+        document.getElementById('copyHint').style.display = 'none';
+        document.getElementById('copiedMsg').style.display = 'inline';
+        setTimeout(() => {
+          document.getElementById('copyHint').style.display = 'inline';
+          document.getElementById('copiedMsg').style.display = 'none';
+        }, 2000);
+      });
+    }
+
+    // Run on load to handle Spotify callback
+    handleCallback();
+  </script>
+</body>
+</html>
