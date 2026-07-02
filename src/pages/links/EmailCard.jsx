@@ -1,11 +1,9 @@
 import { ensureScStyles, useCollapsed, useCopy, HeaderButtons } from './shared.jsx';
 const { useState } = React;
 
-const EMAIL_ADDRESS = 'contact@hgh.dev';
-
 export function EmailCard({ address }) {
   ensureScStyles();
-  const to = address || EMAIL_ADDRESS;
+  const to = address; // Links.jsx only mounts this card when config.email exists
   const [subject,   setSubject]   = useState('');
   const [body,      setBody]      = useState('');
   const [copied,    copyAddr]     = useCopy(to);
