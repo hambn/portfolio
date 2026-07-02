@@ -36,12 +36,19 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      # The Pages backend intermittently never dequeues a deployment
+      # (actions/deploy-pages#406) and the poll timeout is capped at 10
+      # minutes, so retry with fresh deployments instead of waiting longer.
       - id: deployment
         uses: actions/deploy-pages@v4
-        with:
-          # Pages backend sometimes sits in deployment_queued well past the
-          # default 10-minute poll window; give it 30 minutes before aborting.
-          timeout: 1800000
+        continue-on-error: true
+      - id: retry_1
+        if: steps.deployment.outcome == 'failure'
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
+      - id: retry_2
+        if: steps.deployment.outcome == 'failure' && steps.retry_1.outcome == 'failure'
+        uses: actions/deploy-pages@v4
 
   deploy-worker:
     runs-on: ubuntu-latest
