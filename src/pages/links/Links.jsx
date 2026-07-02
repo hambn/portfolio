@@ -131,7 +131,7 @@ function Links() {
 
         {config.spotify?.userId && (
           config.spotify?.apiEndpoint
-            ? <SpotifyCard userId={config.spotify.userId} apiEndpoint={config.spotify.apiEndpoint} lanyardData={lanyardData}/>
+            ? <SpotifyCard userId={config.spotify.userId} apiEndpoint={config.spotify.apiEndpoint}/>
             : <SpotifySimpleCard userId={config.spotify.userId}/>
         )}
 
