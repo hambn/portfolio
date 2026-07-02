@@ -282,7 +282,7 @@ async function handleDiscord(pathname, request, env) {
     const user = data.discord_user;
     const avatarUrl = user.avatar
       ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.${user.avatar.startsWith('a_') ? 'gif' : 'png'}?size=256`
-      : `https://cdn.discordapp.com/embed/avatars/${Number(user.id) % 5}.png`;
+      : `https://cdn.discordapp.com/embed/avatars/${BigInt(user.id) % 5n}.png`;
 
     return json({
       username:    user.username,
