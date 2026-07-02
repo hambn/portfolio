@@ -1,6 +1,8 @@
 // DiscordCard.jsx — Discord presence card, themed like Spotify/Steam/LinkedIn
 // Uses https://api.portfolio.hgh.dev/discord + Lanyard WebSocket (passed as lanyardData)
-const { useState, useEffect } = React;
+import { useCollapsed, useCopy, usePolledJSON, HeaderButtons } from './shared.jsx';
+
+const { useState } = React;
 
 let _dcStyleDone = false;
 function ensureDcStyles() {
@@ -53,11 +55,7 @@ export function DiscordCard({ userId, lanyardData, apiEndpoint }) {
   ensureDcStyles();
 
   const [apiData,   setApiData]   = useState(null);
-  const [loading,   setLoading]   = useState(false);
-  const [copied,    setCopied]    = useState(false);
-  const [collapsed, setCollapsed] = useState(() => {
-    try { return localStorage.getItem('dc_card_collapsed') === '1'; } catch { return false; }
-  });
+  const [collapsed, toggleCollapse] = useCollapsed('dc_card_collapsed');
 
   // Normalize API response — { success, data }, flat api.portfolio.hgh.dev
   // ({ username, status, avatar }), or bare Lanyard ({ discord_user, ... }).
@@ -92,42 +90,11 @@ export function DiscordCard({ userId, lanyardData, apiEndpoint }) {
   const profileUrl = `https://discord.com/users/${userId}`;
   const dotColor   = DC.STATUS_COLOR[status] || DC.STATUS_COLOR.offline;
 
-  // Initial fetch
-  useEffect(() => {
-    if (!apiEndpoint) return;
-    setLoading(true);
-    fetch(apiEndpoint)
-      .then(r => r.json())
-      .then(d => { const n = normalize(d); if (n) setApiData(n); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, [apiEndpoint]);
-
-  // Poll every 30s for presence updates
-  useEffect(() => {
-    if (!apiEndpoint) return;
-    const id = setInterval(() => {
-      fetch(apiEndpoint).then(r => r.json())
-        .then(d => { const n = normalize(d); if (n) setApiData(n); })
-        .catch(() => {});
-    }, 30000);
-    return () => clearInterval(id);
-  }, [apiEndpoint]);
-
-  const toggleCollapse = () => {
-    const next = !collapsed;
-    setCollapsed(next);
-    try { localStorage.setItem('dc_card_collapsed', next ? '1' : '0'); } catch {}
-  };
-
-  const copyLink = () => {
-    const done = () => { setCopied(true); setTimeout(() => setCopied(false), 2000); };
-    const fallback = () => {
-      const el = document.createElement('textarea'); el.value = profileUrl;
-      document.body.appendChild(el); el.select(); document.execCommand('copy');
-      document.body.removeChild(el); done();
-    };
-    try { navigator.clipboard.writeText(profileUrl).then(done).catch(fallback); } catch { fallback(); }
-  };
+  const [copied, copyLink] = useCopy(profileUrl);
+  const { loading } = usePolledJSON(apiEndpoint, 30000, (d) => {
+    const n = normalize(d);
+    if (n) setApiData(n);
+  });
 
   // Game activity image URL helper
   const getGameImgSrc = (activity) => {
@@ -155,39 +122,10 @@ export function DiscordCard({ userId, lanyardData, apiEndpoint }) {
 
         <div style={{ flex:1 }}/>
 
-        {/* Copy profile link */}
-        <button onClick={copyLink} className="dc-hdr-btn" title="Copy profile link">
-          {copied
-            ? <svg viewBox="0 0 24 24" fill="none" stroke={DC.blurpleLt} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>
-            : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-              </svg>
-          }
-          <span className="dc-hdr-label" style={{ color: copied ? DC.blurpleLt : 'inherit' }}>
-            {copied ? 'copied!' : 'copy link'}
-          </span>
-        </button>
-
-        {/* Open profile */}
-        <button className="dc-hdr-btn" title="Open Discord profile"
-          onClick={() => window.open(profileUrl, '_blank', 'noopener,noreferrer')}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-            <polyline points="15 3 21 3 21 9"/>
-            <line x1="10" y1="14" x2="21" y2="3"/>
-          </svg>
-          <span className="dc-hdr-label">open profile</span>
-        </button>
-
-        {/* Collapse toggle */}
-        <button onClick={toggleCollapse} className="dc-hdr-btn" title={collapsed ? 'Expand' : 'Collapse'}
-          style={{ padding:'4px 5px' }}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="15" height="15"
-            style={{ transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition:'transform 0.25s' }}>
-            <polyline points="6 9 12 15 18 9"/>
-          </svg>
-        </button>
+        <HeaderButtons btnClass="dc-hdr-btn" labelClass="dc-hdr-label" accent={DC.blurpleLt}
+          copied={copied} onCopy={copyLink} copyTitle="Copy profile link"
+          href={profileUrl} openLabel="open profile" openTitle="Open Discord profile"
+          collapsed={collapsed} onToggle={toggleCollapse}/>
       </div>
 
       {/* ── Collapsible body ── */}
@@ -286,8 +224,6 @@ export function DiscordCard({ userId, lanyardData, apiEndpoint }) {
           </div>
         ))}
 
-        {/* Footer bar */}
-        <div style={{ borderTop:`1px solid ${DC.div}`, height:'10px' }}></div>
       </div>
     </div>
   );

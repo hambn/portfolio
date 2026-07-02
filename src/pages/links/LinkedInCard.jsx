@@ -1,4 +1,4 @@
-import { ICON_PATHS } from './shared.jsx';
+import { ICON_PATHS, useCollapsed, useCopy, HeaderButtons } from './shared.jsx';
 const { useState } = React;
 
 let _liStyleDone = false;
@@ -30,34 +30,11 @@ export function LinkedInCard({ handle, url, name, headline, location, connection
   const profileHref = url || `https://linkedin.com/in/${handle}`;
   const [imgError,    setImgError]    = useState(false);
   const [bannerError, setBannerError] = useState(false);
-  const [copied,      setCopied]      = useState(false);
-  const [collapsed,   setCollapsed]   = useState(() => {
-    try { return localStorage.getItem('li_card_collapsed') === '1'; } catch { return false; }
-  });
+  const [copied,      copyLink]       = useCopy(profileHref);
+  const [collapsed,   toggleCollapse] = useCollapsed('li_card_collapsed');
 
   // NOTE: LinkedIn profile HTML cannot be fetched from the browser due to CORS.
   // All profile fields come from contents/links/links.json — no proxy, no server.
-
-  const toggleCollapse = () => {
-    const next = !collapsed;
-    setCollapsed(next);
-    try { localStorage.setItem('li_card_collapsed', next ? '1' : '0'); } catch {}
-  };
-
-  const copyLink = () => {
-    const done = () => { setCopied(true); setTimeout(() => setCopied(false), 2000); };
-    try {
-      navigator.clipboard.writeText(profileHref).then(done).catch(() => {
-        const el = document.createElement('textarea');
-        el.value = profileHref; document.body.appendChild(el); el.select();
-        document.execCommand('copy'); document.body.removeChild(el); done();
-      });
-    } catch {
-      const el = document.createElement('textarea');
-      el.value = profileHref; document.body.appendChild(el); el.select();
-      document.execCommand('copy'); document.body.removeChild(el); done();
-    }
-  };
 
   const showAvatar = avatar && !imgError;
 
@@ -91,39 +68,10 @@ export function LinkedInCard({ handle, url, name, headline, location, connection
 
         <div style={{ flex: 1 }} />
 
-        {/* Copy link */}
-        <button onClick={copyLink} className="li-hdr-btn" title="Copy profile link">
-          {copied
-            ? <svg viewBox="0 0 24 24" fill="none" stroke={LI.blueLt} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>
-            : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-              </svg>
-          }
-          <span className="li-hdr-label" style={{ color: copied ? LI.blueLt : 'inherit' }}>
-            {copied ? 'copied!' : 'copy link'}
-          </span>
-        </button>
-
-        {/* Open profile */}
-        <button className="li-hdr-btn" title="Open on LinkedIn"
-          onClick={() => window.open(profileHref, '_blank', 'noopener,noreferrer')}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-            <polyline points="15 3 21 3 21 9"/>
-            <line x1="10" y1="14" x2="21" y2="3"/>
-          </svg>
-          <span className="li-hdr-label">open profile</span>
-        </button>
-
-        {/* Collapse toggle */}
-        <button onClick={toggleCollapse} className="li-hdr-btn" title={collapsed ? 'Expand' : 'Collapse'}
-          style={{ padding: '4px 5px' }}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="15" height="15"
-            style={{ transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 0.25s' }}>
-            <polyline points="6 9 12 15 18 9"/>
-          </svg>
-        </button>
+        <HeaderButtons btnClass="li-hdr-btn" labelClass="li-hdr-label" accent={LI.blueLt}
+          copied={copied} onCopy={copyLink} copyTitle="Copy profile link"
+          href={profileHref} openLabel="open profile" openTitle="Open on LinkedIn"
+          collapsed={collapsed} onToggle={toggleCollapse}/>
       </div>
 
       {/* ── Collapsible body ── */}
@@ -186,9 +134,6 @@ export function LinkedInCard({ handle, url, name, headline, location, connection
             </a>
           </div>
         </div>
-
-        {/* Footer spacer */}
-        <div style={{ height: '10px' }}></div>
       </div>
     </div>
   );

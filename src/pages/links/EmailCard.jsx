@@ -1,4 +1,4 @@
-import { ensureScStyles } from './shared.jsx';
+import { ensureScStyles, useCollapsed, useCopy, HeaderButtons } from './shared.jsx';
 const { useState } = React;
 
 const EMAIL_ADDRESS = 'contact@hgh.dev';
@@ -6,23 +6,10 @@ const EMAIL_ADDRESS = 'contact@hgh.dev';
 export function EmailCard({ address }) {
   ensureScStyles();
   const to = address || EMAIL_ADDRESS;
-  const [copied,    setCopied]    = useState(false);
   const [subject,   setSubject]   = useState('');
   const [body,      setBody]      = useState('');
-  const [collapsed, setCollapsed] = useState(() => {
-    try { return localStorage.getItem('email_card_collapsed') === '1'; } catch { return false; }
-  });
-
-  const toggleCollapse = () => {
-    const next = !collapsed;
-    setCollapsed(next);
-    try { localStorage.setItem('email_card_collapsed', next ? '1' : '0'); } catch {}
-  };
-  const copyAddr = () => {
-    const done = () => { setCopied(true); setTimeout(() => setCopied(false), 2000); };
-    const fb = () => { const el = document.createElement('textarea'); el.value = to; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el); done(); };
-    try { navigator.clipboard.writeText(to).then(done).catch(fb); } catch { fb(); }
-  };
+  const [copied,    copyAddr]     = useCopy(to);
+  const [collapsed, toggleCollapse] = useCollapsed('email_card_collapsed');
   const send = (e) => {
     e.preventDefault();
     const q = [];
@@ -61,19 +48,9 @@ export function EmailCard({ address }) {
           <span style={{ fontWeight: '700', fontSize: '13px', color: EM.accent, letterSpacing: '0.08em', textTransform: 'uppercase' }}>email</span>
         </a>
         <div style={{ flex: 1 }}/>
-        <button onClick={copyAddr} className="sc-hdr-btn gh-hdr-btn" title="Copy email address">
-          {copied
-            ? <svg viewBox="0 0 24 24" fill="none" stroke={EM.accent} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>
-            : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-          }
-          <span className="sc-hdr-label" style={{ color: copied ? EM.accent : 'inherit' }}>{copied ? 'copied!' : 'copy email'}</span>
-        </button>
-        <button onClick={toggleCollapse} className="sc-hdr-btn gh-hdr-btn" title={collapsed ? 'Expand' : 'Collapse'} style={{ padding: '4px 5px' }}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="15" height="15"
-            style={{ transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 0.25s' }}>
-            <polyline points="6 9 12 15 18 9"/>
-          </svg>
-        </button>
+        <HeaderButtons btnClass="sc-hdr-btn gh-hdr-btn" labelClass="sc-hdr-label" accent={EM.accent}
+          copied={copied} onCopy={copyAddr} copyLabel="copy email" copyTitle="Copy email address"
+          collapsed={collapsed} onToggle={toggleCollapse}/>
       </div>
       {/* Body — compose form */}
       <div className={`sc-body ${collapsed ? 'closed' : 'open'}`}>

@@ -1,8 +1,9 @@
 // SteamCard.jsx — Steam card, API endpoint driven
 // NOTE: all internal components are prefixed "St" to avoid scope collision with
 // other Babel scripts (SpotifyCard defines RecentSection, etc. in the same window).
+import { useCollapsed, useCopy, usePolledJSON, HeaderButtons } from './shared.jsx';
 
-const { useState, useEffect } = React;
+const { useState } = React;
 
 // ── One-time CSS ───────────────────────────────────────────────────────────────
 let _stStyleDone = false;
@@ -171,14 +172,11 @@ export function SteamCard({ handle, url, apiEndpoint }) {
   ensureStStyles();
 
   const [data,      setData]      = useState(null);
-  const [loading,   setLoading]   = useState(false);
-  const [error,     setError]     = useState(null);
-  const [copied,    setCopied]    = useState(false);
-  const [collapsed, setCollapsed] = useState(() => {
-    try { return localStorage.getItem('st_card_collapsed') === '1'; } catch { return false; }
-  });
+  const [collapsed, toggleCollapse] = useCollapsed('st_card_collapsed');
 
   const profileUrl = data?.profileUrl || url || (handle ? `https://steamcommunity.com/id/${handle}/` : 'https://steamcommunity.com');
+  const [copied, copyLink] = useCopy(profileUrl);
+  const { loading, error } = usePolledJSON(apiEndpoint, 60000, (d) => setData(d));
   const isInGame   = !!data?.currentGame;
   const statusStr  = (data?.status || '').toLowerCase();
   const isOnline   = statusStr === 'online' || isInGame;
@@ -186,44 +184,6 @@ export function SteamCard({ handle, url, apiEndpoint }) {
   const statusLabel = isInGame
     ? `In-Game`
     : (data?.status || 'offline');
-
-  const toggleCollapse = () => {
-    const next = !collapsed;
-    setCollapsed(next);
-    try { localStorage.setItem('st_card_collapsed', next ? '1' : '0'); } catch {}
-  };
-
-  const copyLink = () => {
-    const done = () => { setCopied(true); setTimeout(() => setCopied(false), 2000); };
-    try {
-      navigator.clipboard.writeText(profileUrl).then(done).catch(() => {
-        const el = document.createElement('textarea');
-        el.value = profileUrl; document.body.appendChild(el); el.select();
-        document.execCommand('copy'); document.body.removeChild(el); done();
-      });
-    } catch {
-      const el = document.createElement('textarea');
-      el.value = profileUrl; document.body.appendChild(el); el.select();
-      document.execCommand('copy'); document.body.removeChild(el); done();
-    }
-  };
-
-  useEffect(() => {
-    if (!apiEndpoint) return;
-    setLoading(true);
-    fetch(apiEndpoint)
-      .then(r => r.json())
-      .then(d => { setData(d); setLoading(false); })
-      .catch(e => { setError(String(e)); setLoading(false); });
-  }, [apiEndpoint]);
-
-  useEffect(() => {
-    if (!apiEndpoint) return;
-    const id = setInterval(() => {
-      fetch(apiEndpoint).then(r => r.json()).then(setData).catch(() => {});
-    }, 60000);
-    return () => clearInterval(id);
-  }, [apiEndpoint]);
 
   // ── Simple card ───────────────────────────────────────────────────────────
   if (!apiEndpoint) {
@@ -259,39 +219,10 @@ export function SteamCard({ handle, url, apiEndpoint }) {
 
         <div style={{ flex:1 }}/>
 
-        {/* Copy profile link */}
-        <button onClick={copyLink} className="st-hdr-btn" title="Copy profile link">
-          {copied
-            ? <svg viewBox="0 0 24 24" fill="none" stroke={ST.blue} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>
-            : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-              </svg>
-          }
-          <span className="st-hdr-label" style={{ color: copied ? ST.blue : 'inherit' }}>
-            {copied ? 'copied!' : 'copy profile link'}
-          </span>
-        </button>
-
-        {/* Open in Steam */}
-        <button className="st-hdr-btn" title="Open in Steam"
-          onClick={() => window.open(profileUrl, '_blank', 'noopener,noreferrer')}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-            <polyline points="15 3 21 3 21 9"/>
-            <line x1="10" y1="14" x2="21" y2="3"/>
-          </svg>
-          <span className="st-hdr-label">open in steam</span>
-        </button>
-
-        {/* Collapse toggle */}
-        <button onClick={toggleCollapse} className="st-hdr-btn" title={collapsed ? 'Expand' : 'Collapse'}
-          style={{ padding:'4px 5px' }}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="15" height="15"
-            style={{ transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition:'transform 0.25s' }}>
-            <polyline points="6 9 12 15 18 9"/>
-          </svg>
-        </button>
+        <HeaderButtons btnClass="st-hdr-btn" labelClass="st-hdr-label" accent={ST.blue}
+          copied={copied} onCopy={copyLink} copyLabel="copy profile link" copyTitle="Copy profile link"
+          href={profileUrl} openLabel="open in steam" openTitle="Open in Steam"
+          collapsed={collapsed} onToggle={toggleCollapse}/>
       </div>
 
       {/* ── Collapsible body ── */}
@@ -414,8 +345,6 @@ export function SteamCard({ handle, url, apiEndpoint }) {
           </div>
         )}
 
-        {/* Footer bar */}
-        <div style={{ borderTop:`1px solid ${ST.div}`, height:'10px' }}></div>
       </div>
     </div>
   );

@@ -1,5 +1,4 @@
-import { ensureScStyles } from './shared.jsx';
-const { useState } = React;
+import { ensureScStyles, useCollapsed, useCopy, HeaderButtons } from './shared.jsx';
 
 const X_ICON = 'M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.259 5.631 5.905-5.631zm-1.161 17.52h1.833L7.084 4.126H5.117z';
 const XP = {
@@ -14,21 +13,9 @@ const XP = {
 
 export function XCard({ handle, url }) {
   ensureScStyles();
-  const [copied,    setCopied]    = useState(false);
-  const [collapsed, setCollapsed] = useState(() => {
-    try { return localStorage.getItem('x_card_collapsed') === '1'; } catch { return false; }
-  });
+  const [collapsed, toggleCollapse] = useCollapsed('x_card_collapsed');
   const href = url || `https://x.com/${handle}`;
-  const toggleCollapse = () => {
-    const next = !collapsed;
-    setCollapsed(next);
-    try { localStorage.setItem('x_card_collapsed', next ? '1' : '0'); } catch {}
-  };
-  const copyLink = () => {
-    const done = () => { setCopied(true); setTimeout(() => setCopied(false), 2000); };
-    const fb = () => { const el = document.createElement('textarea'); el.value = href; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el); done(); };
-    try { navigator.clipboard.writeText(href).then(done).catch(fb); } catch { fb(); }
-  };
+  const [copied, copyLink] = useCopy(href);
   return (
     <div style={{ background:XP.bg, border:`1px solid ${XP.border}`, borderRadius:'var(--radius-lg)', overflow:'hidden' }}>
       <div style={{ background:XP.bgHead, padding:'10px 14px', display:'flex', alignItems:'center', gap:'8px',
@@ -39,25 +26,10 @@ export function XCard({ handle, url }) {
           <span style={{ fontWeight:'700', fontSize:'13px', color:XP.text, letterSpacing:'0.08em', textTransform:'uppercase' }}>x</span>
         </a>
         <div style={{ flex:1 }}/>
-        <button onClick={copyLink} className="sc-hdr-btn x-hdr-btn" title="Copy link">
-          {copied
-            ? <svg viewBox="0 0 24 24" fill="none" stroke={XP.text} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg>
-            : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-          }
-          <span className="sc-hdr-label">{copied ? 'copied!' : 'copy link'}</span>
-        </button>
-        <button className="sc-hdr-btn x-hdr-btn" title="Open on X" onClick={() => window.open(href, '_blank', 'noopener,noreferrer')}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-          </svg>
-          <span className="sc-hdr-label">open</span>
-        </button>
-        <button onClick={toggleCollapse} className="sc-hdr-btn x-hdr-btn" title={collapsed ? 'Expand' : 'Collapse'} style={{ padding:'4px 5px' }}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="15" height="15"
-            style={{ transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)', transition:'transform 0.25s' }}>
-            <polyline points="6 9 12 15 18 9"/>
-          </svg>
-        </button>
+        <HeaderButtons btnClass="sc-hdr-btn x-hdr-btn" labelClass="sc-hdr-label" accent={XP.text}
+          copied={copied} onCopy={copyLink}
+          href={href} openTitle="Open on X"
+          collapsed={collapsed} onToggle={toggleCollapse}/>
       </div>
       <div className={`sc-body ${collapsed ? 'closed' : 'open'}`}>
         <div style={{ padding:'16px 20px', display:'flex', alignItems:'center', gap:'14px' }}>
@@ -81,7 +53,6 @@ export function XCard({ handle, url }) {
             <span>Follow</span>
           </a>
         </div>
-        <div style={{ borderTop:`1px solid ${XP.div}`, height:'10px' }}></div>
       </div>
     </div>
   );
