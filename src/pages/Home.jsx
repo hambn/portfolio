@@ -1,16 +1,7 @@
 // Home.jsx — landing page
 // Data: contents/home/profile.json, contents/home/resume.json, contents/links/links.json
+import { useWindowWidth } from '../components/Nav.jsx';
 const { useState, useEffect } = React;
-
-function useWindowWidth() {
-  const [width, setWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
-  useEffect(() => {
-    const fn = () => setWidth(window.innerWidth);
-    window.addEventListener('resize', fn);
-    return () => window.removeEventListener('resize', fn);
-  }, []);
-  return width;
-}
 
 const WorkIcon = () => (
   <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"
@@ -158,7 +149,7 @@ function Home() {
       {/* ── Intro ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '32px' }}>
         <img
-          src={profile?.avatar || `https://avatars.githubusercontent.com/${profile?.handle || 'hambn'}`}
+          src={profile?.avatar || (profile?.handle && `https://avatars.githubusercontent.com/${profile.handle}`) || undefined}
           alt={profile?.name || ''}
           style={{ width: '72px', height: '72px', borderRadius: '50%', border: '2px solid var(--border)', flexShrink: 0 }}
         />
@@ -177,9 +168,9 @@ function Home() {
       </p>
 
       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '56px' }}>
-        <a href="/projects"  onClick={(e) => { e.preventDefault(); window.navigate && window.navigate('projects');  }} className="btn btn-default btn-md">projects</a>
-        <a href="/blog"      onClick={(e) => { e.preventDefault(); window.navigate && window.navigate('blog');      }} className="btn btn-outline btn-md">blog</a>
-        <a href="/links" onClick={(e) => { e.preventDefault(); window.navigate && window.navigate('links'); }} className="btn btn-ghost btn-md">social & contact →</a>
+        <a href="/projects" onClick={(e) => { e.preventDefault(); window.navigate('projects'); }} className="btn btn-default btn-md">projects</a>
+        <a href="/blog"     onClick={(e) => { e.preventDefault(); window.navigate('blog');     }} className="btn btn-outline btn-md">blog</a>
+        <a href="/links"    onClick={(e) => { e.preventDefault(); window.navigate('links');    }} className="btn btn-ghost btn-md">social & contact →</a>
       </div>
 
       {/* ── Work & education timeline ── */}
@@ -200,7 +191,7 @@ function Home() {
         <div style={{ marginBottom: '40px' }}>
           <a
             href="/resume"
-            onClick={(e) => { e.preventDefault(); window.navigate && window.navigate('resume'); }}
+            onClick={(e) => { e.preventDefault(); window.navigate('resume'); }}
             style={{
               display: 'inline-flex', alignItems: 'center', gap: '6px',
               fontSize: 'var(--text-sm)', color: 'var(--foreground-muted)',

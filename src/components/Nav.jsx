@@ -1,7 +1,7 @@
 // App.jsx — Nav + theme toggle
 const { useState, useEffect } = React;
 
-function useWindowWidth() {
+export function useWindowWidth() {
   const [w, setW] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
   useEffect(() => {
     const fn = () => setW(window.innerWidth);
@@ -27,7 +27,7 @@ function Nav({ page }) {
     window.PortfolioData.getProfile().then(setProfile).catch(() => {});
   }, []);
 
-  const handle = profile?.handle || 'hambn';
+  const handle = profile?.handle || '';
 
   const navItems = [
     { key: 'projects', label: 'projects' },
@@ -37,12 +37,12 @@ function Nav({ page }) {
 
   const go = (key) => (e) => {
     e.preventDefault();
-    window.navigate && window.navigate(key);
+    window.navigate(key);
   };
 
   const goHome = (e) => {
     e.preventDefault();
-    window.navigate && window.navigate('home');
+    window.navigate('home');
   };
 
   const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');

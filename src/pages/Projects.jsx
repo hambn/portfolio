@@ -69,7 +69,8 @@ function Projects() {
     (async () => {
       try {
         const config   = await window.PortfolioData.getLinks();
-        const username = config?.github?.username || 'hambn';
+        const username = config?.github?.username;
+        if (!username) throw new Error('no github username in links.json');
         const r = await fetch(
           `https://api.github.com/users/${username}/repos?sort=updated&type=public&per_page=30`
         );
