@@ -30,9 +30,7 @@ async function withCache(request, fn, version) {
 //  SPOTIFY
 //  Secret:  SPOTIFY_CLIENT_ID  (wrangler secret put SPOTIFY_CLIENT_ID)
 //  KV:      SPOTIFY_KV         (stores rotating access_token + refresh_token)
-//  Routes:  /spotify  /spotify/status  /spotify/profile
-//           /spotify/favorites?type=tracks|artists&range=short_term|medium_term|long_term
-//           /spotify/recent
+//  Routes:  /spotify
 // ═══════════════════════════════════════════════════════════════════════════
 
 // Access token cached in KV (global, avoids per-DC race from CF Cache)
@@ -69,21 +67,18 @@ async function spotifyGet(path, accessToken) {
   return res.json();
 }
 
-async function handleSpotify(pathname, searchParams, request, env) {
-  const v = env.CACHE_VERSION;
-
+async function handleSpotify(pathname, env) {
   // GET /spotify — everything in one request, all fetched in parallel
   if (pathname === '/spotify') {
     const token = await getSpotifyToken(env);
     if (token.error) return json(token, 401);
 
-    const [status, profile, topTracks, topArtists, recent, following, playlists] = await Promise.all([
+    const [status, profile, topTracks, topArtists, recent, playlists] = await Promise.all([
       spotifyGet('/me/player/currently-playing', token.access_token),
       spotifyGet('/me', token.access_token),
       spotifyGet('/me/top/tracks?time_range=medium_term&limit=10', token.access_token),
       spotifyGet('/me/top/artists?time_range=medium_term&limit=10', token.access_token),
       spotifyGet('/me/player/recently-played?limit=10', token.access_token),
-      spotifyGet('/me/following?type=artist&limit=1', token.access_token),
       spotifyGet('/me/playlists?limit=50', token.access_token),
     ]);
 
@@ -97,69 +92,21 @@ async function handleSpotify(pathname, searchParams, request, env) {
       : null;
 
     const contextPlaylist = contextRaw ? {
-      id:           contextRaw.id,
-      name:         contextRaw.name,
-      description:  contextRaw.description,
-      images:       contextRaw.images,
-      url:          contextRaw.external_urls?.spotify,
-      followers:    contextRaw.followers?.total ?? 0,
-      totalTracks:  contextRaw.tracks?.total ?? 0,
-      previewTracks: contextRaw.tracks?.items?.slice(0, 5).map(i => i.track).filter(Boolean),
+      id:          contextRaw.id,
+      name:        contextRaw.name,
+      images:      contextRaw.images,
+      url:         contextRaw.external_urls?.spotify,
+      totalTracks: contextRaw.tracks?.total ?? 0,
     } : null;
 
     return json({
       status:        { ...(status ?? { playing: false }), contextPlaylist },
       profile,
-      followingCount: following?.artists?.total ?? 0,
       topTracks,
       topArtists,
       recent,
       playlists: playlists?.items?.filter(p => p.owner?.id === profile?.id && p.public) ?? [],
     });
-  }
-
-  // GET /spotify/status — real-time, no cache
-  if (pathname === '/spotify/status') {
-    const token = await getSpotifyToken(env);
-    if (token.error) return json(token, 401);
-    return json((await spotifyGet('/me/player/currently-playing', token.access_token)) ?? { playing: false });
-  }
-
-  // GET /spotify/profile — cache 1h
-  if (pathname === '/spotify/profile') {
-    return withCache(request, async () => {
-      const token = await getSpotifyToken(env);
-      if (token.error) return json(token, 401);
-      return json(await spotifyGet('/me', token.access_token), 200, 3600);
-    }, v);
-  }
-
-  // GET /spotify/favorites?type=tracks|artists&range=short_term|medium_term|long_term — cache 1h
-  if (pathname === '/spotify/favorites') {
-    return withCache(request, async () => {
-      const type = searchParams.get('type') ?? 'tracks';
-      const range = searchParams.get('range') ?? 'medium_term';
-      const token = await getSpotifyToken(env);
-      if (token.error) return json(token, 401);
-      return json(
-        await spotifyGet(`/me/top/${type}?time_range=${range}&limit=10`, token.access_token),
-        200,
-        3600,
-      );
-    }, v);
-  }
-
-  // GET /spotify/recent — cache 5m
-  if (pathname === '/spotify/recent') {
-    return withCache(request, async () => {
-      const token = await getSpotifyToken(env);
-      if (token.error) return json(token, 401);
-      return json(
-        await spotifyGet('/me/player/recently-played?limit=10', token.access_token),
-        200,
-        300,
-      );
-    }, v);
   }
 
   return null;
@@ -179,10 +126,8 @@ const STEAM_STATUS = ['Offline', 'Online', 'Busy', 'Away', 'Snooze', 'Looking to
 function steamGameImages(appid) {
   const base = `https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}`;
   return {
-    header:  `${base}/header.jpg`,
-    capsule: `${base}/capsule_231x87.jpg`,
-    hero:    `${base}/library_hero.jpg`,
-    logo:    `${base}/logo.png`,
+    header: `${base}/header.jpg`,
+    hero:   `${base}/library_hero.jpg`,
   };
 }
 
@@ -218,8 +163,6 @@ async function handleSteam(pathname, request, env) {
     const allGames    = ownedData?.response?.games ?? [];
     const recentGames = recentData?.response?.games ?? [];
 
-    const vanityMatch = player.profileurl?.match(/steamcommunity\.com\/id\/([^/]+)\//);
-    const username    = vanityMatch ? vanityMatch[1] : null;
     const favoriteRaw = [...allGames].sort((a, b) => b.playtime_forever - a.playtime_forever)[0];
     const currentGame = player.gameid
       ? { appid: player.gameid, name: player.gameextrainfo, images: steamGameImages(player.gameid) }
@@ -227,9 +170,6 @@ async function handleSteam(pathname, request, env) {
 
     return json({
       displayName: player.personaname,
-      realName:    player.realname ?? null,
-      username,
-      steamId:     player.steamid,
       profileUrl:  player.profileurl,
       avatar: {
         small:  player.avatar,
@@ -238,7 +178,6 @@ async function handleSteam(pathname, request, env) {
       },
       status:      STEAM_STATUS[player.personastate] ?? 'Offline',
       level,
-      country:     player.loccountrycode ?? null,
       memberSince: player.timecreated
         ? new Date(player.timecreated * 1000).toISOString().slice(0, 10)
         : null,
@@ -290,14 +229,7 @@ async function handleDiscord(pathname, request, env) {
       id:          user.id,
       avatar:      avatarUrl,
       status:      data.discord_status,         // online | idle | dnd | offline
-      activeOn: {
-        desktop: data.active_on_discord_desktop,
-        mobile:  data.active_on_discord_mobile,
-        web:     data.active_on_discord_web,
-      },
-      activities:       data.activities,         // games, custom status, etc.
-      listeningSpotify: data.listening_to_spotify,
-      spotify:          data.spotify,            // null or { song, artist, album, album_art_url, ... }
+      activities:  data.activities,             // games, custom status, etc.
     }, 200, 60);
   }, env.CACHE_VERSION);
 }
@@ -311,9 +243,9 @@ export default {
   async fetch(request, env) {
     if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });
 
-    const { pathname, searchParams } = new URL(request.url);
+    const { pathname } = new URL(request.url);
 
-    if (pathname.startsWith('/spotify'))  return (await handleSpotify(pathname, searchParams, request, env)) ?? json({ error: 'not found' }, 404);
+    if (pathname.startsWith('/spotify'))  return (await handleSpotify(pathname, env)) ?? json({ error: 'not found' }, 404);
     if (pathname.startsWith('/steam'))    return (await handleSteam(pathname, request, env))    ?? json({ error: 'not found' }, 404);
     if (pathname.startsWith('/discord'))  return (await handleDiscord(pathname, request, env))  ?? json({ error: 'not found' }, 404);
 
