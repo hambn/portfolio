@@ -1,6 +1,6 @@
 // DiscordCard.jsx — Discord presence card, themed like Spotify/Steam/LinkedIn
 // Uses https://api.portfolio.hgh.dev/discord + Lanyard WebSocket (passed as lanyardData)
-import { useCollapsed, useCopy, usePolledJSON, HeaderButtons } from './shared.jsx';
+import { ensureScStyles, useCollapsed, useCopy, usePolledJSON, HeaderButtons } from './shared.jsx';
 
 const { useState } = React;
 
@@ -10,19 +10,8 @@ function ensureDcStyles() {
   _dcStyleDone = true;
   const el = document.createElement('style');
   el.textContent = `
-    .dc-hdr-btn{opacity:0.55;transition:opacity 0.12s,color 0.12s;background:none;border:none;cursor:pointer;
-      display:flex;align-items:center;gap:5px;color:#80848e;padding:4px 7px;border-radius:4px;
-      font-size:11px;font-family:inherit;white-space:nowrap;}
-    .dc-hdr-btn:hover{opacity:1;color:#dbdee1;}
-    .dc-body{overflow:hidden;transition:max-height 0.4s ease,opacity 0.25s ease;}
-    .dc-body.open{max-height:2000px;opacity:1;}
-    .dc-body.closed{max-height:0;opacity:0;pointer-events:none;}
     .dc-open-btn{transition:background 0.15s,color 0.15s,border-color 0.15s;}
     .dc-open-btn:hover{background:rgba(88,101,242,0.2) !important;color:#fff !important;border-color:#5865F2 !important;}
-    @media(max-width:540px){
-      .dc-hdr-label{display:none;}
-      .dc-hdr-btn{padding:4px 5px;}
-    }
   `;
   document.head.appendChild(el);
 }
@@ -52,19 +41,11 @@ function DcIcon({ size, color }) {
 }
 
 export function DiscordCard({ userId, lanyardData, apiEndpoint }) {
+  ensureScStyles();
   ensureDcStyles();
 
   const [apiData,   setApiData]   = useState(null);
   const [collapsed, toggleCollapse] = useCollapsed('dc_card_collapsed');
-
-  // Normalize API response — { success, data }, flat api.portfolio.hgh.dev
-  // ({ username, status, avatar }), or bare Lanyard ({ discord_user, ... }).
-  const normalize = (d) => {
-    if (!d || typeof d !== 'object') return null;
-    if (d.success && d.data) return d.data;
-    if (d.username || d.discord_user || d.discord_status) return d;
-    return null;
-  };
 
   // Prefer live API data, fall back to Lanyard WebSocket. The two shapes
   // differ: the flat API gives a full avatar URL + top-level fields, Lanyard
@@ -92,8 +73,7 @@ export function DiscordCard({ userId, lanyardData, apiEndpoint }) {
 
   const [copied, copyLink] = useCopy(profileUrl);
   const { loading } = usePolledJSON(apiEndpoint, 30000, (d) => {
-    const n = normalize(d);
-    if (n) setApiData(n);
+    if (d?.username) setApiData(d); // flat api.portfolio.hgh.dev shape only
   });
 
   // Game activity image URL helper
@@ -122,14 +102,14 @@ export function DiscordCard({ userId, lanyardData, apiEndpoint }) {
 
         <div style={{ flex:1 }}/>
 
-        <HeaderButtons btnClass="dc-hdr-btn" labelClass="dc-hdr-label" accent={DC.blurpleLt}
+        <HeaderButtons btnClass="sc-hdr-btn dc-hdr-btn" labelClass="sc-hdr-label" accent={DC.blurpleLt}
           copied={copied} onCopy={copyLink} copyTitle="Copy profile link"
           href={profileUrl} openLabel="open profile" openTitle="Open Discord profile"
           collapsed={collapsed} onToggle={toggleCollapse}/>
       </div>
 
       {/* ── Collapsible body ── */}
-      <div className={`dc-body ${collapsed ? 'closed' : 'open'}`}>
+      <div className={`sc-body ${collapsed ? 'closed' : 'open'}`}>
 
         {/* Profile row */}
         <div style={{ padding:'16px 20px', borderBottom:`1px solid ${DC.div}`,

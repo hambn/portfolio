@@ -1,5 +1,8 @@
-import { ICON_PATHS, useCollapsed, useCopy, HeaderButtons } from './shared.jsx';
+import { ensureScStyles, useCollapsed, useCopy, HeaderButtons } from './shared.jsx';
 const { useState } = React;
+
+// Simple Icons LinkedIn glyph
+const LI_ICON = 'M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 23.2 23.227 23.2 22.271V1.729C24 .774 23.2 0 22.222 0h.003z';
 
 let _liStyleDone = false;
 function ensureLiStyles() {
@@ -7,24 +10,14 @@ function ensureLiStyles() {
   _liStyleDone = true;
   const el = document.createElement('style');
   el.textContent = `
-    .li-hdr-btn{opacity:0.55;transition:opacity 0.12s,color 0.12s;background:none;border:none;cursor:pointer;
-      display:flex;align-items:center;gap:5px;color:#b0b7be;padding:4px 7px;border-radius:4px;
-      font-size:11px;font-family:inherit;white-space:nowrap;}
-    .li-hdr-btn:hover{opacity:1;color:#e7e9ea;}
     .li-view-btn{transition:background 0.15s,border-color 0.15s,color 0.15s;}
     .li-view-btn:hover{background:rgba(112,181,249,0.18) !important;border-color:#70b5f9 !important;color:#fff !important;}
-    .li-body{overflow:hidden;transition:max-height 0.35s ease,opacity 0.22s ease;}
-    .li-body.open{max-height:2000px;opacity:1;}
-    .li-body.closed{max-height:0;opacity:0;pointer-events:none;}
-    @media(max-width:540px){
-      .li-hdr-label{display:none;}
-      .li-hdr-btn{padding:4px 5px;}
-    }
   `;
   document.head.appendChild(el);
 }
 
 export function LinkedInCard({ handle, url, name, headline, location, connections, followers, banner, avatar }) {
+  ensureScStyles();
   ensureLiStyles();
 
   const profileHref = url || `https://linkedin.com/in/${handle}`;
@@ -61,21 +54,21 @@ export function LinkedInCard({ handle, url, name, headline, location, connection
         <a href={profileHref} target="_blank" rel="noopener noreferrer"
           style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', flexShrink: 0 }}>
           <div style={{ background: LI.blue, borderRadius: '4px', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <svg viewBox="0 0 24 24" fill="white" width="13" height="13"><path d={ICON_PATHS.linkedin}/></svg>
+            <svg viewBox="0 0 24 24" fill="white" width="13" height="13"><path d={LI_ICON}/></svg>
           </div>
           <span style={{ fontWeight: '700', fontSize: '13px', color: LI.blueLt, letterSpacing: '0.08em', textTransform: 'uppercase' }}>linkedin</span>
         </a>
 
         <div style={{ flex: 1 }} />
 
-        <HeaderButtons btnClass="li-hdr-btn" labelClass="li-hdr-label" accent={LI.blueLt}
+        <HeaderButtons btnClass="sc-hdr-btn li-hdr-btn" labelClass="sc-hdr-label" accent={LI.blueLt}
           copied={copied} onCopy={copyLink} copyTitle="Copy profile link"
           href={profileHref} openLabel="open profile" openTitle="Open on LinkedIn"
           collapsed={collapsed} onToggle={toggleCollapse}/>
       </div>
 
       {/* ── Collapsible body ── */}
-      <div className={`li-body ${collapsed ? 'closed' : 'open'}`}>
+      <div className={`sc-body ${collapsed ? 'closed' : 'open'}`}>
 
         {/* Banner */}
         <div style={{ height: '100px', background: LI.banner, position: 'relative', flexShrink: 0 }}>
@@ -129,7 +122,7 @@ export function LinkedInCard({ handle, url, name, headline, location, connection
               style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 16px',
                 border: `1px solid ${LI.blue}`, borderRadius: '100px', flexShrink: 0,
                 color: LI.blueLt, fontSize: '12px', fontWeight: '600', textDecoration: 'none' }}>
-              <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d={ICON_PATHS.linkedin}/></svg>
+              <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13"><path d={LI_ICON}/></svg>
               View profile
             </a>
           </div>

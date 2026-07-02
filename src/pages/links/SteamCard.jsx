@@ -1,7 +1,7 @@
 // SteamCard.jsx — Steam card, API endpoint driven
 // NOTE: all internal components are prefixed "St" to avoid scope collision with
 // other Babel scripts (SpotifyCard defines RecentSection, etc. in the same window).
-import { useCollapsed, useCopy, usePolledJSON, HeaderButtons } from './shared.jsx';
+import { ensureScStyles, useCollapsed, useCopy, usePolledJSON, HeaderButtons } from './shared.jsx';
 
 const { useState } = React;
 
@@ -12,22 +12,13 @@ function ensureStStyles() {
   _stStyleDone = true;
   const el = document.createElement('style');
   el.textContent = `
-    .st-hdr-btn{opacity:0.55;transition:opacity 0.12s,color 0.12s;background:none;border:none;cursor:pointer;
-      display:flex;align-items:center;gap:5px;color:#8f98a0;padding:4px 7px;border-radius:4px;
-      font-size:11px;font-family:inherit;white-space:nowrap;}
-    .st-hdr-btn:hover{opacity:1;color:#c7d5e0;}
     .st-game-row{transition:background 0.1s;}
     .st-game-row:hover{background:rgba(102,192,244,0.07);border-radius:5px;}
-    .st-body{overflow:hidden;transition:max-height 0.4s ease,opacity 0.25s ease;}
-    .st-body.open{max-height:4000px;opacity:1;}
-    .st-body.closed{max-height:0;opacity:0;pointer-events:none;}
     .st-open-btn{transition:background 0.15s,color 0.15s,border-color 0.15s;}
     .st-open-btn:hover{background:rgba(102,192,244,0.15) !important;color:#fff !important;border-color:#66c0f4 !important;}
     .st-hero-img{transition:transform 0.2s;}
     .st-hero-link:hover .st-hero-img{transform:scale(1.02);}
     @media(max-width:540px){
-      .st-hdr-label{display:none;}
-      .st-hdr-btn{padding:4px 5px;}
       .st-open-label{display:none;}
     }
   `;
@@ -169,6 +160,7 @@ function StFavoriteSection({ game }) {
 
 // ── Main SteamCard ────────────────────────────────────────────────────────────
 export function SteamCard({ handle, url, apiEndpoint }) {
+  ensureScStyles();
   ensureStStyles();
 
   const [data,      setData]      = useState(null);
@@ -219,14 +211,14 @@ export function SteamCard({ handle, url, apiEndpoint }) {
 
         <div style={{ flex:1 }}/>
 
-        <HeaderButtons btnClass="st-hdr-btn" labelClass="st-hdr-label" accent={ST.blue}
+        <HeaderButtons btnClass="sc-hdr-btn st-hdr-btn" labelClass="sc-hdr-label" accent={ST.blue}
           copied={copied} onCopy={copyLink} copyLabel="copy profile link" copyTitle="Copy profile link"
           href={profileUrl} openLabel="open in steam" openTitle="Open in Steam"
           collapsed={collapsed} onToggle={toggleCollapse}/>
       </div>
 
       {/* ── Collapsible body ── */}
-      <div className={`st-body ${collapsed ? 'closed' : 'open'}`}>
+      <div className={`sc-body ${collapsed ? 'closed' : 'open'}`}>
 
         {/* ── Profile row — status lives here, next to name ── */}
         {data && (

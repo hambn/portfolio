@@ -14,37 +14,20 @@ import { SteamCard } from './SteamCard.jsx';
 const { useState, useEffect } = React;
 
 function Links() {
-  const [config,        setConfig]        = useState(null);
-  const [lanyardData,   setLanyardData]   = useState(null);
-  // 'connecting' | 'ok' | 'not_found' | 'error'
-  const [lanyardStatus, setLanyardStatus] = useState('connecting');
+  const [config,      setConfig]      = useState(null);
+  const [lanyardData, setLanyardData] = useState(null);
 
   useEffect(() => {
     window.PortfolioData.getLinks().then(setConfig).catch(() => {});
   }, []);
 
-  // Lanyard — REST pre-check then WebSocket for real-time presence
+  // Lanyard WebSocket for real-time presence (INIT_STATE arrives on subscribe)
   useEffect(() => {
     const userId = config?.discord?.userId;
-    if (!userId) { setLanyardStatus('error'); return; }
+    if (!userId) return;
 
     let ws, heartbeat, cancelled = false;
 
-    // REST pre-check: tells us immediately if user is tracked
-    fetch(`https://api.lanyard.rest/v1/users/${userId}`)
-      .then(r => r.json())
-      .then(d => {
-        if (cancelled) return;
-        if (d.success) {
-          setLanyardStatus('ok');
-          setLanyardData(d.data);
-        } else {
-          setLanyardStatus('not_found');
-        }
-      })
-      .catch(() => { if (!cancelled) setLanyardStatus('error'); });
-
-    // WebSocket for real-time updates
     function connect() {
       if (cancelled) return;
       ws = new WebSocket('wss://api.lanyard.rest/socket');
@@ -60,10 +43,7 @@ function Links() {
           ws.send(JSON.stringify({ op: 2, d: { subscribe_to_id: userId } }));
         }
 
-        if (op === 0 && d) {
-          setLanyardData(d);
-          setLanyardStatus('ok');
-        }
+        if (op === 0 && d) setLanyardData(d);
       };
 
       ws.onclose = () => {

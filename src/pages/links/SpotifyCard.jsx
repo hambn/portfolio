@@ -1,7 +1,7 @@
 // SpotifyCard.jsx — Spotify card, API endpoint only
-// Fields used: status.{playing,is_playing,item,track,progress_ms,context,contextPlaylist}
+// Fields used: status.{is_playing,item,progress_ms,context,contextPlaylist}
 //              profile, topTracks, topArtists, recent, playlists
-import { useCollapsed, useCopy, usePolledJSON, HeaderButtons } from './shared.jsx';
+import { ensureScStyles, useCollapsed, useCopy, usePolledJSON, HeaderButtons } from './shared.jsx';
 
 const { useState, useEffect } = React;
 
@@ -20,10 +20,6 @@ function ensureSpStyles() {
     .sp-track-row{transition:background 0.1s;}
     .sp-track-row:hover{background:rgba(255,255,255,0.05);border-radius:5px;}
     .sp-tab-btn:hover{color:#b3b3b3 !important;}
-    .sp-hdr-btn{opacity:0.55;transition:opacity 0.12s,color 0.12s;background:none;border:none;cursor:pointer;
-      display:flex;align-items:center;gap:5px;color:#b3b3b3;padding:4px 7px;border-radius:4px;
-      font-size:11px;font-family:inherit;white-space:nowrap;}
-    .sp-hdr-btn:hover{opacity:1;color:#fff;}
     .sp-artist-cell img{transition:transform 0.15s;}
     .sp-artist-cell:hover img{transform:scale(1.06);}
     .sp-artist-cell:hover .sp-artist-name{color:#fff !important;}
@@ -31,16 +27,11 @@ function ensureSpStyles() {
     .sp-pl-cell img{transition:transform 0.15s;}
     .sp-pl-cell:hover img{transform:scale(1.04);}
     .sp-ctx-pl:hover{background:rgba(255,255,255,0.1) !important;}
-    .sp-body{overflow:hidden;transition:max-height 0.35s ease,opacity 0.22s ease;}
-    .sp-body.open{max-height:4000px;opacity:1;}
-    .sp-body.closed{max-height:0;opacity:0;pointer-events:none;}
     .sp-tabs-bar::-webkit-scrollbar{display:none;}
     .sp-tabs-bar{scrollbar-width:none;-ms-overflow-style:none;}
     .sp-open-btn{transition:background 0.15s,color 0.15s,border-color 0.15s;}
     .sp-open-btn:hover{background:rgba(29,185,84,0.18) !important;color:#fff !important;border-color:#1DB954 !important;}
     @media(max-width:540px){
-      .sp-hdr-label{display:none;}
-      .sp-hdr-btn{padding:4px 5px;}
       .sp-now-track-name{font-size:13px !important;}
       .sp-tab-btn{padding:8px 6px !important;font-size:10px !important;letter-spacing:0.04em !important;}
       .sp-profile-section{padding:12px 14px !important;align-items:center !important;}
@@ -130,11 +121,11 @@ function NowPlayingSection({ item, progressMs, context, contextPlaylist }) {
   // contextPlaylist: enriched playlist from API (status.contextPlaylist)
   // fallback to context.external_urls for a basic link
   const playlist = contextPlaylist || null;
-  const playlistUrl = playlist?.external_urls?.spotify
+  const playlistUrl = playlist?.url
     || (context?.type === 'playlist' ? context?.external_urls?.spotify : null);
   const playlistImg = playlist?.images?.[0]?.url || playlist?.images?.[1]?.url;
   const playlistName = playlist?.name;
-  const playlistTotal = playlist?.tracks?.total;
+  const playlistTotal = playlist?.totalTracks;
 
   return (
     <div>
@@ -332,6 +323,7 @@ export function SpotifySimpleCard({ userId }) {
 
 // ── Main SpotifyCard ──────────────────────────────────────────────────────────
 export function SpotifyCard({ userId, apiEndpoint }) {
+  ensureScStyles();
   ensureSpStyles();
 
   const [data,       setData]       = useState(null);
@@ -341,8 +333,8 @@ export function SpotifyCard({ userId, apiEndpoint }) {
 
   const profile      = data?.profile;
   const status       = data?.status;
-  const isPlaying    = !!((status?.playing || status?.is_playing) && (status?.item || status?.track));
-  const currentItem  = status?.item || status?.track || null;
+  const isPlaying    = !!(status?.is_playing && status?.item);
+  const currentItem  = status?.item || null;
   const ctxPlaylist  = status?.contextPlaylist || null;
   const profileHref  = profile?.external_urls?.spotify
     || (userId ? `https://open.spotify.com/user/${userId}` : 'https://open.spotify.com');
@@ -359,11 +351,9 @@ export function SpotifyCard({ userId, apiEndpoint }) {
       return;
     }
     setData(prev => {
-      const wasPlaying = !!(prev?.status?.playing || prev?.status?.is_playing);
-      const nowPlaying = !!(d.status?.playing || d.status?.is_playing);
-      const prevTrackId = prev?.status?.item?.id || prev?.status?.track?.id;
-      const newTrackId  = d.status?.item?.id  || d.status?.track?.id;
-      if ((!wasPlaying && nowPlaying) || (nowPlaying && prevTrackId !== newTrackId)) {
+      const wasPlaying = !!prev?.status?.is_playing;
+      const nowPlaying = !!d.status?.is_playing;
+      if ((!wasPlaying && nowPlaying) || (nowPlaying && prev?.status?.item?.id !== d.status?.item?.id)) {
         setProgressMs(d.status?.progress_ms || 0);
       }
       return d;
@@ -377,16 +367,7 @@ export function SpotifyCard({ userId, apiEndpoint }) {
     return () => clearInterval(t);
   }, [isPlaying, currentItem?.id]);
 
-  // Early return after all hooks
-  if (!apiEndpoint) {
-    return userId ? <SpotifySimpleCard userId={userId}/> : null;
-  }
-
-  // Support both { items: [...] } and plain array for playlists
-  const rawPlaylists = data?.playlists;
-  const playlistItems = Array.isArray(rawPlaylists)
-    ? rawPlaylists
-    : (rawPlaylists?.items || []);
+  const playlistItems = data?.playlists || [];
 
   const TABS = [
     { id:'recent',    label:'recent'    },
@@ -413,14 +394,14 @@ export function SpotifyCard({ userId, apiEndpoint }) {
 
         <div style={{ flex:1 }}/>
 
-        <HeaderButtons btnClass="sp-hdr-btn" labelClass="sp-hdr-label" accent={SP.green}
+        <HeaderButtons btnClass="sc-hdr-btn sp-hdr-btn" labelClass="sc-hdr-label" accent={SP.green}
           copied={copied} onCopy={copyLink} copyLabel="copy profile link" copyTitle="Copy profile link"
           href={profileHref} openLabel="open in spotify" openTitle="Open in Spotify"
           collapsed={collapsed} onToggle={toggleCollapse}/>
       </div>
 
       {/* ── Collapsible body ── */}
-      <div className={`sp-body ${collapsed ? 'closed' : 'open'}`}>
+      <div className={`sc-body ${collapsed ? 'closed' : 'open'}`}>
 
         {/* Profile */}
         {profile && (
