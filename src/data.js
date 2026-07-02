@@ -33,7 +33,7 @@ window.PortfolioData = (() => {
   };
 
   const getJSON = async (path) => {
-    const r = await fetch(BASE + path, { cache: 'no-store' });
+    const r = await fetch(BASE + path);
     if (!r.ok) throw new Error(`[PortfolioData] ${r.status} — ${path}`);
     return r.json();
   };
