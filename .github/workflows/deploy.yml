@@ -38,6 +38,10 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          # Pages backend sometimes sits in deployment_queued well past the
+          # default 10-minute poll window; give it 30 minutes before aborting.
+          timeout: 1800000
 
   deploy-worker:
     runs-on: ubuntu-latest
