@@ -13,11 +13,7 @@ import './styles/blog.css';
 // Content layer + page components register themselves on window.
 import './data.js';
 import './components/Nav.jsx';
-import './pages/Home.jsx';
-import './pages/Projects.jsx';
-import './pages/blog/Blog.jsx';
-import './pages/links/Links.jsx'; // pulls in its own card components
-import './pages/Resume.jsx';
+import './pages/index.js';
 
 // Round the tab favicon client-side: GitHub's avatar CDN sends CORS headers,
 // so canvas can crop it circular (an SVG favicon can't reference cross-origin

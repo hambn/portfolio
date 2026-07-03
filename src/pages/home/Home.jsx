@@ -1,6 +1,6 @@
 // Home.jsx — landing page
 // Data: contents/home/profile.json, contents/home/resume.json, contents/links/links.json
-import { useWindowWidth } from '../components/Nav.jsx';
+import { useWindowWidth } from '../../components/Nav.jsx';
 const { useState, useEffect } = React;
 
 const WorkIcon = () => (
