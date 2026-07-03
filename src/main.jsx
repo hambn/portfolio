@@ -19,6 +19,34 @@ import './pages/blog/Blog.jsx';
 import './pages/links/Links.jsx'; // pulls in its own card components
 import './pages/Resume.jsx';
 
+// Round the tab favicon client-side: GitHub's avatar CDN sends CORS headers,
+// so canvas can crop it circular (an SVG favicon can't reference cross-origin
+// images at all — this sidesteps that restriction) while staying a live URL.
+(function roundFavicon(url) {
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    const size = 64;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d');
+    ctx.beginPath();
+    ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(img, 0, 0, size, size);
+    let link = document.querySelector("link[rel='icon']");
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      document.head.appendChild(link);
+    }
+    link.type = 'image/png';
+    link.href = canvas.toDataURL('image/png');
+  };
+  img.src = url;
+})('https://avatars.githubusercontent.com/hambn');
+
 const { useState, useEffect } = React;
 
 // Base dir this app is served from (e.g. "/portfolio" on GitHub project pages).
