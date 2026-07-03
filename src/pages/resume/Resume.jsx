@@ -3,12 +3,12 @@ const { useState, useEffect } = React;
 
 function ResumeSectionLabel({ text }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+    <div className="resume-section-label" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
       <span style={{
         fontSize: '10px', fontWeight: '600', textTransform: 'uppercase',
         letterSpacing: '0.1em', color: 'var(--foreground-subtle)', whiteSpace: 'nowrap',
       }}>{text}</span>
-      <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+      <div className="resume-rule" style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
     </div>
   );
 }
@@ -19,7 +19,7 @@ function ResumeEntry({ role, degree, company, school, location, start, end, desc
   const isActive = end === 'present';
 
   return (
-    <div style={{ marginBottom: '22px' }}>
+    <div className="resume-entry" style={{ marginBottom: '22px' }}>
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
         gap: '16px', marginBottom: '4px',
@@ -90,11 +90,21 @@ function Resume() {
     s.id = 'resume-print-css';
     s.textContent = `
       @media print {
-        nav                { display: none !important; }
-        .resume-print-btn  { display: none !important; }
-        body               { background: #fff !important; color: #0a0a0b !important; }
+        nav                   { display: none !important; }
+        .resume-print-btn     { display: none !important; }
+        body                  { background: #fff !important; color: #0a0a0b !important; }
+        .resume-main          { padding: 0 !important; max-width: none !important; }
+        .resume-main, .resume-main * { color: #000 !important; border-color: #000 !important; background: transparent !important; }
+        .resume-main a        { color: #000 !important; text-decoration: underline !important; }
+        .resume-rule          { background: #000 !important; opacity: 0.3 !important; }
+        .resume-header        { margin-bottom: 18px !important; }
+        .resume-bio           { margin-bottom: 16px !important; max-width: none !important; }
+        .resume-section       { margin-bottom: 14px !important; }
+        .resume-section-label { margin-bottom: 10px !important; }
+        .resume-entry         { margin-bottom: 12px !important; }
+        .resume-entry p, .resume-entry div[style*="line-height"] { line-height: 1.45 !important; }
       }
-      @page { margin: 1cm 1.5cm; }
+      @page { margin: 0.9cm 1.4cm; }
     `;
     document.head.appendChild(s);
     return () => document.getElementById('resume-print-css')?.remove();
@@ -112,7 +122,7 @@ function Resume() {
   ].filter(Boolean);
 
   return (
-    <main style={{
+    <main className="resume-main" style={{
       maxWidth: '760px', margin: '0 auto',
       padding: '96px 24px 80px',
       fontFamily: 'var(--font-mono)',
@@ -140,7 +150,7 @@ function Resume() {
       </button>
 
       {/* ── Header ── */}
-      <header style={{
+      <header className="resume-header" style={{
         display: 'flex', justifyContent: 'space-between',
         alignItems: 'flex-start', marginBottom: '36px', gap: '24px',
       }}>
@@ -179,7 +189,7 @@ function Resume() {
       </header>
 
       {profile?.bio && (
-        <p style={{
+        <p className="resume-bio" style={{
           fontSize: '12px', color: 'var(--foreground-muted)',
           lineHeight: '1.75', marginBottom: '32px', maxWidth: '520px',
         }}>
@@ -187,29 +197,29 @@ function Resume() {
         </p>
       )}
 
-      <div style={{ height: '1px', background: 'var(--border)', marginBottom: '32px' }} />
+      <div className="resume-rule" style={{ height: '1px', background: 'var(--border)', marginBottom: '32px' }} />
 
       {/* ── Experience ── */}
       {experience.length > 0 && (
-        <section style={{ marginBottom: '32px' }}>
+        <section className="resume-section" style={{ marginBottom: '32px' }}>
           <ResumeSectionLabel text="experience" />
           {experience.map((item, i) => <ResumeEntry key={i} {...item} />)}
-          <div style={{ height: '1px', background: 'var(--border)', marginTop: '4px' }} />
+          <div className="resume-rule" style={{ height: '1px', background: 'var(--border)', marginTop: '4px' }} />
         </section>
       )}
 
       {/* ── Education ── */}
       {education.length > 0 && (
-        <section style={{ marginBottom: '32px' }}>
+        <section className="resume-section" style={{ marginBottom: '32px' }}>
           <ResumeSectionLabel text="education" />
           {education.map((item, i) => <ResumeEntry key={i} {...item} />)}
-          <div style={{ height: '1px', background: 'var(--border)', marginTop: '4px' }} />
+          <div className="resume-rule" style={{ height: '1px', background: 'var(--border)', marginTop: '4px' }} />
         </section>
       )}
 
       {/* ── Skills ── */}
       {skills.length > 0 && (
-        <section>
+        <section className="resume-section">
           <ResumeSectionLabel text="skills" />
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
             {skills.map(s => (
