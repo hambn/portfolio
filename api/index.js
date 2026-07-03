@@ -210,6 +210,30 @@ async function handleSteam(pathname, request, env) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 async function handleDiscord(pathname, request, env) {
+  if (pathname === '/discord/avatar') {
+    // proxied through our own domain + edge cache, so the browser never hits discordapp.com
+    return withCache(request, async () => {
+      const res = await fetch(`https://api.lanyard.rest/v1/users/${env.DISCORD_ID}`);
+      const { success, data } = await res.json();
+      if (!success) return new Response(null, { status: 502 });
+
+      const user = data.discord_user;
+      const cdnUrl = user.avatar
+        ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.${user.avatar.startsWith('a_') ? 'gif' : 'png'}?size=256`
+        : `https://cdn.discordapp.com/embed/avatars/${BigInt(user.id) % 5n}.png`;
+
+      const img = await fetch(cdnUrl);
+      return new Response(img.body, {
+        status: img.status,
+        headers: {
+          'Content-Type': img.headers.get('Content-Type') ?? 'image/png',
+          ...CORS,
+          'Cache-Control': 'public, max-age=3600',
+        },
+      });
+    }, env.CACHE_VERSION);
+  }
+
   if (pathname !== '/discord') return null;
 
   return withCache(request, async () => {
@@ -219,15 +243,12 @@ async function handleDiscord(pathname, request, env) {
     if (!success) return json({ error: 'lanyard_failed' }, 200, 60);
 
     const user = data.discord_user;
-    const avatarUrl = user.avatar
-      ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.${user.avatar.startsWith('a_') ? 'gif' : 'png'}?size=256`
-      : `https://cdn.discordapp.com/embed/avatars/${BigInt(user.id) % 5n}.png`;
 
     return json({
       username:    user.username,
       displayName: user.global_name ?? user.username,
       id:          user.id,
-      avatar:      avatarUrl,
+      avatar:      `${new URL(request.url).origin}/discord/avatar`,
       status:      data.discord_status,         // online | idle | dnd | offline
       activities:  data.activities,             // games, custom status, etc.
     }, 200, 60);
