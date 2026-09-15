@@ -1,9 +1,12 @@
 // SpotifyCard.jsx — Spotify card, API endpoint only
 // Fields used: status.{is_playing,item,progress_ms,context,contextPlaylist}
 //              profile, topTracks, topArtists, recent, playlists
-import { ensureScStyles, useCollapsed, useCopy, usePolledJSON, HeaderButtons } from './shared.jsx';
-
-const { useState, useEffect } = React;
+import React, { useEffect, useState } from 'react';
+import { useCollapsed } from '../../hooks/useCollapsed.js';
+import { useCopy } from '../../hooks/useCopy.js';
+import { usePolledJSON } from '../../hooks/usePolledJSON.js';
+import { HeaderButtons } from '../../components/card/HeaderButtons.jsx';
+import { ensureScStyles } from '../../components/card/cardStyles.js';
 
 // ── One-time CSS ──────────────────────────────────────────────────────────────
 let _spStyleDone = false;

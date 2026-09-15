@@ -1,5 +1,6 @@
 // Resume.jsx — printable CV, integrated into the SPA router
-const { useState, useEffect } = React;
+import React, { useEffect, useState } from 'react';
+import { PortfolioData } from '../../lib/data.js';
 
 function ResumeSectionLabel({ text }) {
   return (
@@ -74,16 +75,16 @@ function ResumeEntry({ role, degree, company, school, location, start, end, desc
   );
 }
 
-function Resume() {
+export default function Resume() {
   const [resume,   setResume]   = useState(null);
   const [profile,  setProfile]  = useState(null);
   const [links,    setLinks]    = useState(null);
   const [btnHover, setBtnHover] = useState(false);
 
   useEffect(() => {
-    window.PortfolioData.getResume().then(setResume).catch(() => {});
-    window.PortfolioData.getProfile().then(setProfile).catch(() => {});
-    window.PortfolioData.getLinks().then(setLinks).catch(() => {});
+    PortfolioData.getResume().then(setResume).catch(() => {});
+    PortfolioData.getProfile().then(setProfile).catch(() => {});
+    PortfolioData.getLinks().then(setLinks).catch(() => {});
 
     // Inject print styles — hide nav & button, force white page
     const s = document.createElement('style');
@@ -237,4 +238,3 @@ function Resume() {
   );
 }
 
-Object.assign(window, { Resume });

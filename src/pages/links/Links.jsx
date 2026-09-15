@@ -1,6 +1,8 @@
 // Links.jsx — social cards page.
 // Each card lives in its own file in this folder; config comes from
 // contents/links/links.json (no hardcoded IDs/handles here).
+import React, { useEffect, useState } from 'react';
+import { PortfolioData } from '../../lib/data.js';
 import { EmailCard } from './EmailCard.jsx';
 import { DiscordCard } from './DiscordCard.jsx';
 import { TelegramCard } from './TelegramCard.jsx';
@@ -11,14 +13,12 @@ import { LinkedInCard } from './LinkedInCard.jsx';
 import { SpotifyCard, SpotifySimpleCard } from './SpotifyCard.jsx';
 import { SteamCard } from './SteamCard.jsx';
 
-const { useState, useEffect } = React;
-
-function Links() {
+export default function Links() {
   const [config,      setConfig]      = useState(null);
   const [lanyardData, setLanyardData] = useState(null);
 
   useEffect(() => {
-    window.PortfolioData.getLinks().then(setConfig).catch(() => {});
+    PortfolioData.getLinks().then(setConfig).catch(() => {});
   }, []);
 
   // Lanyard WebSocket for real-time presence (INIT_STATE arrives on subscribe)
@@ -121,5 +121,3 @@ function Links() {
     </main>
   );
 }
-
-Object.assign(window, { Links });

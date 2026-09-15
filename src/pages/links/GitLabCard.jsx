@@ -1,5 +1,10 @@
-import { ensureScStyles, ContribGraph, useCollapsed, useCopy, usePolledJSON, HeaderButtons } from './shared.jsx';
-const { useState } = React;
+import React, { useState } from 'react';
+import { useCollapsed } from '../../hooks/useCollapsed.js';
+import { useCopy } from '../../hooks/useCopy.js';
+import { usePolledJSON } from '../../hooks/usePolledJSON.js';
+import { ContribGraph } from '../../components/card/ContribGraph.jsx';
+import { HeaderButtons } from '../../components/card/HeaderButtons.jsx';
+import { ensureScStyles } from '../../components/card/cardStyles.js';
 
 const GL = {
   bg:     '#1f1f23',

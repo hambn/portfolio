@@ -1,8 +1,11 @@
 // DiscordCard.jsx — Discord presence card, themed like Spotify/Steam/LinkedIn
 // Uses https://api.portfolio.hgh.dev/discord + Lanyard WebSocket (passed as lanyardData)
-import { ensureScStyles, useCollapsed, useCopy, usePolledJSON, HeaderButtons } from './shared.jsx';
-
-const { useState } = React;
+import React, { useState } from 'react';
+import { useCollapsed } from '../../hooks/useCollapsed.js';
+import { useCopy } from '../../hooks/useCopy.js';
+import { usePolledJSON } from '../../hooks/usePolledJSON.js';
+import { HeaderButtons } from '../../components/card/HeaderButtons.jsx';
+import { ensureScStyles } from '../../components/card/cardStyles.js';
 
 let _dcStyleDone = false;
 function ensureDcStyles() {

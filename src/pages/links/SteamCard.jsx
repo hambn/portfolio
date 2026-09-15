@@ -1,9 +1,10 @@
 // SteamCard.jsx — Steam card, API endpoint driven
-// NOTE: all internal components are prefixed "St" to avoid scope collision with
-// other Babel scripts (SpotifyCard defines RecentSection, etc. in the same window).
-import { ensureScStyles, useCollapsed, useCopy, usePolledJSON, HeaderButtons } from './shared.jsx';
-
-const { useState } = React;
+import React, { useState } from 'react';
+import { useCollapsed } from '../../hooks/useCollapsed.js';
+import { useCopy } from '../../hooks/useCopy.js';
+import { usePolledJSON } from '../../hooks/usePolledJSON.js';
+import { HeaderButtons } from '../../components/card/HeaderButtons.jsx';
+import { ensureScStyles } from '../../components/card/cardStyles.js';
 
 // ── One-time CSS ───────────────────────────────────────────────────────────────
 let _stStyleDone = false;

@@ -1,5 +1,8 @@
-import { ensureScStyles, useCollapsed, useCopy, HeaderButtons } from './shared.jsx';
-const { useState } = React;
+import React, { useState } from 'react';
+import { useCollapsed } from '../../hooks/useCollapsed.js';
+import { useCopy } from '../../hooks/useCopy.js';
+import { HeaderButtons } from '../../components/card/HeaderButtons.jsx';
+import { ensureScStyles } from '../../components/card/cardStyles.js';
 
 export function EmailCard({ address }) {
   ensureScStyles();

@@ -1,17 +1,10 @@
-// App.jsx — Nav + theme toggle
-const { useState, useEffect } = React;
+// Nav.jsx — top navigation + theme toggle.
+import React, { useEffect, useState } from 'react';
+import { PortfolioData } from '../lib/data.js';
+import { navigate } from '../lib/router.js';
+import { useWindowWidth } from '../hooks/useWindowWidth.js';
 
-export function useWindowWidth() {
-  const [w, setW] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
-  useEffect(() => {
-    const fn = () => setW(window.innerWidth);
-    window.addEventListener('resize', fn);
-    return () => window.removeEventListener('resize', fn);
-  }, []);
-  return w;
-}
-
-function Nav({ page }) {
+export default function Nav({ page }) {
   const [theme,   setTheme]   = useState(() => localStorage.getItem('hambn-theme') || 'dark');
   const [profile, setProfile] = useState(null);
   const width    = useWindowWidth();
@@ -24,7 +17,7 @@ function Nav({ page }) {
   }, [theme]);
 
   useEffect(() => {
-    window.PortfolioData.getProfile().then(setProfile).catch(() => {});
+    PortfolioData.getProfile().then(setProfile).catch(() => {});
   }, []);
 
   const handle = profile?.handle || '';
@@ -37,12 +30,12 @@ function Nav({ page }) {
 
   const go = (key) => (e) => {
     e.preventDefault();
-    window.navigate(key);
+    navigate(key);
   };
 
   const goHome = (e) => {
     e.preventDefault();
-    window.navigate('home');
+    navigate('home');
   };
 
   const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
@@ -153,5 +146,3 @@ function Nav({ page }) {
     </nav>
   );
 }
-
-Object.assign(window, { Nav });

@@ -42,7 +42,7 @@ export default defineConfig({
   base: process.env.BASE_PATH || '/',
   plugins: [blogIndexPlugin()],
   esbuild: {
-    // Design components use classic JSX against a global React (see globals.js).
+    // Classic JSX (React.createElement) — every JSX file imports React itself.
     jsx: 'transform',
     jsxFactory: 'React.createElement',
     jsxFragment: 'React.Fragment',

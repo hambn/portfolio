@@ -1,6 +1,7 @@
 // Projects.jsx — GitHub public repos
 // GitHub username is read from contents/links/links.json (github.username)
-const { useState, useEffect } = React;
+import React, { useEffect, useState } from 'react';
+import { PortfolioData } from '../../lib/data.js';
 
 const LANG_COLORS = {
   JavaScript: '#f1e05a', TypeScript: '#3178c6', Python:     '#3572A5',
@@ -60,7 +61,7 @@ function RepoCard({ repo }) {
   );
 }
 
-function Projects() {
+export default function Projects() {
   const [repos,   setRepos]   = useState([]);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
@@ -68,7 +69,7 @@ function Projects() {
   useEffect(() => {
     (async () => {
       try {
-        const config   = await window.PortfolioData.getLinks();
+        const config   = await PortfolioData.getLinks();
         const username = config?.github?.username;
         if (!username) throw new Error('no github username in links.json');
         const r = await fetch(
@@ -116,4 +117,3 @@ function Projects() {
   );
 }
 
-Object.assign(window, { Projects });

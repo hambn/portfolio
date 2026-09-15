@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { marked } from 'marked';
 import { buildBlogIndex } from './blog-index.mjs';
+import { routes } from '../src/routes.js';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const dist = join(root, 'dist');
@@ -156,16 +157,20 @@ const resumeContent = `
 
 /* ── emit ── */
 
-const name = profile.name;
-write('', page({ title: `${name} — ${profile.title || 'portfolio'}`, desc: profile.bio, path: '', content: homeContent }));
-write('projects', page({ title: `projects — ${name}`, desc: `open-source projects and public repositories by ${name}.`, path: 'projects', content: `<main><h1>projects</h1><p>public repositories on github — ${link(links.github?.url || 'https://github.com/' + (links.github?.username || 'hambn'), 'view on github')}</p></main>` }));
-write('blog', page({ title: `blog — ${name}`, desc: 'notes on infra, tooling, and things i figure out.', path: 'blog', content: blogListContent }));
-write('links', page({ title: `links — ${name}`, desc: 'find me around the web — github, gitlab, linkedin, and more.', path: 'links', content: linksContent }));
-write('resume', page({ title: `resume — ${name}`, desc: `${name} — ${profile.title || ''}. experience, education and skills.`, path: 'resume', content: resumeContent }));
+// Titles/descriptions come from the shared route registry (src/routes.js) so
+// the prerendered <head> and the SPA never drift apart.
+const ctx = { profile, links, resume };
+const meta = Object.fromEntries(routes.map((r) => [r.page, { title: r.title(ctx), desc: r.description(ctx) }]));
+
+write('', page({ ...meta.home, path: '', content: homeContent }));
+write('projects', page({ ...meta.projects, path: 'projects', content: `<main><h1>projects</h1><p>public repositories on github — ${link(links.github?.url || 'https://github.com/' + (links.github?.username || 'hambn'), 'view on github')}</p></main>` }));
+write('blog', page({ ...meta.blog, path: 'blog', content: blogListContent }));
+write('links', page({ ...meta.links, path: 'links', content: linksContent }));
+write('resume', page({ ...meta.resume, path: 'resume', content: resumeContent }));
 
 for (const p of posts) {
   write(`blog/${p.slug}`, page({
-    title: `${p.title} — ${name}`,
+    title: `${p.title} — ${profile.name}`,
     desc: p.description || p.title,
     path: `blog/${p.slug}`,
     type: 'article',
@@ -174,10 +179,10 @@ for (const p of posts) {
 }
 
 // SPA fallback for unknown deep links — boots the app, kept out of the index.
-writeFileSync(join(dist, '404.html'), page({ title: `${name} — ${profile.title || 'portfolio'}`, desc: profile.bio, path: '', content: '', robots: true }));
+writeFileSync(join(dist, '404.html'), page({ ...meta.home, path: '', content: '', robots: true }));
 
 // sitemap.xml — every indexable URL, matching the trailing-slash form served.
-const urls = ['', 'projects/', 'blog/', 'links/', 'resume/', ...posts.map((p) => `blog/${p.slug}/`)];
+const urls = routes.map((r) => (r.path ? `${r.path}/` : '')).concat(posts.map((p) => `blog/${p.slug}/`));
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls
   .map((u) => `  <url><loc>${SITE}/${u}</loc></url>`)
   .join('\n')}\n</urlset>\n`;
@@ -186,4 +191,4 @@ writeFileSync(join(dist, 'sitemap.xml'), sitemap);
 // robots.txt — keep its Sitemap line on the same origin as everything else.
 writeFileSync(join(dist, 'robots.txt'), `User-agent: *\nAllow: /\n\nSitemap: ${SITE}/sitemap.xml\n`);
 
-console.log(`[prerender] wrote ${5 + posts.length} pages + 404 + sitemap (${urls.length} urls)`);
+console.log(`[prerender] wrote ${routes.length + posts.length} pages + 404 + sitemap (${urls.length} urls)`);

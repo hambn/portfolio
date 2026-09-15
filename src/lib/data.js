@@ -1,22 +1,21 @@
 /**
  * data.js — Portfolio content layer
  *
- * Single source of truth for fetching content from contents/.
+ * Single source of truth for fetching content from public/contents/.
  * Results are cached in memory so multiple components share one request.
  *
- * Usage in any JSX component:
- *   window.PortfolioData.getProfile().then(p => setProfile(p))
- *   window.PortfolioData.getLinks().then(l => setLinks(l))
+ * Usage in any component:
+ *   import { PortfolioData } from '../lib/data.js';
+ *   PortfolioData.getProfile().then(p => setProfile(p))
  */
 
-window.PortfolioData = (() => {
-  // Resolve to an ABSOLUTE url once, at load time (set in globals.js). Blog
-  // routes like /blog/<slug> add a path segment, which would otherwise
-  // re-anchor a relative base and 404 the fetches.
+export const PortfolioData = (() => {
+  // Resolve to an ABSOLUTE url once, at load time, so blog routes like
+  // /blog/<slug> don't re-anchor a relative path and 404 the fetches.
   const BASE = (() => {
-    const raw = window.CONTENT_BASE || '../../contents';
+    const raw = import.meta.env.BASE_URL.replace(/\/+$/, '') + '/contents';
     try { return new URL(raw, document.baseURI).href.replace(/\/+$/, ''); }
-    catch (e) { return raw; }
+    catch { return raw; }
   })();
 
   const _cache = {};
@@ -42,8 +41,7 @@ window.PortfolioData = (() => {
      Blog: fully file-driven, zero manifest to maintain.
 
      scripts/blog-index.mjs scans the .md files under contents/blogs/
-     at build time
-     (and on dev start / file change, via the Vite plugin) and emits
+     at build time (and in dev via the Vite plugin) and emits
      blogs/blog-data.json — already parsed and sorted newest-first.
      Drop a .md file with frontmatter to publish; omit the `title` to
      keep it an unlisted draft. The route slug is the filename without
