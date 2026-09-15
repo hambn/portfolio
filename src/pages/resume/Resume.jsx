@@ -104,7 +104,9 @@ export default function Resume() {
         nav                   { display: none !important; }
         .resume-print-btn     { display: none !important; }
         body                  { background: #fff !important; color: #0a0a0b !important; }
-        .resume-main          { padding: 0 !important; max-width: none !important; }
+        /* Margin lives on the content instead of @page so the browser has no
+           room to print its own title/date header above the resume. */
+        .resume-main          { padding: 0.9cm 1.4cm !important; max-width: none !important; }
         .resume-main, .resume-main * { color: #000 !important; border-color: #000 !important; background: transparent !important; }
         .resume-main a        { color: #000 !important; text-decoration: underline !important; }
         .resume-rule          { background: #000 !important; opacity: 0.3 !important; }
@@ -115,7 +117,7 @@ export default function Resume() {
         .resume-entry         { margin-bottom: 12px !important; }
         .resume-entry p, .resume-entry div[style*="line-height"] { line-height: 1.45 !important; }
       }
-      @page { margin: 0.9cm 1.4cm; }
+      @page { margin: 0; }
     `;
     document.head.appendChild(s);
     return () => document.getElementById('resume-print-css')?.remove();
@@ -126,8 +128,8 @@ export default function Resume() {
   const skills     = resume?.skills || [];
 
   const contactItems = [
+    links?.email    && { label: 'email',    href: 'mailto:' + links.email.address, text: links.email.address },
     links?.github   && { label: 'github',   href: links.github.url,   text: 'github.com/' + (links.github.username || '') },
-    links?.x        && { label: 'x',        href: links.x.url,        text: 'x.com/' + (links.x.handle || '') },
     links?.telegram && { label: 'telegram', href: links.telegram.url, text: 't.me/' + (links.telegram.handle || '') },
     links?.linkedin && { label: 'linkedin', href: links.linkedin.url, text: 'linkedin.com/in/' + (links.linkedin.handle || '') },
   ].filter(Boolean);
