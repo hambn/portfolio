@@ -203,32 +203,40 @@ export default function PostList({ posts, onOpen }) {
           {pagePosts.map(post => (
             <div
               key={post.slug}
-              role="button"
-              tabIndex={0}
-              onClick={() => onOpen(post.slug)}
-              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(post.slug); } }}
+              className="post-row"
               style={{
-                background: 'none', border: 'none', borderBottom: '1px solid var(--border)',
-                cursor: 'pointer', textAlign: 'left', width: '100%',
-                fontFamily: 'var(--font-mono)', padding: '18px 0',
-                display: 'flex', flexDirection: 'column', gap: '7px',
+                borderBottom: '1px solid var(--border)',
+                padding: '18px 0',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '14px' }}>
-                <span style={{ fontWeight: 600, fontSize: 'var(--text-base)', color: 'var(--foreground)' }}>
-                  {post.title}
-                </span>
-                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--foreground-subtle)', flexShrink: 0, whiteSpace: 'nowrap' }}>
-                  {fmtDate(post.date)}
-                </span>
-              </div>
-              {post.description && (
-                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--foreground-muted)', lineHeight: 1.55 }}>
-                  {post.description}
-                </span>
-              )}
+              {/* Stretched link: the whole row is clickable, and tag chips sit
+                  above it instead of being nested inside an interactive element. */}
+              <a
+                href={'/blog/' + post.slug + '/'}
+                onClick={e => { e.preventDefault(); onOpen(post.slug); }}
+                className="post-row-link"
+                style={{
+                  cursor: 'pointer',
+                  fontFamily: 'var(--font-mono)',
+                  display: 'flex', flexDirection: 'column', gap: '7px',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '14px' }}>
+                  <span style={{ fontWeight: 600, fontSize: 'var(--text-base)', color: 'var(--foreground)' }}>
+                    {post.title}
+                  </span>
+                  <span style={{ fontSize: 'var(--text-xs)', color: 'var(--foreground-subtle)', flexShrink: 0, whiteSpace: 'nowrap' }}>
+                    {fmtDate(post.date)}
+                  </span>
+                </div>
+                {post.description && (
+                  <span style={{ fontSize: 'var(--text-sm)', color: 'var(--foreground-muted)', lineHeight: 1.55 }}>
+                    {post.description}
+                  </span>
+                )}
+              </a>
               {post.tags.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '2px' }}>
+                <div className="post-tags" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '7px' }}>
                   {post.tags.map(t => (
                     <ClickableTag key={t} onClick={(e) => goToTag(t, e)}>{t}</ClickableTag>
                   ))}

@@ -189,6 +189,11 @@
   overflow-x: auto;
 }
 
+/* ── Post list rows: stretched link keeps the whole row clickable ── */
+.post-row { position: relative; }
+.post-row-link::after { content: ''; position: absolute; inset: 0; }
+.post-row .post-tags { position: relative; z-index: 1; }
+
 /* ────────────────────────────────────────────────────────────────
    highlight.js token colors — dark (default)
    ──────────────────────────────────────────────────────────────── */

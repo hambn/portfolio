@@ -40,7 +40,11 @@ export const ClickableTag = ({ children, onClick }) => {
 
 // Jump to the blog list, filtered to a single tag (state lives in the URL).
 export const goToTag = (tag, e) => {
-  if (e && e.stopPropagation) e.stopPropagation();
+  if (e) {
+    // The chip can live inside a stretched <a> row — cancel its navigation.
+    e.preventDefault();
+    e.stopPropagation();
+  }
   navigate('blog?tag=' + encodeURIComponent(tag));
 };
 
