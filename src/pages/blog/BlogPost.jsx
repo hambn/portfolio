@@ -28,7 +28,9 @@ function enhanceMarkdown(root, libs) {
     if (pre.parentElement?.classList.contains('code-block')) return;
 
     if (libs?.hljs) {
-      try { libs.hljs.highlightElement(code); } catch (e) {}
+      try {
+        libs.hljs.highlightElement(code);
+      } catch (e) {}
     }
 
     const wrap = document.createElement('div');
@@ -44,7 +46,10 @@ function enhanceMarkdown(root, libs) {
       navigator.clipboard?.writeText(code.textContent).then(() => {
         btn.textContent = 'copied';
         btn.classList.add('copied');
-        setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('copied'); }, 1400);
+        setTimeout(() => {
+          btn.textContent = 'copy';
+          btn.classList.remove('copied');
+        }, 1400);
       });
     });
     wrap.appendChild(btn);
@@ -72,7 +77,9 @@ function enhanceMarkdown(root, libs) {
           fontFamily: 'var(--font-mono)',
         });
         mermaid.run({ nodes: mermaidNodes });
-      } catch (e) { console.warn('mermaid', e); }
+      } catch (e) {
+        console.warn('mermaid', e);
+      }
     });
   }
 }
@@ -87,7 +94,8 @@ function ensureMarkdownLibs() {
 // Lazy-load mermaid (self-hosted, code-split) once; only when a post has a diagram.
 let _mermaidPromise = null;
 function ensureMermaid() {
-  if (!_mermaidPromise) _mermaidPromise = import('mermaid').then(m => m.default).catch(() => null);
+  if (!_mermaidPromise)
+    _mermaidPromise = import('mermaid').then((m) => m.default).catch(() => null);
   return _mermaidPromise;
 }
 
@@ -104,28 +112,69 @@ export default function PostView({ post, onBack }) {
       setLibs(loaded);
       setHtml(loaded ? renderMarkdown(loaded.marked, post.body) : post.body);
     });
-    return () => { alive = false; };
-  }, [post.slug]);
+    return () => {
+      alive = false;
+    };
+  }, [post.slug, post.body]);
 
-  useEffect(() => { if (html != null) enhanceMarkdown(ref.current, libs); }, [html, libs]);
+  useEffect(() => {
+    if (html != null) enhanceMarkdown(ref.current, libs);
+  }, [html, libs]);
 
   return (
-    <main style={{ maxWidth: '760px', margin: '0 auto', padding: 'clamp(72px, 10vw, 88px) clamp(18px, 5vw, 24px) 80px' }}>
-      <button onClick={onBack} style={{
-        background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 28px',
-        color: 'var(--foreground-muted)', fontSize: 'var(--text-sm)',
-        fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: '6px',
-      }}>← all posts</button>
+    <main
+      style={{
+        maxWidth: '760px',
+        margin: '0 auto',
+        padding: 'clamp(72px, 10vw, 88px) clamp(18px, 5vw, 24px) 80px',
+      }}
+    >
+      <button
+        onClick={onBack}
+        style={{
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          padding: '0 0 28px',
+          color: 'var(--foreground-muted)',
+          fontSize: 'var(--text-sm)',
+          fontFamily: 'var(--font-mono)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+        }}
+      >
+        ← all posts
+      </button>
 
-      <p style={{ fontSize: 'var(--text-xs)', color: 'var(--foreground-subtle)', marginBottom: '8px', fontFamily: 'var(--font-mono)' }}>
+      <p
+        style={{
+          fontSize: 'var(--text-xs)',
+          color: 'var(--foreground-subtle)',
+          marginBottom: '8px',
+          fontFamily: 'var(--font-mono)',
+        }}
+      >
         {fmtDate(post.date)}
       </p>
-      <h1 style={{ fontSize: 'clamp(1.6rem, 6vw, 2rem)', fontWeight: 700, letterSpacing: '-0.02em', margin: '0 0 14px', lineHeight: 1.2 }}>
+      <h1
+        style={{
+          fontSize: 'clamp(1.6rem, 6vw, 2rem)',
+          fontWeight: 700,
+          letterSpacing: '-0.02em',
+          margin: '0 0 14px',
+          lineHeight: 1.2,
+        }}
+      >
         {post.title}
       </h1>
       {post.tags.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '36px' }}>
-          {post.tags.map(t => <ClickableTag key={t} onClick={() => goToTag(t)}>{t}</ClickableTag>)}
+          {post.tags.map((t) => (
+            <ClickableTag key={t} onClick={() => goToTag(t)}>
+              {t}
+            </ClickableTag>
+          ))}
         </div>
       )}
 

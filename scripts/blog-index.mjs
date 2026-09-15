@@ -14,7 +14,7 @@ import { join, relative, basename } from 'node:path';
 
 /** Minimal YAML-frontmatter parser. Returns { meta, body }. */
 function parseFrontmatter(raw) {
-  const text = raw.replace(/^﻿/, '');
+  const text = raw.replace(/^\uFEFF/, '');
   const m = /^---\s*\r?\n([\s\S]*?)\r?\n---\s*\r?\n?/.exec(text);
   if (!m) return { meta: {}, body: text };
   const body = text.slice(m[0].length);
@@ -26,7 +26,12 @@ function parseFrontmatter(raw) {
     const val = kv[2].trim();
     if (key === 'tags') {
       const inner = val.replace(/^\[|\]$/g, '');
-      meta.tags = inner ? inner.split(',').map((t) => t.trim().replace(/^["']|["']$/g, '')).filter(Boolean) : [];
+      meta.tags = inner
+        ? inner
+            .split(',')
+            .map((t) => t.trim().replace(/^["']|["']$/g, ''))
+            .filter(Boolean)
+        : [];
     } else {
       meta[key] = val.replace(/^["']|["']$/g, '');
     }
