@@ -37,6 +37,7 @@
   background: #121212;
 }
 .sp-brand {
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -45,6 +46,7 @@
   letter-spacing: -1px;
 }
 .sp-header-actions {
+  flex-shrink: 0;
   display: flex;
   gap: 6px;
 }
@@ -66,7 +68,9 @@
   display: inline;
 }
 .sp-profile {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: 'avatar copy action';
   align-items: center;
   gap: 22px;
   padding: 28px 24px 32px;
@@ -93,8 +97,11 @@
   border-radius: 50%;
   box-shadow: 0 8px 28px #0005;
 }
+.sp-profile > a:first-child {
+  grid-area: avatar;
+}
 .sp-profile-copy {
-  flex: 1;
+  grid-area: copy;
   min-width: 0;
 }
 .sp-eyebrow {
@@ -127,6 +134,8 @@
   font-weight: 600;
 }
 .sp-profile-open {
+  grid-area: action;
+  justify-self: start;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -200,7 +209,8 @@
   }
 }
 .sp-player-track {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 22px;
 }
@@ -234,6 +244,8 @@
   font-size: 13px;
 }
 .sp-player-copy > .sp-artists {
+  max-width: 100%;
+  overflow-wrap: anywhere;
   margin-top: 6px;
 }
 .sp-card .sp-player-album {
@@ -251,6 +263,7 @@
   color: #8f9c94;
 }
 .sp-card .sp-listen {
+  max-width: 100%;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -364,10 +377,9 @@
 }
 .sp-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 7px;
-  overflow-x: auto;
   padding: 4px 8px 16px;
-  scrollbar-width: thin;
 }
 .sp-tabs button {
   flex-shrink: 0;
@@ -504,6 +516,10 @@
 .sp-simple-card:hover {
   background: #1f1f1f;
 }
+.sp-simple-card > span:not(.sp-simple-open) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
 .sp-simple-handle {
   display: block;
   color: var(--sp-muted);
@@ -519,8 +535,10 @@
     padding: 14px 16px;
   }
   .sp-profile {
+    grid-template-columns: 76px minmax(0, 1fr);
+    grid-template-areas: 'avatar copy' '. action';
     padding: 24px 16px;
-    gap: 15px;
+    gap: 16px 15px;
   }
   .sp-avatar {
     width: 76px;
@@ -528,13 +546,6 @@
   }
   .sp-profile-name {
     letter-spacing: -1px;
-  }
-  .sp-profile {
-    flex-wrap: wrap;
-  }
-  .sp-profile-open {
-    margin-left: 91px;
-    margin-top: -3px;
   }
   .sp-header-label {
     display: none;
@@ -585,6 +596,31 @@
   }
   .sp-collection {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+/* Stack artwork above metadata when a phone or zoom leaves too little room. */
+@container (max-width: 340px) {
+  .sp-player-track {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+  .sp-player-art {
+    width: 136px;
+    height: 136px;
+  }
+  .sp-player-title {
+    font-size: 24px;
+  }
+  .sp-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .sp-tabs button {
+    min-width: 0;
+    padding-inline: 8px;
+  }
+  .sp-context-arrow {
+    width: 20px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
