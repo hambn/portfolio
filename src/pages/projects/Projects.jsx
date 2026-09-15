@@ -2,6 +2,7 @@
 // GitHub username is read from contents/links/links.json (github.username)
 import React, { useEffect, useState } from 'react';
 import { PortfolioData } from '../../lib/data.js';
+import ErrorState from '../../components/ErrorState.jsx';
 
 const LANG_COLORS = {
   JavaScript: '#f1e05a', TypeScript: '#3178c6', Python:     '#3572A5',
@@ -65,28 +66,36 @@ export default function Projects() {
   const [repos,   setRepos]   = useState([]);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
+    const ctrl = new AbortController();
     (async () => {
       try {
+        setLoading(true);
+        setError(null);
         const config   = await PortfolioData.getLinks();
         const username = config?.github?.username;
         if (!username) throw new Error('no github username in links.json');
         const r = await fetch(
-          `https://api.github.com/users/${username}/repos?sort=updated&type=public&per_page=30`
+          `https://api.github.com/users/${username}/repos?sort=updated&type=public&per_page=30`,
+          { signal: ctrl.signal }
         );
         if (!r.ok) throw new Error(`GitHub API: ${r.statusText}`);
         const data = await r.json();
+        if (ctrl.signal.aborted) return;
         setRepos(data.sort(
           (a, b) => (b.stargazers_count - a.stargazers_count) || (new Date(b.pushed_at) - new Date(a.pushed_at))
         ));
         setLoading(false);
       } catch (e) {
+        if (ctrl.signal.aborted) return;
         setError(e.message);
         setLoading(false);
       }
     })();
-  }, []);
+    return () => ctrl.abort();
+  }, [attempt]);
 
   const wrap = { maxWidth: '900px', margin: '0 auto', padding: '88px 24px 80px' };
 
@@ -98,7 +107,7 @@ export default function Projects() {
 
   if (error) return (
     <main style={wrap}>
-      <span style={{ color: 'var(--destructive)', fontSize: 'var(--text-sm)' }}>{error}</span>
+      <ErrorState message={error} onRetry={() => setAttempt(a => a + 1)} />
     </main>
   );
 

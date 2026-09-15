@@ -1,6 +1,7 @@
 // Resume.jsx — printable CV, integrated into the SPA router
 import React, { useEffect, useState } from 'react';
 import { PortfolioData } from '../../lib/data.js';
+import ErrorState from '../../components/ErrorState.jsx';
 
 function ResumeSectionLabel({ text }) {
   return (
@@ -79,13 +80,22 @@ export default function Resume() {
   const [resume,   setResume]   = useState(null);
   const [profile,  setProfile]  = useState(null);
   const [links,    setLinks]    = useState(null);
+  const [error,    setError]    = useState(false);
+  const [attempt,  setAttempt]  = useState(0);
   const [btnHover, setBtnHover] = useState(false);
 
   useEffect(() => {
-    PortfolioData.getResume().then(setResume).catch(() => {});
-    PortfolioData.getProfile().then(setProfile).catch(() => {});
-    PortfolioData.getLinks().then(setLinks).catch(() => {});
+    let alive = true;
+    setError(false);
+    Promise.all([
+      PortfolioData.getResume().then(d => { if (alive) setResume(d); }),
+      PortfolioData.getProfile().then(d => { if (alive) setProfile(d); }),
+      PortfolioData.getLinks().then(d => { if (alive) setLinks(d); }),
+    ]).catch(() => { if (alive) setError(true); });
+    return () => { alive = false; };
+  }, [attempt]);
 
+  useEffect(() => {
     // Inject print styles — hide nav & button, force white page
     const s = document.createElement('style');
     s.id = 'resume-print-css';
@@ -151,6 +161,11 @@ export default function Resume() {
       </button>
 
       {/* ── Header ── */}
+      {error && (
+        <div style={{ marginBottom: '28px' }}>
+          <ErrorState message="failed to load resume data." onRetry={() => setAttempt(a => a + 1)} />
+        </div>
+      )}
       <header className="resume-header" style={{
         display: 'flex', justifyContent: 'space-between',
         alignItems: 'flex-start', marginBottom: '36px', gap: '24px',

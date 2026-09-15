@@ -9,6 +9,7 @@
 import React, { useEffect, useState } from 'react';
 import { PortfolioData } from '../../lib/data.js';
 import { navigate } from '../../lib/router.js';
+import ErrorState from '../../components/ErrorState.jsx';
 import { InlineCode } from './blog-ui.jsx';
 import BlogList from './BlogList.jsx';
 import BlogPost from './BlogPost.jsx';
@@ -17,20 +18,25 @@ export default function Blog({ route }) {
   const [posts,   setPosts]   = useState([]);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   // route looks like "blog" or "blog/<slug>"
   const slug = (route || 'blog').split('/').slice(1).join('/') || null;
 
   useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    setError(false);
     PortfolioData.getBlogIndex()
-      .then(data => { setPosts(data); setLoading(false); })
-      .catch(() => { setError(true); setLoading(false); });
-  }, []);
+      .then(data => { if (alive) { setPosts(data); setLoading(false); } })
+      .catch(() => { if (alive) { setError(true); setLoading(false); } });
+    return () => { alive = false; };
+  }, [attempt]);
 
   const wrap = { maxWidth: '760px', margin: '0 auto', padding: '88px 24px 80px' };
 
   if (loading) return <main style={wrap}><p style={{ color: 'var(--foreground-muted)', fontSize: 'var(--text-sm)' }}>loading...</p></main>;
-  if (error)   return <main style={wrap}><p style={{ color: 'var(--destructive)', fontSize: 'var(--text-sm)' }}>failed to load posts.</p></main>;
+  if (error)   return <main style={wrap}><ErrorState message="failed to load posts." onRetry={() => setAttempt(a => a + 1)} /></main>;
 
   if (slug) {
     const post = posts.find(p => p.slug === slug);
