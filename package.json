@@ -9,7 +9,11 @@
     "preview": "vite preview",
     "api:serve": "node api/server.js",
     "api:config": "envsubst < api/wrangler.toml > api/wrangler.gen.toml",
-    "api:deploy": "npm run api:config && wrangler deploy --config api/wrangler.gen.toml --var CACHE_VERSION:$(date +%s) STEAM_ID:$STEAM_ID DISCORD_ID:$DISCORD_ID LINKEDIN_URL:$LINKEDIN_URL"
+    "api:deploy": "npm run api:config && wrangler deploy --config api/wrangler.gen.toml --var CACHE_VERSION:$(date +%s) STEAM_ID:$STEAM_ID DISCORD_ID:$DISCORD_ID LINKEDIN_URL:$LINKEDIN_URL",
+    "lint": "eslint src scripts *.js --max-warnings 0",
+    "format": "prettier --write \"src/**/*.{js,jsx,css}\" \"scripts/**/*.mjs\" \"*.js\" package.json .prettierrc.json",
+    "format:check": "prettier --check \"src/**/*.{js,jsx,css}\" \"scripts/**/*.mjs\" \"*.js\" package.json .prettierrc.json",
+    "check": "npm run lint && npm run format:check && npm run build"
   },
   "dependencies": {
     "@fontsource-variable/jetbrains-mono": "5.3.0",
@@ -20,6 +24,12 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.12.0",
+    "prettier": "^3.9.6",
     "vite": "^5.4.10",
     "wrangler": "^4"
   }

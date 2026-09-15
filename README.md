@@ -14,6 +14,26 @@ npm run build      # → dist/  (prerender + 404.html + .nojekyll)
 npm run preview    # serve the production build locally
 ```
 
+## Code checks
+
+Use Node.js 22 or newer and `npm ci` to install the locked dependencies.
+
+```bash
+npm run format        # format frontend code, styles, and build scripts
+npm run lint          # check JavaScript, JSX, and React hook dependencies
+npm run check         # lint, verify formatting, and build the site
+```
+
+Prettier uses two-space indentation, single quotes, and a 100-column print width.
+ESLint checks browser code and Node build scripts with separate globals. The
+React rules preserve the classic JSX transform and explicit React imports.
+ESLint stays on version 9 for compatibility with eslint-plugin-react's peer
+dependency range.
+
+These checks cover `src/`, `scripts/`, and root JavaScript configuration.
+API code and editable content are outside this formatting and linting scope.
+Pull requests run the checks; the Pages build runs them before deployment.
+
 ## deploy
 
 Pushing to `main` builds and deploys automatically
