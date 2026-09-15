@@ -2,10 +2,11 @@
 import React, { useEffect, useState } from 'react';
 import { PortfolioData } from '../lib/data.js';
 import { navigate } from '../lib/router.js';
+import { storage } from '../lib/storage.js';
 import { useWindowWidth } from '../hooks/useWindowWidth.js';
 
 export default function Nav({ page }) {
-  const [theme,   setTheme]   = useState(() => localStorage.getItem('hambn-theme') || 'dark');
+  const [theme,   setTheme]   = useState(() => storage.get('hambn-theme') || 'dark');
   const [profile, setProfile] = useState(null);
   const width    = useWindowWidth();
   const isMobile = width < 640;
@@ -13,7 +14,6 @@ export default function Nav({ page }) {
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('hambn-theme', theme);
   }, [theme]);
 
   useEffect(() => {
@@ -38,7 +38,11 @@ export default function Nav({ page }) {
     navigate('home');
   };
 
-  const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
+  const toggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    storage.set('hambn-theme', next);
+    setTheme(next);
+  };
 
   /* ── Mobile layout: single top bar ── */
   if (isMobile) {

@@ -41,6 +41,16 @@
     a    { text-decoration: none; }
     *    { box-sizing: border-box; }
   </style>
+
+  <!-- Apply the saved theme before first paint so there is no dark flash. -->
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('hambn-theme');
+        document.documentElement.setAttribute('data-theme', t === 'light' ? 'light' : 'dark');
+      } catch (e) {}
+    })();
+  </script>
 </head>
 <body>
   <div id="root"></div>
