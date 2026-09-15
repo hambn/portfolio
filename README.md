@@ -119,11 +119,19 @@ npm run api:deploy
 | Route | Cache | Data |
 |-------|-------|------|
 | `GET /spotify` | none | aggregate: now-playing + profile + top + recent + playlists |
+| `GET /spotify?playback=1` | no-store | current playback only; forwards Spotify rate limits |
 | `GET /steam` | 5m | status, level, current/favorite game, recent activity |
 | `GET /discord` | 60s | presence + activities + Spotify (via Lanyard) |
 | `GET /discord/avatar` | 1h | proxied Discord avatar image |
 | `GET /linkedin` | 1h | profile OG tags scraped from `LINKEDIN_URL` |
 | `GET /health` | none | `{ ok: true }` liveness check |
+
+The Spotify card checks playback every 3 seconds while the page is visible and
+refreshes immediately on return. The timeline uses elapsed time between samples;
+profile and library data refresh every minute and after track/context changes.
+Deploy the API update with the frontend to enable playback-only responses. Older
+API deployments still work, but return the slower aggregate response.
+Run `npm run test:spotify` for the playback clock and API regression checks.
 
 Full reference + Spotify re-auth flow: [`.claude/api.md`](.claude/api.md).
 

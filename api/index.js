@@ -73,7 +73,25 @@ async function spotifyGet(path, accessToken) {
   return res.json();
 }
 
-async function handleSpotify(pathname, env) {
+async function handleSpotify(pathname, env, request) {
+  // Playback is intentionally uncached and independent of slower library requests.
+  if (pathname === '/spotify' && new URL(request.url).searchParams.get('playback') === '1') {
+    const token = await getSpotifyToken(env);
+    if (token.error) return json(token, 401);
+    const response = await fetchWithTimeout('https://api.spotify.com/v1/me/player/currently-playing', {
+      headers: { Authorization: `Bearer ${token.access_token}` },
+    });
+    const headers = { ...CORS, 'Content-Type': 'application/json', 'Cache-Control': 'no-store',
+      'Access-Control-Expose-Headers': 'Retry-After' };
+    if (!response.ok) {
+      if (response.status === 401) await env.SPOTIFY_KV.delete('access_token');
+      const retryAfter = response.headers.get('Retry-After');
+      if (retryAfter) headers['Retry-After'] = retryAfter;
+      return new Response(JSON.stringify({ error: 'Spotify playback unavailable' }), { status: response.status, headers });
+    }
+    const status = response.status === 204 ? { is_playing: false, item: null } : await response.json();
+    return new Response(JSON.stringify({ status, playbackOnly: true }), { headers });
+  }
   // GET /spotify — everything in one request, all fetched in parallel
   if (pathname === '/spotify') {
     const token = await getSpotifyToken(env);
@@ -356,7 +374,7 @@ export default {
       });
     }
 
-    if (pathname.startsWith('/spotify'))  return (await handleSpotify(pathname, env)) ?? json({ error: 'not found' }, 404);
+    if (pathname.startsWith('/spotify'))  return (await handleSpotify(pathname, env, request)) ?? json({ error: 'not found' }, 404);
     if (pathname.startsWith('/steam'))    return (await handleSteam(pathname, request, env))    ?? json({ error: 'not found' }, 404);
     if (pathname.startsWith('/discord'))  return (await handleDiscord(pathname, request, env))  ?? json({ error: 'not found' }, 404);
     if (pathname.startsWith('/linkedin')) return (await handleLinkedIn(pathname, request, env)) ?? json({ error: 'not found' }, 404);

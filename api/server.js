@@ -36,6 +36,7 @@ function kvShim() {
       if (e.exp && Date.now() > e.exp) { m.delete(k); return null; }
       return e.v;
     },
+    async delete(k) { m.delete(k); },
     async put(k, v, opt = {}) {
       m.set(k, { v, exp: opt.expirationTtl ? Date.now() + opt.expirationTtl * 1000 : 0 });
     },
