@@ -14,13 +14,33 @@ export function usePolledJSON(url, intervalMs, onData) {
     if (!url) return;
     let alive = true;
     setLoading(true);
-    fetch(url).then(r => r.json())
-      .then(d => { if (!alive) return; cb.current(d, true); setLoading(false); })
-      .catch(e => { if (!alive) return; setError(String(e)); setLoading(false); });
-    const id = intervalMs > 0 ? setInterval(() => {
-      fetch(url).then(r => r.json()).then(d => { if (alive) cb.current(d, false); }).catch(() => {});
-    }, intervalMs) : null;
-    return () => { alive = false; if (id) clearInterval(id); };
+    fetch(url)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!alive) return;
+        cb.current(d, true);
+        setLoading(false);
+      })
+      .catch((e) => {
+        if (!alive) return;
+        setError(String(e));
+        setLoading(false);
+      });
+    const id =
+      intervalMs > 0
+        ? setInterval(() => {
+            fetch(url)
+              .then((r) => r.json())
+              .then((d) => {
+                if (alive) cb.current(d, false);
+              })
+              .catch(() => {});
+          }, intervalMs)
+        : null;
+    return () => {
+      alive = false;
+      if (id) clearInterval(id);
+    };
   }, [url, intervalMs]);
   return { loading, error };
 }

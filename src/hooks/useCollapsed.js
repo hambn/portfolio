@@ -7,6 +7,6 @@ export function useCollapsed(storageKey) {
   useEffect(() => {
     storage.set(storageKey, collapsed ? '1' : '0');
   }, [storageKey, collapsed]);
-  const toggle = () => setCollapsed(prev => !prev);
+  const toggle = () => setCollapsed((prev) => !prev);
   return [collapsed, toggle];
 }

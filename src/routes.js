@@ -33,6 +33,7 @@ export const routes = [
     page: 'resume',
     path: 'resume',
     title: (ctx) => `resume — ${ctx.profile.name}`,
-    description: (ctx) => `${ctx.profile.name} — ${ctx.profile.title || ''}. experience, education and skills.`,
+    description: (ctx) =>
+      `${ctx.profile.name} — ${ctx.profile.title || ''}. experience, education and skills.`,
   },
 ];

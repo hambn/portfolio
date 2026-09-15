@@ -14,8 +14,11 @@ export const PortfolioData = (() => {
   // /blog/<slug> don't re-anchor a relative path and 404 the fetches.
   const BASE = (() => {
     const raw = import.meta.env.BASE_URL.replace(/\/+$/, '') + '/contents';
-    try { return new URL(raw, document.baseURI).href.replace(/\/+$/, ''); }
-    catch { return raw; }
+    try {
+      return new URL(raw, document.baseURI).href.replace(/\/+$/, '');
+    } catch {
+      return raw;
+    }
   })();
 
   const _cache = {};
@@ -23,7 +26,7 @@ export const PortfolioData = (() => {
   /** Deduplicate in-flight requests and cache results. */
   const cached = (key, fn) => {
     if (!_cache[key]) {
-      _cache[key] = fn().catch(err => {
+      _cache[key] = fn().catch((err) => {
         delete _cache[key]; // allow retry on error
         throw err;
       });
@@ -51,20 +54,20 @@ export const PortfolioData = (() => {
 
   return {
     /** { name, handle, title, bio, avatar } */
-    getProfile:   () => cached('profile', () => getJSON('/home/profile.json')),
+    getProfile: () => cached('profile', () => getJSON('/home/profile.json')),
 
     /** { items[], skills[] } */
-    getResume:    () => cached('resume',  () => getJSON('/home/resume.json')),
+    getResume: () => cached('resume', () => getJSON('/home/resume.json')),
 
     /** { discord, spotify, github, steam, x, telegram, linkedin } */
-    getLinks:     () => cached('links',   () => getJSON('/links/links.json')),
+    getLinks: () => cached('links', () => getJSON('/links/links.json')),
 
     /** [{ slug, path, title, date, description, tags, body }] sorted newest-first */
     getBlogIndex,
 
     /** Raw markdown body (frontmatter stripped) for a post by slug */
-    getBlogPost:  async (slug) => {
-      const post = (await getBlogIndex()).find(p => p.slug === slug);
+    getBlogPost: async (slug) => {
+      const post = (await getBlogIndex()).find((p) => p.slug === slug);
       if (!post) throw new Error(`[PortfolioData] no post: ${slug}`);
       return post.body;
     },

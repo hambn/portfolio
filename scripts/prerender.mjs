@@ -24,12 +24,21 @@ const SITE = (process.env.SITE_URL || 'https://hgh.dev').replace(/\/+$/, '');
 const BASE = (process.env.BASE_PATH || '/').replace(/\/+$/, '');
 
 const readJSON = (p) => JSON.parse(readFileSync(join(contents, p), 'utf8'));
-const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const esc = (s) =>
+  String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 const dateParts = (d) => /^(\d{4})-(\d{2})-(\d{2})/.exec(d || '');
 const fmtDate = (d) => {
   const m = dateParts(d);
   if (!m) return d || '';
-  return new Date(+m[1], +m[2] - 1, +m[3]).toLocaleDateString('en', { year: 'numeric', month: 'long', day: 'numeric' });
+  return new Date(+m[1], +m[2] - 1, +m[3]).toLocaleDateString('en', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
 };
 const isoDate = (d) => (dateParts(d) ? dateParts(d)[0] : '');
 const rfc822 = (d) => {
@@ -67,7 +76,12 @@ const personLd = {
   sameAs,
 };
 
-const ldGraph = (...nodes) => JSON.stringify({ '@context': 'https://schema.org', '@graph': nodes.filter(Boolean) }, null, 2).replace(/<\//g, '<\\/');
+const ldGraph = (...nodes) =>
+  JSON.stringify(
+    { '@context': 'https://schema.org', '@graph': nodes.filter(Boolean) },
+    null,
+    2,
+  ).replace(/<\//g, '<\\/');
 
 const pageNode = (type, meta, path) => ({
   '@type': type,
@@ -80,7 +94,12 @@ const pageNode = (type, meta, path) => ({
 
 const breadcrumbs = (items) => ({
   '@type': 'BreadcrumbList',
-  itemListElement: items.map(([name, path], i) => ({ '@type': 'ListItem', position: i + 1, name, item: abs(path) })),
+  itemListElement: items.map(([name, path], i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    name,
+    item: abs(path),
+  })),
 });
 
 const postLd = (p) => ({
@@ -113,7 +132,7 @@ try {
 const pageEntries = Object.fromEntries(
   (manifest['index.html']?.dynamicImports || [])
     .filter((k) => /^src\/pages\/[^/]+\/[A-Z]/.test(k))
-    .map((k) => [/^src\/pages\/([^/]+)\//.exec(k)[1], k])
+    .map((k) => [/^src\/pages\/([^/]+)\//.exec(k)[1], k]),
 );
 
 function assetLinks(page, extra = []) {
@@ -136,10 +155,23 @@ function assetLinks(page, extra = []) {
 const template = readFileSync(join(dist, 'index.html'), 'utf8')
   .replace(/(<meta name="author" content=")[^"]*(")/, `$1${esc(profile.name)}$2`)
   .replace(/(<meta property="og:image" content=")[^"]*(")/, `$1${esc(profile.avatar)}$2`)
-  .replace(/(<meta name="twitter:creator" content=")[^"]*(")/, `$1@${esc(links.x?.handle || profile.handle)}$2`);
+  .replace(
+    /(<meta name="twitter:creator" content=")[^"]*(")/,
+    `$1@${esc(links.x?.handle || profile.handle)}$2`,
+  );
 
 /** Apply per-route <head> meta + inject body content into the shell. */
-function page({ title, desc, path, type = 'website', content, robots = false, jsonLd, extraHead = '', preload = '' }) {
+function page({
+  title,
+  desc,
+  path,
+  type = 'website',
+  content,
+  robots = false,
+  jsonLd,
+  extraHead = '',
+  preload = '',
+}) {
   // Trailing slash matches how GitHub Pages serves directory index.html files.
   const url = abs(path);
   const head = [
@@ -151,7 +183,9 @@ function page({ title, desc, path, type = 'website', content, robots = false, js
     robots ? `  <meta name="robots" content="noindex" />` : '',
     preload,
     extraHead,
-  ].filter(Boolean).join('\n');
+  ]
+    .filter(Boolean)
+    .join('\n');
   let html = template
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(title)}</title>`)
     .replace(/(<meta name="description" content=")[^"]*(")/, `$1${esc(desc)}$2`)
@@ -160,7 +194,11 @@ function page({ title, desc, path, type = 'website', content, robots = false, js
     .replace(/(<meta property="og:type" content=")[^"]*(")/, `$1${type}$2`)
     .replace('</head>', `${head}\n</head>`)
     .replace('<div id="root"></div>', `<div id="root">${content}</div>`);
-  if (jsonLd) html = html.replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/, `<script type="application/ld+json">\n${jsonLd}\n</script>`);
+  if (jsonLd)
+    html = html.replace(
+      /<script type="application\/ld\+json">[\s\S]*?<\/script>/,
+      `<script type="application/ld+json">\n${jsonLd}\n</script>`,
+    );
   return html;
 }
 
@@ -175,12 +213,16 @@ const link = (href, text) => `<a href="${esc(href)}">${esc(text)}</a>`;
 // Titles/descriptions come from the shared route registry (src/routes.js) so
 // the prerendered <head> and the SPA never drift apart.
 const ctx = { profile, links, resume };
-const meta = Object.fromEntries(routes.map((r) => [r.page, { title: r.title(ctx), desc: r.description(ctx) }]));
+const meta = Object.fromEntries(
+  routes.map((r) => [r.page, { title: r.title(ctx), desc: r.description(ctx) }]),
+);
 
 /* ── content blocks (semantic, text-first; SPA restyles for users) ── */
 
 const resumeEntry = (it) => {
-  const desc = Array.isArray(it.description) ? `<ul>${it.description.map((d) => `<li>${esc(d)}</li>`).join('')}</ul>` : '';
+  const desc = Array.isArray(it.description)
+    ? `<ul>${it.description.map((d) => `<li>${esc(d)}</li>`).join('')}</ul>`
+    : '';
   return `<div><h3>${esc(it.role || it.degree)}</h3><p>${esc(it.company || it.school)}${it.location ? ' · ' + esc(it.location) : ''} · ${esc(it.start)}–${esc(it.end)}</p>${desc}</div>`;
 };
 
@@ -212,14 +254,24 @@ const postContent = (p) => `
 const linkRows = () => {
   const rows = [];
   if (links.email?.address) rows.push(['email', `mailto:${links.email.address}`]);
-  if (links.discord?.userId) rows.push(['discord', `https://discord.com/users/${links.discord.userId}`]);
-  if (links.telegram) rows.push(['telegram', links.telegram.url || `https://t.me/${links.telegram.handle}`]);
+  if (links.discord?.userId)
+    rows.push(['discord', `https://discord.com/users/${links.discord.userId}`]);
+  if (links.telegram)
+    rows.push(['telegram', links.telegram.url || `https://t.me/${links.telegram.handle}`]);
   if (links.x) rows.push(['x', links.x.url || `https://x.com/${links.x.handle}`]);
-  if (links.github) rows.push(['github', links.github.url || `https://github.com/${links.github.username}`]);
-  if (links.gitlab) rows.push(['gitlab', links.gitlab.url || `https://gitlab.com/${links.gitlab.username}`]);
-  if (links.linkedin) rows.push(['linkedin', links.linkedin.url || `https://linkedin.com/in/${links.linkedin.handle}`]);
-  if (links.spotify?.userId) rows.push(['spotify', `https://open.spotify.com/user/${links.spotify.userId}`]);
-  if (links.steam) rows.push(['steam', links.steam.url || `https://steamcommunity.com/id/${links.steam.handle}`]);
+  if (links.github)
+    rows.push(['github', links.github.url || `https://github.com/${links.github.username}`]);
+  if (links.gitlab)
+    rows.push(['gitlab', links.gitlab.url || `https://gitlab.com/${links.gitlab.username}`]);
+  if (links.linkedin)
+    rows.push([
+      'linkedin',
+      links.linkedin.url || `https://linkedin.com/in/${links.linkedin.handle}`,
+    ]);
+  if (links.spotify?.userId)
+    rows.push(['spotify', `https://open.spotify.com/user/${links.spotify.userId}`]);
+  if (links.steam)
+    rows.push(['steam', links.steam.url || `https://steamcommunity.com/id/${links.steam.handle}`]);
   return rows;
 };
 
@@ -227,7 +279,9 @@ const linksContent = `
 <main>
   <h1>links</h1>
   <p>find me around the web</p>
-  <ul>${linkRows().map(([label, href]) => `<li>${link(href, label)}</li>`).join('')}</ul>
+  <ul>${linkRows()
+    .map(([label, href]) => `<li>${link(href, label)}</li>`)
+    .join('')}</ul>
 </main>`;
 
 const work = (resume.items || []).filter((i) => i.type === 'work');
@@ -243,63 +297,116 @@ const resumeContent = `
 
 /* ── emit ── */
 
-const crumb = (page, label) => breadcrumbs([['home', ''], [label, page]]);
+const crumb = (page, label) =>
+  breadcrumbs([
+    ['home', ''],
+    [label, page],
+  ]);
 
-write('', page({
-  ...meta.home, path: '', content: homeContent, preload: assetLinks('home'),
-  jsonLd: ldGraph({ ...pageNode('ProfilePage', meta.home, ''), mainEntity: personLd }),
-}));
-write('projects', page({
-  ...meta.projects, path: 'projects', preload: assetLinks('projects'),
-  content: `<main><h1>projects</h1><p>public repositories on github — ${link(links.github?.url || 'https://github.com/' + (links.github?.username || 'hambn'), 'view on github')}</p></main>`,
-  jsonLd: ldGraph(pageNode('CollectionPage', meta.projects, 'projects'), crumb('projects', 'projects')),
-}));
-write('blog', page({
-  ...meta.blog, path: 'blog', content: blogListContent, preload: assetLinks('blog'),
-  jsonLd: ldGraph({
-    '@type': 'Blog',
-    name: meta.blog.title,
-    description: meta.blog.desc,
-    url: abs('blog'),
-    inLanguage: 'en',
-    author: personLd,
-    blogPost: posts.map((p) => ({
-      '@type': 'BlogPosting',
-      headline: p.title,
-      description: p.description || undefined,
-      url: abs(`blog/${p.slug}`),
-      datePublished: isoDate(p.date) || undefined,
-      keywords: p.tags?.length ? p.tags.join(', ') : undefined,
-      author: personLd,
-    })),
-  }, crumb('blog', 'blog')),
-}));
-write('links', page({
-  ...meta.links, path: 'links', content: linksContent, preload: assetLinks('links'),
-  jsonLd: ldGraph(pageNode('CollectionPage', meta.links, 'links'), crumb('links', 'links')),
-}));
-write('resume', page({
-  ...meta.resume, path: 'resume', content: resumeContent, preload: assetLinks('resume'),
-  jsonLd: ldGraph(pageNode('WebPage', meta.resume, 'resume'), crumb('resume', 'resume')),
-}));
+write(
+  '',
+  page({
+    ...meta.home,
+    path: '',
+    content: homeContent,
+    preload: assetLinks('home'),
+    jsonLd: ldGraph({ ...pageNode('ProfilePage', meta.home, ''), mainEntity: personLd }),
+  }),
+);
+write(
+  'projects',
+  page({
+    ...meta.projects,
+    path: 'projects',
+    preload: assetLinks('projects'),
+    content: `<main><h1>projects</h1><p>public repositories on github — ${link(links.github?.url || 'https://github.com/' + (links.github?.username || 'hambn'), 'view on github')}</p></main>`,
+    jsonLd: ldGraph(
+      pageNode('CollectionPage', meta.projects, 'projects'),
+      crumb('projects', 'projects'),
+    ),
+  }),
+);
+write(
+  'blog',
+  page({
+    ...meta.blog,
+    path: 'blog',
+    content: blogListContent,
+    preload: assetLinks('blog'),
+    jsonLd: ldGraph(
+      {
+        '@type': 'Blog',
+        name: meta.blog.title,
+        description: meta.blog.desc,
+        url: abs('blog'),
+        inLanguage: 'en',
+        author: personLd,
+        blogPost: posts.map((p) => ({
+          '@type': 'BlogPosting',
+          headline: p.title,
+          description: p.description || undefined,
+          url: abs(`blog/${p.slug}`),
+          datePublished: isoDate(p.date) || undefined,
+          keywords: p.tags?.length ? p.tags.join(', ') : undefined,
+          author: personLd,
+        })),
+      },
+      crumb('blog', 'blog'),
+    ),
+  }),
+);
+write(
+  'links',
+  page({
+    ...meta.links,
+    path: 'links',
+    content: linksContent,
+    preload: assetLinks('links'),
+    jsonLd: ldGraph(pageNode('CollectionPage', meta.links, 'links'), crumb('links', 'links')),
+  }),
+);
+write(
+  'resume',
+  page({
+    ...meta.resume,
+    path: 'resume',
+    content: resumeContent,
+    preload: assetLinks('resume'),
+    jsonLd: ldGraph(pageNode('WebPage', meta.resume, 'resume'), crumb('resume', 'resume')),
+  }),
+);
 
 for (const p of posts) {
   const path = `blog/${p.slug}`;
-  write(path, page({
-    title: `${p.title} — ${profile.name}`,
-    desc: p.description || p.title,
+  write(
     path,
-    type: 'article',
-    content: postContent(p),
-    // The post body is re-rendered client-side from markdown, so its chunk is
-    // needed right after boot — preload it alongside the blog chunk.
-    preload: assetLinks('blog', ['src/lib/markdown.js']),
-    extraHead: [
-      isoDate(p.date) ? `  <meta property="article:published_time" content="${isoDate(p.date)}" />` : '',
-      ...(p.tags || []).map((t) => `  <meta property="article:tag" content="${esc(t)}" />`),
-    ].filter(Boolean).join('\n'),
-    jsonLd: ldGraph(postLd(p), breadcrumbs([['home', ''], ['blog', 'blog'], [p.title, path]])),
-  }));
+    page({
+      title: `${p.title} — ${profile.name}`,
+      desc: p.description || p.title,
+      path,
+      type: 'article',
+      content: postContent(p),
+      // The post body is re-rendered client-side from markdown, so its chunk is
+      // needed right after boot — preload it alongside the blog chunk.
+      preload: assetLinks('blog', ['src/lib/markdown.js']),
+      extraHead: [
+        isoDate(p.date)
+          ? `  <meta property="article:published_time" content="${isoDate(p.date)}" />`
+          : '',
+        ...(p.tags || []).map((t) => `  <meta property="article:tag" content="${esc(t)}" />`),
+      ]
+        .filter(Boolean)
+        .join('\n'),
+      jsonLd: ldGraph(
+        postLd(p),
+        breadcrumbs([
+          ['home', ''],
+          ['blog', 'blog'],
+          [p.title, path],
+        ]),
+      ),
+    }),
+  );
 }
 
 // SPA fallback for unknown deep links — boots the app, kept out of the index.
@@ -314,19 +421,23 @@ const feed = `<?xml version="1.0" encoding="UTF-8"?>
     <description>${esc(meta.blog.desc)}</description>
     <language>en</language>
     <atom:link href="${SITE}/feed.xml" rel="self" type="application/rss+xml" />
-${posts.map((p) => {
-  const url = abs(`blog/${p.slug}`);
-  return [
-    '    <item>',
-    `      <title>${esc(p.title)}</title>`,
-    `      <link>${url}</link>`,
-    `      <guid isPermaLink="true">${url}</guid>`,
-    rfc822(p.date) ? `      <pubDate>${rfc822(p.date)}</pubDate>` : '',
-    p.description ? `      <description>${esc(p.description)}</description>` : '',
-    ...(p.tags || []).map((t) => `      <category>${esc(t)}</category>`),
-    '    </item>',
-  ].filter(Boolean).join('\n');
-}).join('\n')}
+${posts
+  .map((p) => {
+    const url = abs(`blog/${p.slug}`);
+    return [
+      '    <item>',
+      `      <title>${esc(p.title)}</title>`,
+      `      <link>${url}</link>`,
+      `      <guid isPermaLink="true">${url}</guid>`,
+      rfc822(p.date) ? `      <pubDate>${rfc822(p.date)}</pubDate>` : '',
+      p.description ? `      <description>${esc(p.description)}</description>` : '',
+      ...(p.tags || []).map((t) => `      <category>${esc(t)}</category>`),
+      '    </item>',
+    ]
+      .filter(Boolean)
+      .join('\n');
+  })
+  .join('\n')}
   </channel>
 </rss>
 `;
@@ -334,19 +445,29 @@ writeFileSync(join(dist, 'feed.xml'), feed);
 
 // sitemap.xml — every indexable URL, matching the trailing-slash form served.
 // lastmod is only emitted where there's a real content date (posts + blog index).
-const entries = routes.map((r) => ({
-  loc: r.path ? `${r.path}/` : '',
-  lastmod: r.page === 'blog' ? isoDate(posts[0]?.date) : '',
-})).concat(posts.map((p) => ({ loc: `blog/${p.slug}/`, lastmod: isoDate(p.date) })));
+const entries = routes
+  .map((r) => ({
+    loc: r.path ? `${r.path}/` : '',
+    lastmod: r.page === 'blog' ? isoDate(posts[0]?.date) : '',
+  }))
+  .concat(posts.map((p) => ({ loc: `blog/${p.slug}/`, lastmod: isoDate(p.date) })));
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries
-  .map(({ loc, lastmod }) => `  <url><loc>${SITE}/${loc}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}</url>`)
+  .map(
+    ({ loc, lastmod }) =>
+      `  <url><loc>${SITE}/${loc}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}</url>`,
+  )
   .join('\n')}\n</urlset>\n`;
 writeFileSync(join(dist, 'sitemap.xml'), sitemap);
 
 // robots.txt — keep its Sitemap line on the same origin as everything else.
-writeFileSync(join(dist, 'robots.txt'), `User-agent: *\nAllow: /\n\nSitemap: ${SITE}/sitemap.xml\n`);
+writeFileSync(
+  join(dist, 'robots.txt'),
+  `User-agent: *\nAllow: /\n\nSitemap: ${SITE}/sitemap.xml\n`,
+);
 
 // The manifest is a build artifact, not site content — drop it once read.
 rmSync(join(dist, '.vite'), { recursive: true, force: true });
 
-console.log(`[prerender] wrote ${routes.length + posts.length} pages + 404 + feed + sitemap (${entries.length} urls)`);
+console.log(
+  `[prerender] wrote ${routes.length + posts.length} pages + 404 + feed + sitemap (${entries.length} urls)`,
+);

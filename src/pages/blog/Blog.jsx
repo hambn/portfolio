@@ -15,9 +15,9 @@ import BlogList from './BlogList.jsx';
 import BlogPost from './BlogPost.jsx';
 
 export default function Blog({ route }) {
-  const [posts,   setPosts]   = useState([]);
+  const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState(false);
+  const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
 
   // route looks like "blog" or "blog/<slug>"
@@ -28,25 +28,57 @@ export default function Blog({ route }) {
     setLoading(true);
     setError(false);
     PortfolioData.getBlogIndex()
-      .then(data => { if (alive) { setPosts(data); setLoading(false); } })
-      .catch(() => { if (alive) { setError(true); setLoading(false); } });
-    return () => { alive = false; };
+      .then((data) => {
+        if (alive) {
+          setPosts(data);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (alive) {
+          setError(true);
+          setLoading(false);
+        }
+      });
+    return () => {
+      alive = false;
+    };
   }, [attempt]);
 
   const wrap = { maxWidth: '760px', margin: '0 auto', padding: '88px 24px 80px' };
 
-  if (loading) return <main style={wrap}><p style={{ color: 'var(--foreground-muted)', fontSize: 'var(--text-sm)' }}>loading...</p></main>;
-  if (error)   return <main style={wrap}><ErrorState message="failed to load posts." onRetry={() => setAttempt(a => a + 1)} /></main>;
+  if (loading)
+    return (
+      <main style={wrap}>
+        <p style={{ color: 'var(--foreground-muted)', fontSize: 'var(--text-sm)' }}>loading...</p>
+      </main>
+    );
+  if (error)
+    return (
+      <main style={wrap}>
+        <ErrorState message="failed to load posts." onRetry={() => setAttempt((a) => a + 1)} />
+      </main>
+    );
 
   if (slug) {
-    const post = posts.find(p => p.slug === slug);
+    const post = posts.find((p) => p.slug === slug);
     if (post) return <BlogPost post={post} onBack={() => navigate('blog')} />;
     return (
       <main style={wrap}>
-        <button onClick={() => navigate('blog')} style={{
-          background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 24px',
-          color: 'var(--foreground-muted)', fontSize: 'var(--text-sm)', fontFamily: 'var(--font-mono)',
-        }}>← all posts</button>
+        <button
+          onClick={() => navigate('blog')}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '0 0 24px',
+            color: 'var(--foreground-muted)',
+            fontSize: 'var(--text-sm)',
+            fontFamily: 'var(--font-mono)',
+          }}
+        >
+          ← all posts
+        </button>
         <p style={{ color: 'var(--foreground-subtle)', fontSize: 'var(--text-base)' }}>
           no post found at <InlineCode>/blog/{slug}</InlineCode>
         </p>

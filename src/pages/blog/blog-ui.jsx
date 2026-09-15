@@ -11,11 +11,18 @@ export const fmtDate = (d) => {
 };
 
 export const InlineCode = ({ children }) => (
-  <code style={{
-    background: 'var(--background-muted)', padding: '1px 6px',
-    borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-xs)',
-    color: 'var(--foreground-muted)', border: '1px solid var(--border)',
-  }}>{children}</code>
+  <code
+    style={{
+      background: 'var(--background-muted)',
+      padding: '1px 6px',
+      borderRadius: 'var(--radius-sm)',
+      fontSize: 'var(--text-xs)',
+      color: 'var(--foreground-muted)',
+      border: '1px solid var(--border)',
+    }}
+  >
+    {children}
+  </code>
 );
 
 // A tag chip that navigates to the blog list filtered by that tag.
@@ -27,14 +34,20 @@ export const ClickableTag = ({ children, onClick }) => {
       onMouseEnter={() => setH(true)}
       onMouseLeave={() => setH(false)}
       style={{
-        cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)',
+        cursor: 'pointer',
+        fontFamily: 'var(--font-mono)',
+        fontSize: 'var(--text-xs)',
         background: h ? 'var(--primary-subtle)' : 'var(--background-muted)',
         color: h ? 'var(--primary)' : 'var(--foreground-subtle)',
-        borderRadius: 'var(--radius-sm)', padding: '2px 8px',
+        borderRadius: 'var(--radius-sm)',
+        padding: '2px 8px',
         border: `1px solid ${h ? 'var(--primary-ring)' : 'var(--border)'}`,
-        whiteSpace: 'nowrap', transition: 'all var(--transition-base)',
+        whiteSpace: 'nowrap',
+        transition: 'all var(--transition-base)',
       }}
-    >{children}</button>
+    >
+      {children}
+    </button>
   );
 };
 
@@ -50,4 +63,6 @@ export const goToTag = (tag, e) => {
 
 export const readUrlTags = () =>
   (new URLSearchParams(window.location.search).get('tag') || '')
-    .split(',').map(s => s.trim()).filter(Boolean);
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);

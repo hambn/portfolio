@@ -64,29 +64,34 @@ function App() {
     let alive = true;
     const [pageKey, ...rest] = (route || 'home').split('/');
     const slug = rest.join('/');
-    const meta = routes.find(r => r.page === (pageKey || 'home'));
+    const meta = routes.find((r) => r.page === (pageKey || 'home'));
     if (!meta) return;
     PortfolioData.getProfile()
-      .then(p => {
+      .then((p) => {
         if (!alive) return;
         document.title = meta.title({ profile: p });
         if (pageKey === 'blog' && slug) {
           PortfolioData.getBlogIndex()
-            .then(posts => {
-              const post = posts.find(x => x.slug === slug);
+            .then((posts) => {
+              const post = posts.find((x) => x.slug === slug);
               if (alive && post) document.title = `${post.title} — ${p.name}`;
             })
             .catch(() => {});
         }
       })
       .catch(() => {});
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [route]);
 
   // Move focus into the new page's content after client-side navigation so
   // keyboard and screen-reader users land on what changed (not on first render).
   useEffect(() => {
-    if (firstRender.current) { firstRender.current = false; return; }
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
     const content = document.getElementById('content');
     if (!content) return;
     content.focus({ preventScroll: true });
@@ -102,8 +107,12 @@ function App() {
   }, []);
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--background)', color: 'var(--foreground)' }}>
-      <a href="#content" className="skip-link">skip to content</a>
+    <div
+      style={{ minHeight: '100vh', background: 'var(--background)', color: 'var(--foreground)' }}
+    >
+      <a href="#content" className="skip-link">
+        skip to content
+      </a>
       <Nav page={page} />
       <div id="content" tabIndex={-1}>
         <Suspense fallback={null}>

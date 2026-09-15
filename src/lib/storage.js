@@ -2,9 +2,15 @@
 // webviews reject reads and writes, and a render-time throw would blank the app.
 export const storage = {
   get(key, fallback = null) {
-    try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; }
+    try {
+      return localStorage.getItem(key) ?? fallback;
+    } catch {
+      return fallback;
+    }
   },
   set(key, value) {
-    try { localStorage.setItem(key, value); } catch {}
+    try {
+      localStorage.setItem(key, value);
+    } catch {}
   },
 };

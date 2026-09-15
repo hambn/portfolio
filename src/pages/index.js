@@ -12,7 +12,7 @@ const loaders = {
 };
 
 export const pages = Object.fromEntries(
-  Object.entries(loaders).map(([key, load]) => [key, lazy(load)])
+  Object.entries(loaders).map(([key, load]) => [key, lazy(load)]),
 );
 
 /** Start a route chunk download now (called before first render and when idle). */

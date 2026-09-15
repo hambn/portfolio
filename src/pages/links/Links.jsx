@@ -15,18 +15,24 @@ import { SpotifyCard, SpotifySimpleCard } from './SpotifyCard.jsx';
 import { SteamCard } from './SteamCard.jsx';
 
 export default function Links() {
-  const [config,      setConfig]      = useState(null);
-  const [error,       setError]       = useState(false);
-  const [attempt,     setAttempt]     = useState(0);
+  const [config, setConfig] = useState(null);
+  const [error, setError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [lanyardData, setLanyardData] = useState(null);
 
   useEffect(() => {
     let alive = true;
     setError(false);
     PortfolioData.getLinks()
-      .then(d => { if (alive) setConfig(d); })
-      .catch(() => { if (alive) setError(true); });
-    return () => { alive = false; };
+      .then((d) => {
+        if (alive) setConfig(d);
+      })
+      .catch(() => {
+        if (alive) setError(true);
+      });
+    return () => {
+      alive = false;
+    };
   }, [attempt]);
 
   // Lanyard WebSocket for real-time presence (INIT_STATE arrives on subscribe)
@@ -34,7 +40,9 @@ export default function Links() {
     const userId = config?.discord?.userId;
     if (!userId) return;
 
-    let ws, heartbeat, cancelled = false;
+    let ws,
+      heartbeat,
+      cancelled = false;
 
     function connect() {
       if (cancelled) return;
@@ -42,7 +50,11 @@ export default function Links() {
 
       ws.onmessage = (e) => {
         let msg;
-        try { msg = JSON.parse(e.data); } catch { return; }
+        try {
+          msg = JSON.parse(e.data);
+        } catch {
+          return;
+        }
         const { op, d } = msg;
 
         if (op === 1) {
@@ -66,50 +78,66 @@ export default function Links() {
     return () => {
       cancelled = true;
       clearInterval(heartbeat);
-      try { ws.close(); } catch (_) {}
+      try {
+        ws.close();
+      } catch (_) {}
     };
   }, [config?.discord?.userId]);
 
   const wrap = { maxWidth: '760px', margin: '0 auto', padding: '88px 24px 80px' };
 
-  if (error) return (
-    <main style={wrap}>
-      <h2 style={{ fontSize: 'var(--text-2xl)', fontWeight: '700', marginBottom: '6px' }}>links</h2>
-      <ErrorState message="failed to load links." onRetry={() => setAttempt(a => a + 1)} />
-    </main>
-  );
+  if (error)
+    return (
+      <main style={wrap}>
+        <h2 style={{ fontSize: 'var(--text-2xl)', fontWeight: '700', marginBottom: '6px' }}>
+          links
+        </h2>
+        <ErrorState message="failed to load links." onRetry={() => setAttempt((a) => a + 1)} />
+      </main>
+    );
 
-  if (!config) return (
-    <main style={wrap}>
-      <h2 style={{ fontSize: 'var(--text-2xl)', fontWeight: '700', marginBottom: '6px' }}>links</h2>
-      <p style={{ color: 'var(--foreground-muted)', fontSize: 'var(--text-sm)' }}>loading...</p>
-    </main>
-  );
+  if (!config)
+    return (
+      <main style={wrap}>
+        <h2 style={{ fontSize: 'var(--text-2xl)', fontWeight: '700', marginBottom: '6px' }}>
+          links
+        </h2>
+        <p style={{ color: 'var(--foreground-muted)', fontSize: 'var(--text-sm)' }}>loading...</p>
+      </main>
+    );
 
   return (
     <main style={wrap}>
       <div style={{ marginBottom: '40px' }}>
-        <h2 style={{ fontSize: 'var(--text-2xl)', fontWeight: '700', marginBottom: '6px' }}>links</h2>
-        <p style={{ color: 'var(--foreground-muted)', fontSize: 'var(--text-sm)' }}>find me around the web</p>
+        <h2 style={{ fontSize: 'var(--text-2xl)', fontWeight: '700', marginBottom: '6px' }}>
+          links
+        </h2>
+        <p style={{ color: 'var(--foreground-muted)', fontSize: 'var(--text-sm)' }}>
+          find me around the web
+        </p>
       </div>
 
       {/* Order: Email, Discord, Telegram, X, GitHub, GitLab, LinkedIn, Spotify, Steam */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-
-        {config.email && <EmailCard address={config.email.address}/>}
+        {config.email && <EmailCard address={config.email.address} />}
 
         {config.discord && (
-          <DiscordCard userId={config.discord.userId} lanyardData={lanyardData}
-            apiEndpoint={config.discord.apiEndpoint || 'https://api.portfolio.hgh.dev/discord'}/>
+          <DiscordCard
+            userId={config.discord.userId}
+            lanyardData={lanyardData}
+            apiEndpoint={config.discord.apiEndpoint || 'https://api.portfolio.hgh.dev/discord'}
+          />
         )}
 
-        {config.telegram && <TelegramCard handle={config.telegram.handle} url={config.telegram.url}/>}
+        {config.telegram && (
+          <TelegramCard handle={config.telegram.handle} url={config.telegram.url} />
+        )}
 
-        {config.x && <XCard handle={config.x.handle} url={config.x.url}/>}
+        {config.x && <XCard handle={config.x.handle} url={config.x.url} />}
 
-        {config.github && <GitHubCard username={config.github.username} url={config.github.url}/>}
+        {config.github && <GitHubCard username={config.github.username} url={config.github.url} />}
 
-        {config.gitlab && <GitLabCard username={config.gitlab.username} url={config.gitlab.url}/>}
+        {config.gitlab && <GitLabCard username={config.gitlab.username} url={config.gitlab.url} />}
 
         {config.linkedin && (
           <LinkedInCard
@@ -125,14 +153,20 @@ export default function Links() {
           />
         )}
 
-        {config.spotify?.userId && (
-          config.spotify?.apiEndpoint
-            ? <SpotifyCard userId={config.spotify.userId} apiEndpoint={config.spotify.apiEndpoint}/>
-            : <SpotifySimpleCard userId={config.spotify.userId}/>
+        {config.spotify?.userId &&
+          (config.spotify?.apiEndpoint ? (
+            <SpotifyCard userId={config.spotify.userId} apiEndpoint={config.spotify.apiEndpoint} />
+          ) : (
+            <SpotifySimpleCard userId={config.spotify.userId} />
+          ))}
+
+        {config.steam && (
+          <SteamCard
+            handle={config.steam.handle}
+            url={config.steam.url}
+            apiEndpoint={config.steam.apiEndpoint}
+          />
         )}
-
-        {config.steam && <SteamCard handle={config.steam.handle} url={config.steam.url} apiEndpoint={config.steam.apiEndpoint}/>}
-
       </div>
     </main>
   );

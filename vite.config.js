@@ -30,7 +30,8 @@ function blogIndexPlugin() {
       // Raw .md were copied from public/ but only the generated index is used
       // at runtime — strip them so the live site ships just blog-data.json.
       for (const entry of readdirSync(distBlogs)) {
-        if (entry !== 'blog-data.json') rmSync(join(distBlogs, entry), { recursive: true, force: true });
+        if (entry !== 'blog-data.json')
+          rmSync(join(distBlogs, entry), { recursive: true, force: true });
       }
     },
   };

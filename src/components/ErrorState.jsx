@@ -10,12 +10,18 @@ export default function ErrorState({ message = 'something went wrong.', onRetry 
           type="button"
           onClick={onRetry}
           style={{
-            cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)',
-            padding: '4px 10px', borderRadius: 'var(--radius-sm)',
-            background: 'var(--background-muted)', color: 'var(--foreground-muted)',
+            cursor: 'pointer',
+            fontFamily: 'var(--font-mono)',
+            fontSize: 'var(--text-xs)',
+            padding: '4px 10px',
+            borderRadius: 'var(--radius-sm)',
+            background: 'var(--background-muted)',
+            color: 'var(--foreground-muted)',
             border: '1px solid var(--border)',
           }}
-        >retry</button>
+        >
+          retry
+        </button>
       )}
     </div>
   );
