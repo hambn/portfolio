@@ -173,9 +173,9 @@ export default function Home() {
       </p>
 
       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '56px' }}>
-        <a href="/projects" onClick={(e) => { e.preventDefault(); navigate('projects'); }} className="btn btn-default btn-md">projects</a>
-        <a href="/blog"     onClick={(e) => { e.preventDefault(); navigate('blog');     }} className="btn btn-outline btn-md">blog</a>
-        <a href="/links"    onClick={(e) => { e.preventDefault(); navigate('links');    }} className="btn btn-ghost btn-md">social & contact →</a>
+        <a href="/projects/" onClick={(e) => { e.preventDefault(); navigate('projects'); }} className="btn btn-default btn-md">projects</a>
+        <a href="/blog/"     onClick={(e) => { e.preventDefault(); navigate('blog');     }} className="btn btn-outline btn-md">blog</a>
+        <a href="/links/"    onClick={(e) => { e.preventDefault(); navigate('links');    }} className="btn btn-ghost btn-md">social & contact →</a>
       </div>
 
       {/* ── Work & education timeline ── */}
@@ -195,7 +195,7 @@ export default function Home() {
       {hasResume && (
         <div style={{ marginBottom: '40px' }}>
           <a
-            href="/resume"
+            href="/resume/"
             onClick={(e) => { e.preventDefault(); navigate('resume'); }}
             style={{
               display: 'inline-flex', alignItems: 'center', gap: '6px',

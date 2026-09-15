@@ -67,7 +67,7 @@ export default function Nav({ page }) {
         {navItems.map(({ key, label }) => {
           const active = page === key;
           return (
-            <a key={key} href={'/' + key} onClick={go(key)} style={{
+            <a key={key} href={'/' + key + '/'} onClick={go(key)} style={{
               fontSize: active ? '13px' : '12px', padding: '5px 6px', borderRadius: 'var(--radius-md)',
               color: active ? 'var(--foreground)' : 'var(--foreground-muted)',
               fontWeight: active ? '700' : '500',
@@ -120,7 +120,7 @@ export default function Nav({ page }) {
         {navItems.map(({ key, label }) => {
           const active = page === key;
           return (
-            <a key={key} href={'/' + key} onClick={go(key)} style={{
+            <a key={key} href={'/' + key + '/'} onClick={go(key)} style={{
               fontSize: active ? '15px' : '14px', padding: '6px 10px', borderRadius: 'var(--radius-md)',
               color: active ? 'var(--foreground)' : 'var(--foreground-muted)',
               fontWeight: active ? '700' : '500',
