@@ -8,7 +8,7 @@
   },
   "spotify": {
     "userId": "79l2pto8uczqrq46ihzqukw57",
-    "apiEndpoint": "https://portfolio.ghasempour-hamed.workers.dev/spotify"
+    "apiEndpoint": "https://api.portfolio.hgh.dev/spotify"
   },
   "github": {
     "username": "hambn",
