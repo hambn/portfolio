@@ -41,6 +41,8 @@ jobs:
 
   deploy-worker:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -55,6 +57,18 @@ jobs:
           SPOTIFY_KV_ID: ${{ secrets.SPOTIFY_KV_ID }}
           STEAM_ID: ${{ secrets.STEAM_ID }}
           DISCORD_ID: ${{ secrets.DISCORD_ID }}
+          LINKEDIN_URL: ${{ secrets.LINKEDIN_URL }}
+      - name: Push worker secrets
+        run: |
+          jq -n \
+            --arg client_id "$SPOTIFY_CLIENT_ID" \
+            --arg refresh_token "$SPOTIFY_REFRESH_TOKEN" \
+            --arg steam_key "$STEAM_API_KEY" \
+            '{SPOTIFY_CLIENT_ID: $client_id, SPOTIFY_REFRESH_TOKEN: $refresh_token, STEAM_API_KEY: $steam_key}' \
+            | npx wrangler secret bulk --config api/wrangler.gen.toml
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
           SPOTIFY_REFRESH_TOKEN: ${{ secrets.SPOTIFY_REFRESH_TOKEN }}
           STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
