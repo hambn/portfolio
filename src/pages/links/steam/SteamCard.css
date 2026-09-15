@@ -1,0 +1,378 @@
+.st-style-58 {
+  padding: 16px 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.st-style-57 {
+  font-weight: 700;
+  font-size: 15px;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+.st-style-56 {
+  font-size: 10px;
+  color: #90ba3c;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 3px;
+}
+.st-style-55 {
+  height: 46px;
+  width: auto;
+  max-width: 108px;
+  border-radius: 3px;
+  display: block;
+  object-fit: cover;
+}
+.st-style-54 {
+  flex-shrink: 0;
+}
+.st-style-53 {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.st-style-52 {
+  position: relative;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.st-style-51 {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(14, 32, 46, 0.92) 0%, rgba(27, 40, 56, 0.65) 100%);
+}
+.st-style-50 {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  opacity: 0.35;
+  display: block;
+  pointer-events: none;
+}
+.st-style-49 {
+  position: relative;
+  overflow: hidden;
+  min-height: 72px;
+}
+.st-style-48 {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 7px 14px;
+  border-radius: 3px;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.st-style-47 {
+  font-size: 11px;
+}
+.st-style-46 {
+  font-weight: 600;
+}
+.st-style-45 {
+  font-size: 11px;
+}
+.st-style-44 {
+  font-size: 10px;
+  color: #0e1a26;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 2px;
+  letter-spacing: 0.05em;
+}
+.st-style-43 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.st-style-42 {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.st-style-41 {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+.st-style-40 {
+  font-weight: 800;
+  font-size: 17px;
+  text-decoration: none;
+  line-height: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.st-style-39 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+.st-style-38 {
+  flex: 1;
+  min-width: 0;
+}
+.st-style-37 {
+  width: 52px;
+  height: 52px;
+  background: #0e1a26;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.st-style-36 {
+  width: 52px;
+  height: 52px;
+  display: block;
+  flex-shrink: 0;
+}
+.st-style-35 {
+  flex-shrink: 0;
+}
+.st-style-34 {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.st-style-33 {
+  flex: 1;
+}
+.st-style-32 {
+  font-size: 11px;
+  color: #e87c2a;
+}
+.st-style-31 {
+  font-size: 11px;
+}
+.st-style-30 {
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.st-style-29 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.st-style-28 {
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.st-style-27 {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.st-style-26 {
+  margin-left: auto;
+  font-size: 11px;
+}
+.st-style-25 {
+  font-size: 11px;
+  margin-top: 2px;
+}
+.st-style-24 {
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.2;
+}
+.st-style-23 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+}
+.st-style-22 {
+  font-size: 12px;
+}
+.st-style-21 {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-decoration: none;
+  margin-bottom: 3px;
+}
+.st-style-20 {
+  flex: 1;
+  min-width: 0;
+}
+.st-style-19 {
+  height: 38px;
+  width: auto;
+  max-width: 88px;
+  border-radius: 3px;
+  display: block;
+  object-fit: cover;
+}
+.st-style-18 {
+  flex-shrink: 0;
+}
+.st-style-17 {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.st-style-16 {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  display: block;
+}
+.st-style-15 {
+  display: block;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.st-style-14 {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.st-style-13 {
+  font-size: 13px;
+  margin: 0;
+}
+.st-style-12 {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 10px;
+}
+.st-style-11 {
+  font-size: 11px;
+}
+.st-style-10 {
+  font-size: 11px;
+}
+.st-style-9 {
+  display: flex;
+  gap: 10px;
+  margin-top: 3px;
+  flex-wrap: wrap;
+}
+.st-style-8 {
+  font-size: 13px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.st-style-7 {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+.st-style-6 {
+  position: relative;
+  width: 80px;
+  height: 36px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.st-style-5 {
+  position: relative;
+  height: 36px;
+  width: auto;
+  max-width: 80px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  object-fit: cover;
+  display: block;
+}
+.st-style-4 {
+  position: relative;
+  width: 18px;
+  text-align: right;
+  font-size: 12px;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.st-style-3 {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.13;
+  pointer-events: none;
+  display: block;
+}
+.st-style-2 {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 7px 8px;
+  text-decoration: none;
+}
+.st-style-1 {
+  flex-shrink: 0;
+  display: block;
+}
+.st-hdr-btn {
+  color: #8f98a0;
+}
+.st-hdr-btn:hover {
+  color: #c7d5e0;
+}
+.st-game-row {
+  transition: background 0.1s;
+}
+.st-game-row:hover {
+  background: rgba(102, 192, 244, 0.07);
+  border-radius: 5px;
+}
+.st-open-btn {
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+}
+.st-open-btn:hover {
+  background: rgba(102, 192, 244, 0.15) !important;
+  color: #fff !important;
+  border-color: #66c0f4 !important;
+}
+.st-hero-img {
+  transition: transform 0.2s;
+}
+.st-hero-link:hover .st-hero-img {
+  transform: scale(1.02);
+}
+@media (max-width: 540px) {
+  .st-open-label {
+    display: none;
+  }
+}

@@ -1,0 +1,85 @@
+.tg-style-14 {
+  flex-shrink: 0;
+}
+.tg-style-13 {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 7px 14px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+}
+.tg-style-12 {
+  font-size: 12px;
+}
+.tg-style-11 {
+  font-weight: 800;
+  font-size: 17px;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.tg-style-10 {
+  flex: 1;
+  min-width: 0;
+}
+.tg-style-9 {
+  display: block;
+}
+.tg-style-8 {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tg-style-7 {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.tg-style-6 {
+  flex: 1;
+}
+.tg-style-5 {
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.tg-style-4 {
+  flex-shrink: 0;
+  display: block;
+}
+.tg-style-3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.tg-style-2 {
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tg-style-1 {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.tg-hdr-btn {
+  color: #7eb5d4;
+}
+.tg-hdr-btn:hover {
+  color: #e8f4fc;
+}

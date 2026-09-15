@@ -1,8 +1,8 @@
+import './EmailCard.css';
 import React, { useState } from 'react';
-import { useCollapsed } from '../../hooks/useCollapsed.js';
-import { useCopy } from '../../hooks/useCopy.js';
-import { HeaderButtons } from '../../components/card/HeaderButtons.jsx';
-
+import { useCollapsed } from '../../../hooks/useCollapsed.js';
+import { useCopy } from '../../../hooks/useCopy.js';
+import { HeaderButtons } from '../../../components/card/HeaderButtons.jsx';
 export function EmailCard({ address }) {
   const to = address; // Links.jsx only mounts this card when config.email exists
   const [subject, setSubject] = useState('');
@@ -16,7 +16,6 @@ export function EmailCard({ address }) {
     if (body.trim()) q.push('body=' + encodeURIComponent(body.trim()));
     window.location.href = `mailto:${to}${q.length ? '?' + q.join('&') : ''}`;
   };
-
   const EM = {
     bg: 'var(--card)',
     bgHead: 'var(--background-muted, rgba(255,255,255,0.04))',
@@ -30,7 +29,6 @@ export function EmailCard({ address }) {
   };
   const ENV =
     'M2.5 6.5A2.5 2.5 0 0 1 5 4h14a2.5 2.5 0 0 1 2.5 2.5v11A2.5 2.5 0 0 1 19 20H5a2.5 2.5 0 0 1-2.5-2.5v-11Zm2.2-.4 7.3 5.2 7.3-5.2A.9.9 0 0 0 19 6H5a.9.9 0 0 0-.3.1ZM20 8.1l-7.4 5.3a1 1 0 0 1-1.2 0L4 8.1v9.4c0 .55.45 1 1 1h14c.55 0 1-.45 1-1V8.1Z';
-
   const fieldStyle = {
     width: '100%',
     boxSizing: 'border-box',
@@ -44,59 +42,36 @@ export function EmailCard({ address }) {
     outline: 'none',
     transition: 'border-color 0.15s',
   };
-
   return (
     <div
       style={{
         background: EM.bg,
         border: `1px solid ${EM.border}`,
-        borderRadius: 'var(--radius-lg)',
-        overflow: 'hidden',
       }}
+      className="em-style-1"
     >
       {/* Header */}
       <div
         style={{
           background: EM.bgHead,
-          padding: '10px 14px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
           borderBottom: collapsed ? 'none' : `1px solid ${EM.border}`,
         }}
+        className="em-style-2"
       >
-        <a
-          href={`mailto:${to}`}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            textDecoration: 'none',
-            flexShrink: 0,
-          }}
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill={EM.accent}
-            width={18}
-            height={18}
-            style={{ flexShrink: 0, display: 'block' }}
-          >
+        <a href={`mailto:${to}`} className="em-style-3">
+          <svg viewBox="0 0 24 24" fill={EM.accent} width={18} height={18} className="em-style-4">
             <path d={ENV} />
           </svg>
           <span
             style={{
-              fontWeight: '700',
-              fontSize: '13px',
               color: EM.accent,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
             }}
+            className="em-style-5"
           >
             email
           </span>
         </a>
-        <div style={{ flex: 1 }} />
+        <div className="em-style-6" />
         <HeaderButtons
           btnClass="sc-hdr-btn gh-hdr-btn"
           labelClass="sc-hdr-label"
@@ -111,32 +86,26 @@ export function EmailCard({ address }) {
       </div>
       {/* Body — compose form */}
       <div className={`sc-body ${collapsed ? 'closed' : 'open'}`}>
-        <form
-          onSubmit={send}
-          style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}
-        >
-          <a
-            href={`mailto:${to}`}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              textDecoration: 'none',
-              alignSelf: 'flex-start',
-            }}
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill={EM.accent}
-              width={15}
-              height={15}
-              style={{ flexShrink: 0 }}
-            >
+        <form onSubmit={send} className="em-style-7">
+          <a href={`mailto:${to}`} className="em-style-8">
+            <svg viewBox="0 0 24 24" fill={EM.accent} width={15} height={15} className="em-style-9">
               <path d={ENV} />
             </svg>
-            <span style={{ fontSize: '14px', fontWeight: '600', color: EM.text }}>{to}</span>
+            <span
+              style={{
+                color: EM.text,
+              }}
+              className="em-style-10"
+            >
+              {to}
+            </span>
           </a>
-          <div style={{ fontSize: '13px', color: EM.muted, lineHeight: 1.5 }}>
+          <div
+            style={{
+              color: EM.muted,
+            }}
+            className="em-style-11"
+          >
             got a project, question, or just want to say hi? send a message and it'll land straight
             in my inbox.
           </div>
@@ -156,28 +125,20 @@ export function EmailCard({ address }) {
             onChange={(e) => setBody(e.target.value)}
             onFocus={(e) => (e.target.style.borderColor = EM.accent)}
             onBlur={(e) => (e.target.style.borderColor = EM.border)}
-            style={{ ...fieldStyle, resize: 'vertical', minHeight: '88px', lineHeight: 1.5 }}
+            style={{
+              ...fieldStyle,
+            }}
+            className="em-style-12"
           />
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <div className="em-style-13">
             <button
               type="submit"
               style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '7px',
-                padding: '9px 18px',
-                borderRadius: 'var(--radius-md, 6px)',
-                border: 'none',
                 background: EM.accent,
-                color: 'var(--primary-foreground, #fff)',
-                fontSize: '13px',
-                fontWeight: '600',
-                fontFamily: 'inherit',
-                cursor: 'pointer',
-                transition: 'opacity 0.15s',
               }}
               onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.88')}
               onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+              className="em-style-14"
             >
               <svg
                 viewBox="0 0 24 24"
@@ -196,7 +157,10 @@ export function EmailCard({ address }) {
             </button>
             <a
               href={`mailto:${to}`}
-              style={{ fontSize: '12px', color: EM.faint, textDecoration: 'none' }}
+              style={{
+                color: EM.faint,
+              }}
+              className="em-style-15"
             >
               or open your mail app →
             </a>

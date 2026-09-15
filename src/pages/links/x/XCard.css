@@ -1,0 +1,85 @@
+.x-style-14 {
+  flex-shrink: 0;
+}
+.x-style-13 {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 7px 14px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.x-style-12 {
+  font-size: 12px;
+}
+.x-style-11 {
+  font-weight: 800;
+  font-size: 17px;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.x-style-10 {
+  flex: 1;
+  min-width: 0;
+}
+.x-style-9 {
+  display: block;
+}
+.x-style-8 {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.x-style-7 {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.x-style-6 {
+  flex: 1;
+}
+.x-style-5 {
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.x-style-4 {
+  flex-shrink: 0;
+  display: block;
+}
+.x-style-3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.x-style-2 {
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.x-style-1 {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.x-hdr-btn {
+  color: #71767b;
+}
+.x-hdr-btn:hover {
+  color: #e7e9ea;
+}

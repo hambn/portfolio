@@ -1,19 +1,19 @@
 // Links.jsx — social cards page.
-// Each card lives in its own file in this folder; config comes from
+// Each card and its styles live in their own folder; config comes from
 // contents/links/links.json (no hardcoded IDs/handles here).
-import '../../styles/cards.css';
+import '../../components/card/cards.css';
 import React, { useEffect, useState } from 'react';
 import { PortfolioData } from '../../lib/data.js';
 import ErrorState from '../../components/ErrorState.jsx';
-import { EmailCard } from './EmailCard.jsx';
-import { DiscordCard } from './DiscordCard.jsx';
-import { TelegramCard } from './TelegramCard.jsx';
-import { XCard } from './XCard.jsx';
-import { GitHubCard } from './GitHubCard.jsx';
-import { GitLabCard } from './GitLabCard.jsx';
-import { LinkedInCard } from './LinkedInCard.jsx';
-import { SpotifyCard, SpotifySimpleCard } from './SpotifyCard.jsx';
-import { SteamCard } from './SteamCard.jsx';
+import { EmailCard } from './email/EmailCard.jsx';
+import { DiscordCard } from './discord/DiscordCard.jsx';
+import { TelegramCard } from './telegram/TelegramCard.jsx';
+import { XCard } from './x/XCard.jsx';
+import { GitHubCard } from './github/GitHubCard.jsx';
+import { GitLabCard } from './gitlab/GitLabCard.jsx';
+import { LinkedInCard } from './linkedin/LinkedInCard.jsx';
+import { SpotifyCard, SpotifySimpleCard } from './spotify/SpotifyCard.jsx';
+import { SteamCard } from './steam/SteamCard.jsx';
 
 export default function Links() {
   const [config, setConfig] = useState(() => PortfolioData.peek('links'));

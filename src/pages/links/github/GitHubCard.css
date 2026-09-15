@@ -1,0 +1,130 @@
+.gh-style-21 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+.gh-style-20 {
+  font-weight: 700;
+  font-size: 17px;
+  transition: color 0.12s;
+}
+.gh-style-19 {
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.gh-style-18 {
+  padding: 14px 20px;
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.gh-style-17 {
+  flex-shrink: 0;
+}
+.gh-style-16 {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: 1px solid rgba(240, 246, 252, 0.1);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.gh-style-15 {
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gh-style-14 {
+  font-size: 13px;
+  margin-bottom: 3px;
+}
+.gh-style-13 {
+  display: block;
+  font-weight: 800;
+  font-size: 17px;
+  text-decoration: none;
+  line-height: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-bottom: 4px;
+}
+.gh-style-12 {
+  flex: 1;
+  min-width: 0;
+}
+.gh-style-11 {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #21262d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.gh-style-10 {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: block;
+  object-fit: cover;
+}
+.gh-style-9 {
+  flex-shrink: 0;
+}
+.gh-style-8 {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.gh-style-7 {
+  flex: 1;
+}
+.gh-style-6 {
+  font-size: 11px;
+}
+.gh-style-5 {
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.gh-style-4 {
+  flex-shrink: 0;
+  display: block;
+}
+.gh-style-3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.gh-style-2 {
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.gh-style-1 {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.gh-hdr-btn {
+  color: #8b949e;
+}
+.gh-hdr-btn:hover {
+  color: #e6edf3;
+}

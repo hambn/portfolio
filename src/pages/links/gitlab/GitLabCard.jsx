@@ -1,10 +1,10 @@
+import './GitLabCard.css';
 import React, { useState } from 'react';
-import { useCollapsed } from '../../hooks/useCollapsed.js';
-import { useCopy } from '../../hooks/useCopy.js';
-import { usePolledJSON } from '../../hooks/usePolledJSON.js';
-import { ContribGraph } from '../../components/card/ContribGraph.jsx';
-import { HeaderButtons } from '../../components/card/HeaderButtons.jsx';
-
+import { useCollapsed } from '../../../hooks/useCollapsed.js';
+import { useCopy } from '../../../hooks/useCopy.js';
+import { usePolledJSON } from '../../../hooks/usePolledJSON.js';
+import { ContribGraph } from '../../../components/card/ContribGraph.jsx';
+import { HeaderButtons } from '../../../components/card/HeaderButtons.jsx';
 const GL = {
   bg: '#1f1f23',
   bgHead: '#28272d',
@@ -20,11 +20,9 @@ const GL = {
 const GL_LEVELS = ['#2e2d34', '#0e4429', '#006d32', '#26a641', '#39d353'];
 const GL_ICON =
   'M23.955 13.587l-1.342-4.135-2.664-8.189c-.135-.423-.73-.423-.867 0L16.418 9.45H7.582L4.919 1.263C4.783.84 4.185.84 4.05 1.263L1.386 9.452.044 13.587c-.121.375.014.789.331 1.023L12 23.054l11.625-8.443c.318-.235.453-.647.33-1.024';
-
 export function GitLabCard({ username, url }) {
   const [profile, setProfile] = useState(null);
   const [collapsed, toggleCollapse] = useCollapsed('gl_card_collapsed');
-
   const href = url || `https://gitlab.com/${username}`;
   const [copied, copyLink] = useCopy(href);
   const { loading } = usePolledJSON(
@@ -32,62 +30,46 @@ export function GitLabCard({ username, url }) {
     0,
     (d) => setProfile(Array.isArray(d) ? d[0] : null),
   );
-
   return (
     <div
       style={{
         background: GL.bg,
         border: `1px solid ${GL.border}`,
-        borderRadius: 'var(--radius-lg)',
-        overflow: 'hidden',
       }}
+      className="gl-style-1"
     >
       {/* Header */}
       <div
         style={{
           background: GL.bgHead,
-          padding: '10px 14px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
           borderBottom: collapsed ? 'none' : `1px solid ${GL.border}`,
         }}
+        className="gl-style-2"
       >
-        <a
-          href={href}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            textDecoration: 'none',
-            flexShrink: 0,
-          }}
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill={GL.orange}
-            width={18}
-            height={18}
-            style={{ flexShrink: 0, display: 'block' }}
-          >
+        <a href={href} target="_blank" rel="noopener noreferrer" className="gl-style-3">
+          <svg viewBox="0 0 24 24" fill={GL.orange} width={18} height={18} className="gl-style-4">
             <path d={GL_ICON} />
           </svg>
           <span
             style={{
-              fontWeight: '700',
-              fontSize: '13px',
               color: GL.text,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
             }}
+            className="gl-style-5"
           >
             gitlab
           </span>
         </a>
-        {loading && !profile && <span style={{ fontSize: '11px', color: GL.faint }}>loading…</span>}
-        <div style={{ flex: 1 }} />
+        {loading && !profile && (
+          <span
+            style={{
+              color: GL.faint,
+            }}
+            className="gl-style-6"
+          >
+            loading…
+          </span>
+        )}
+        <div className="gl-style-7" />
         <HeaderButtons
           btnClass="sc-hdr-btn gl-hdr-btn"
           labelClass="sc-hdr-label"
@@ -104,79 +86,59 @@ export function GitLabCard({ username, url }) {
       <div className={`sc-body ${collapsed ? 'closed' : 'open'}`}>
         <div
           style={{
-            padding: '16px 20px',
             borderBottom: `1px solid ${GL.div}`,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '14px',
           }}
+          className="gl-style-8"
         >
           {profile?.avatar_url ? (
-            <a href={href} target="_blank" rel="noopener noreferrer" style={{ flexShrink: 0 }}>
+            <a href={href} target="_blank" rel="noopener noreferrer" className="gl-style-9">
               <img
                 src={profile.avatar_url}
                 alt={username}
                 style={{
-                  width: '52px',
-                  height: '52px',
-                  borderRadius: '50%',
-                  display: 'block',
                   border: `2px solid ${GL.border}`,
-                  objectFit: 'cover',
                 }}
+                className="gl-style-10"
               />
             </a>
           ) : (
             <div
               style={{
-                width: '52px',
-                height: '52px',
-                borderRadius: '50%',
-                background: '#26252b',
                 border: `2px solid ${GL.border}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
               }}
+              className="gl-style-11"
             >
               <svg viewBox="0 0 24 24" fill={GL.orange} width={26} height={26}>
                 <path d={GL_ICON} />
               </svg>
             </div>
           )}
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="gl-style-12">
             <a
               href={href}
               target="_blank"
               rel="noopener noreferrer"
               style={{
-                display: 'block',
-                fontWeight: '800',
-                fontSize: '17px',
                 color: GL.text,
-                textDecoration: 'none',
-                lineHeight: 1,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                marginBottom: '4px',
               }}
+              className="gl-style-13"
             >
               {profile?.name || username}
             </a>
-            <div style={{ fontSize: '13px', color: GL.muted, marginBottom: '3px' }}>
+            <div
+              style={{
+                color: GL.muted,
+              }}
+              className="gl-style-14"
+            >
               @{profile?.username || username}
             </div>
             {profile?.bio && (
               <div
                 style={{
-                  fontSize: '12px',
                   color: GL.muted,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
                 }}
+                className="gl-style-15"
               >
                 {profile.bio}
               </div>
@@ -187,19 +149,7 @@ export function GitLabCard({ username, url }) {
             target="_blank"
             rel="noopener noreferrer"
             style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              flexShrink: 0,
-              padding: '7px 14px',
-              borderRadius: '6px',
-              border: `1px solid rgba(252,109,38,0.4)`,
               background: GL.orange,
-              color: '#1f1f23',
-              fontSize: '12px',
-              fontWeight: '700',
-              textDecoration: 'none',
-              transition: 'background 0.15s',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = GL.orangeH;
@@ -207,13 +157,14 @@ export function GitLabCard({ username, url }) {
             onMouseLeave={(e) => {
               e.currentTarget.style.background = GL.orange;
             }}
+            className="gl-style-16"
           >
             <svg
               viewBox="0 0 24 24"
               fill="currentColor"
               width={13}
               height={13}
-              style={{ flexShrink: 0 }}
+              className="gl-style-17"
             >
               <path d={GL_ICON} />
             </svg>
@@ -224,7 +175,11 @@ export function GitLabCard({ username, url }) {
           username={username}
           source="gitlab"
           levels={GL_LEVELS}
-          theme={{ div: GL.div, faint: GL.faint, muted: GL.muted }}
+          theme={{
+            div: GL.div,
+            faint: GL.faint,
+            muted: GL.muted,
+          }}
         />
       </div>
     </div>

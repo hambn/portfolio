@@ -1,0 +1,83 @@
+.em-style-15 {
+  font-size: 12px;
+  text-decoration: none;
+}
+.em-style-14 {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 18px;
+  border-radius: var(--radius-md, 6px);
+  border: none;
+  color: var(--primary-foreground, #fff);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.em-style-13 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.em-style-12 {
+  resize: vertical;
+  min-height: 88px;
+  line-height: 1.5;
+}
+.em-style-11 {
+  font-size: 13px;
+  line-height: 1.5;
+}
+.em-style-10 {
+  font-size: 14px;
+  font-weight: 600;
+}
+.em-style-9 {
+  flex-shrink: 0;
+}
+.em-style-8 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  align-self: flex-start;
+}
+.em-style-7 {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.em-style-6 {
+  flex: 1;
+}
+.em-style-5 {
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.em-style-4 {
+  flex-shrink: 0;
+  display: block;
+}
+.em-style-3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.em-style-2 {
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.em-style-1 {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
