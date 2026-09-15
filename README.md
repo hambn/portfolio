@@ -220,7 +220,9 @@ vite.config.js      base path (env), classic-JSX, blog-index plugin,
                     build manifest + react vendor chunk
 
 src/
-  main.jsx          entry: app shell + history router, route-chunk preloading
+  main.jsx          client entry: load the entry route and hydrate static HTML
+  App.jsx           app shell behavior and history router
+  entry-server.jsx  render the same components at build time
   routes.js         route registry: path + head meta (also read by prerender)
   lib/              data.js (PortfolioData), router.js, markdown.js (marked+hljs)
   hooks/            useWindowWidth, useCollapsed, useCopy, usePolledJSON
@@ -260,7 +262,14 @@ Notes:
 - Every JSX file imports `React` explicitly and pages are default exports wired
   in `src/pages/index.js`. Vite uses the **classic JSX transform** — keep the
   `React` import; don't switch to the automatic runtime. Routes are `React.lazy`
-  chunks, preloaded via the build manifest and prefetched when idle.
+  chunks. The entry route is preloaded via the build manifest; other routes load on demand.
 - Route titles/descriptions live in `src/routes.js`, shared by the SPA and
   `scripts/prerender.mjs` so head tags can't drift. The prerenderer also writes
   per-page JSON-LD, `sitemap.xml` (with lastmod) and `feed.xml`.
+
+- Static HTML uses the same React components as the client, including responsive
+  CSS. Public content is embedded as escaped JSON and seeds the data cache before
+  hydration. Keep first-render state deterministic across Node and the browser;
+  read browser-only preferences in effects. Live API data loads after hydration.
+- Card styles are extracted into `src/styles/cards.css`, imported by the links
+  route. Avoid injecting layout styles during rendering, which causes reload flashes.
