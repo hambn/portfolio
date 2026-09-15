@@ -2,7 +2,11 @@
 //  SHARED
 // ═══════════════════════════════════════════════════════════════════════════
 
-const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET' };
+const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS' };
+
+// Hard deadline for every upstream call — one slow API must not stall the request.
+const fetchWithTimeout = (url, init = {}, ms = 6000) =>
+  fetch(url, { ...init, signal: AbortSignal.timeout(ms) });
 
 const json = (data, status = 200, ttl = 0) =>
   new Response(JSON.stringify(data), {
@@ -14,10 +18,12 @@ const json = (data, status = 200, ttl = 0) =>
     },
   });
 
-// version param busts cache on deploy — pass env.CACHE_VERSION from every handler
+// version param busts cache on deploy — pass env.CACHE_VERSION from every handler.
+// Cache key uses origin + pathname only, so query strings share one entry.
 async function withCache(request, fn, version) {
   const cache = caches.default;
-  const key = new Request(`${request.url}?__v=${version}`);
+  const { origin, pathname } = new URL(request.url);
+  const key = new Request(`${origin}${pathname}?__v=${version}`);
   const hit = await cache.match(key);
   if (hit) return hit;
   const res = await fn();
@@ -40,7 +46,7 @@ async function getSpotifyToken(env) {
 
   const refreshToken = (await env.SPOTIFY_KV.get('refresh_token')) ?? env.SPOTIFY_REFRESH_TOKEN;
 
-  const res = await fetch('https://accounts.spotify.com/api/token', {
+  const res = await fetchWithTimeout('https://accounts.spotify.com/api/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
@@ -60,9 +66,9 @@ async function getSpotifyToken(env) {
 }
 
 async function spotifyGet(path, accessToken) {
-  const res = await fetch(`https://api.spotify.com/v1${path}`, {
+  const res = await fetchWithTimeout(`https://api.spotify.com/v1${path}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
-  });
+  }, 10000);
   if (res.status === 204) return null;
   return res.json();
 }
@@ -135,7 +141,7 @@ async function steamGet(path, params, apiKey) {
   const url = new URL(`https://api.steampowered.com/${path}`);
   url.searchParams.set('key', apiKey);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
-  const res = await fetch(url);
+  const res = await fetchWithTimeout(url);
   return res.json();
 }
 
@@ -213,16 +219,16 @@ async function handleDiscord(pathname, request, env) {
   if (pathname === '/discord/avatar') {
     // proxied through our own domain + edge cache, so the browser never hits discordapp.com
     return withCache(request, async () => {
-      const res = await fetch(`https://api.lanyard.rest/v1/users/${env.DISCORD_ID}`);
+      const res = await fetchWithTimeout(`https://api.lanyard.rest/v1/users/${env.DISCORD_ID}`);
       const { success, data } = await res.json();
       if (!success) return new Response(null, { status: 502 });
 
       const user = data.discord_user;
       const cdnUrl = user.avatar
         ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.${user.avatar.startsWith('a_') ? 'gif' : 'png'}?size=256`
-        : `https://cdn.discordapp.com/embed/avatars/${BigInt(user.id) % 5n}.png`;
+        : `https://cdn.discordapp.com/embed/avatars/${(BigInt(user.id) >> 22n) % 6n}.png`;
 
-      const img = await fetch(cdnUrl);
+      const img = await fetchWithTimeout(cdnUrl);
       return new Response(img.body, {
         status: img.status,
         headers: {
@@ -237,7 +243,7 @@ async function handleDiscord(pathname, request, env) {
   if (pathname !== '/discord') return null;
 
   return withCache(request, async () => {
-    const res = await fetch(`https://api.lanyard.rest/v1/users/${env.DISCORD_ID}`);
+    const res = await fetchWithTimeout(`https://api.lanyard.rest/v1/users/${env.DISCORD_ID}`);
     const { success, data } = await res.json();
 
     if (!success) return json({ error: 'lanyard_failed' }, 200, 60);
@@ -278,15 +284,29 @@ const LINKEDIN_HEADERS = {
   'Referer': 'https://www.google.com/',
 };
 
+// Only ever fetch a real https://*.linkedin.com URL from env — never an
+// arbitrary string that could point anywhere.
+function linkedinProfileUrl(env) {
+  if (!env.LINKEDIN_URL) return null;
+  try {
+    const u = new URL(env.LINKEDIN_URL);
+    if (u.protocol !== 'https:') return null;
+    if (!/(^|\.)linkedin\.com$/i.test(u.hostname)) return null;
+    return u.href;
+  } catch {
+    return null;
+  }
+}
+
 // LinkedIn blocks a bare request with HTTP 999 — it only serves the page once
 // the client presents session cookies (bcookie/li_gc/JSESSIONID) issued by a
 // prior visit. So: warm up with one request to collect Set-Cookie, then
 // replay with those cookies attached.
 async function fetchLinkedInHtml(url) {
-  const warmup = await fetch(url, { headers: LINKEDIN_HEADERS });
+  const warmup = await fetchWithTimeout(url, { headers: LINKEDIN_HEADERS }, 10000);
   const cookie = warmup.headers.getSetCookie().map(c => c.split(';')[0]).join('; ');
 
-  const res = await fetch(url, { headers: { ...LINKEDIN_HEADERS, Cookie: cookie } });
+  const res = await fetchWithTimeout(url, { headers: { ...LINKEDIN_HEADERS, Cookie: cookie } }, 10000);
   if (!res.ok) return null;
   return res.text();
 }
@@ -294,8 +314,11 @@ async function fetchLinkedInHtml(url) {
 async function handleLinkedIn(pathname, request, env) {
   if (pathname !== '/linkedin') return null;
 
+  const profileUrl = linkedinProfileUrl(env);
+  if (!profileUrl) return json({ error: 'linkedin_not_configured' }, 503);
+
   return withCache(request, async () => {
-    const html = await fetchLinkedInHtml(env.LINKEDIN_URL);
+    const html = await fetchLinkedInHtml(profileUrl);
     if (!html) return json({ error: 'linkedin_fetch_failed' }, 200, 300);
     const title = metaContent(html, 'og:title') ?? '';
     // og:title is usually "Name - Headline | LinkedIn"
@@ -305,7 +328,7 @@ async function handleLinkedIn(pathname, request, env) {
       name:     name?.trim() || null,
       headline: headline?.trim() || null,
       avatar:   metaContent(html, 'og:image'),
-      url:      metaContent(html, 'og:url') ?? env.LINKEDIN_URL,
+      url:      metaContent(html, 'og:url') ?? profileUrl,
     }, 200, 3600);
   }, env.CACHE_VERSION);
 }
@@ -317,9 +340,21 @@ async function handleLinkedIn(pathname, request, env) {
 
 export default {
   async fetch(request, env) {
-    if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });
-
     const { pathname } = new URL(request.url);
+
+    if (pathname === '/health') return json({ ok: true });
+
+    const known = ['/spotify', '/steam', '/discord', '/linkedin']
+      .some(route => pathname === route || pathname.startsWith(`${route}/`));
+    if (!known) return json({ error: 'not found' }, 404);
+
+    if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });
+    if (request.method !== 'GET' && request.method !== 'HEAD') {
+      return new Response(JSON.stringify({ error: 'method not allowed' }), {
+        status: 405,
+        headers: { 'Content-Type': 'application/json', Allow: 'GET, HEAD, OPTIONS', ...CORS },
+      });
+    }
 
     if (pathname.startsWith('/spotify'))  return (await handleSpotify(pathname, env)) ?? json({ error: 'not found' }, 404);
     if (pathname.startsWith('/steam'))    return (await handleSteam(pathname, request, env))    ?? json({ error: 'not found' }, 404);
