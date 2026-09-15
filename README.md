@@ -191,15 +191,19 @@ index.html          static shell + fallback meta
 vite.config.js      base path (env), classic-JSX, blog-index plugin
 
 src/
-  main.jsx          entry: history router + page mounting
-  globals.js        exposes React/ReactDOM + content base globally
-  data.js           PortfolioData — fetches contents/
-  components/Nav.jsx
-  pages/            Home, Projects, Resume
-    blog/           Blog.jsx + blog-libs.js (self-hosted marked/hljs)
+  main.jsx          entry: app shell + history router
+  routes.js         route registry: path + head meta (also read by prerender)
+  lib/              data.js (PortfolioData), router.js, markdown.js (marked+hljs)
+  hooks/            useWindowWidth, useCollapsed, useCopy, usePolledJSON
+  components/       Nav.jsx + card/ (HeaderButtons, cardStyles, ContribGraph)
+  pages/            index.js (pages map) + one folder per route:
+    home/           Home.jsx
+    projects/       Projects.jsx
+    resume/         Resume.jsx
+    blog/           Blog.jsx + BlogList.jsx + BlogPost.jsx + blog-ui.jsx
     links/          Links.jsx + one file per card:
                     Email, Discord, Telegram, X, GitHub, GitLab,
-                    LinkedIn, Spotify, Steam, plus shared.jsx
+                    LinkedIn, Spotify, Steam
   styles/           index.css → tokens/ + core.css, plus blog.css
 scripts/            Node build tooling (NOT bundled — root by convention)
   blog-index.mjs    build-time blog scanner (Vite plugin)
@@ -223,7 +227,8 @@ Notes:
   dev, emitted as `blog-data.json` at build. Raw `.md` are stripped from `dist/`.
 - Fonts and markdown libs (`marked`, `highlight.js`, `mermaid`) are
   self-hosted/lazy-loaded — no third-party CDN.
-- Pages reference a global `React` and register on `window` (e.g.
-  `window.Home`); `main.jsx` imports them for the side effect, the router reads
-  them off `window`. Vite uses the **classic JSX transform** — don't switch to
-  the automatic runtime, it breaks this.
+- Every JSX file imports `React` explicitly and pages are default exports wired
+  in `src/pages/index.js`. Vite uses the **classic JSX transform** — keep the
+  `React` import; don't switch to the automatic runtime.
+- Route titles/descriptions live in `src/routes.js`, shared by the SPA and
+  `scripts/prerender.mjs` so head tags can't drift.
