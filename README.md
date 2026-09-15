@@ -48,8 +48,11 @@ The Spotify / Discord / Steam link cards read live data from a small backend in
 ### Cloudflare Worker (current — free)
 
 Served at `https://api.portfolio.hgh.dev`. Nothing sensitive is committed —
-`api:deploy` injects every value at deploy time via `wrangler --var`, read from
-your shell env (locally) or GitHub Actions secrets (CI).
+`npm run api:deploy` passes public config (`STEAM_ID`, `DISCORD_ID`,
+`LINKEDIN_URL`, `CACHE_VERSION`) via `wrangler --var`, while credentials
+(`SPOTIFY_CLIENT_ID`, `SPOTIFY_REFRESH_TOKEN`, `STEAM_API_KEY`) are uploaded
+once as **Worker secrets** with `wrangler secret bulk` (the CI job does this on
+every deploy).
 
 **KV namespace** (`SPOTIFY_KV`, stores rotating Spotify tokens) — create once,
 its id goes in the `SPOTIFY_KV_ID` secret/env (injected into `wrangler.toml` at
@@ -74,6 +77,7 @@ wrangler kv namespace create SPOTIFY_KV   # → copy id into SPOTIFY_KV_ID
 | `STEAM_API_KEY` | steamcommunity.com/dev/apikey |
 | `STEAM_ID` | your 64-bit Steam ID (https://steamid.io) |
 | `DISCORD_ID` | your Discord user ID (right-click → Copy User ID) |
+| `LINKEDIN_URL` | your public LinkedIn profile URL (e.g. `https://linkedin.com/in/hambn`) |
 
 Pages deploy needs no secrets — GitHub's `GITHUB_TOKEN` is automatic. `STEAM_ID`
 and `DISCORD_ID` are public on your profiles; kept as secrets only so nothing
@@ -81,22 +85,25 @@ identifying sits in git.
 
 #### Manual deploy
 
-Export the same vars, then `npm run api:deploy`:
+`SPOTIFY_KV_ID` and the public vars are read from your shell env. Credentials go
+in once, as Worker secrets:
 
 ```bash
-export SPOTIFY_KV_ID=… SPOTIFY_CLIENT_ID=… SPOTIFY_REFRESH_TOKEN=… STEAM_API_KEY=… STEAM_ID=… DISCORD_ID=…
+export SPOTIFY_KV_ID=… STEAM_ID=… DISCORD_ID=… LINKEDIN_URL=…
+npm run api:config   # writes api/wrangler.gen.toml from wrangler.toml
+echo '{"SPOTIFY_CLIENT_ID":"…","SPOTIFY_REFRESH_TOKEN":"…","STEAM_API_KEY":"…"}' \
+  | npx wrangler secret bulk --config api/wrangler.gen.toml
 npm run api:deploy
 ```
 
 | Route | Cache | Data |
 |-------|-------|------|
 | `GET /spotify` | none | aggregate: now-playing + profile + top + recent + playlists |
-| `GET /spotify/status` | none | currently playing |
-| `GET /spotify/profile` | 1h | profile |
-| `GET /spotify/favorites?type=tracks\|artists&range=…` | 1h | top tracks/artists |
-| `GET /spotify/recent` | 5m | recently played |
 | `GET /steam` | 5m | status, level, current/favorite game, recent activity |
 | `GET /discord` | 60s | presence + activities + Spotify (via Lanyard) |
+| `GET /discord/avatar` | 1h | proxied Discord avatar image |
+| `GET /linkedin` | 1h | profile OG tags scraped from `LINKEDIN_URL` |
+| `GET /health` | none | `{ ok: true }` liveness check |
 
 Full reference + Spotify re-auth flow: [`.claude/api.md`](.claude/api.md).
 
@@ -118,6 +125,7 @@ Environment variables:
 | `STEAM_API_KEY` | secret | yes |
 | `STEAM_ID` | config | yes |
 | `DISCORD_ID` | config | yes |
+| `LINKEDIN_URL` | config | no (`/linkedin` returns 503 without it) |
 | `CACHE_VERSION` | config | no (default: `0`) |
 
 ## self-host (Docker)

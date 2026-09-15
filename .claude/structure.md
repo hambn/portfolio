@@ -5,23 +5,26 @@ Static React portfolio, built with Vite, deployed to GitHub Pages at
 
 ```
 .
-├─ index.html              Vite entry (meta/OG/JSON-LD fallback live here)
+├─ index.html              Vite entry (meta/OG fallback + pre-paint theme script)
 ├─ vite.config.js          base path, classic-JSX, blog-index plugin,
 │                          build manifest + react vendor chunk
 ├─ package.json            scripts: dev / build / preview
 │
 ├─ src/                    browser app code (bundled by Vite)
-│  ├─ main.jsx             entry: app shell + history router; imports variable
+│  ├─ main.jsx             entry: app shell + history router; syncs
+│  │                       document.title/scroll/focus per route; imports
 │  │                       font/styles, preloads the entry route chunk, then
 │  │                       prefetches the rest when idle
 │  ├─ routes.js            route registry: path + <head> meta (also read by prerender)
 │  ├─ lib/
 │  │  ├─ data.js           PortfolioData — fetches public/contents/
 │  │  ├─ router.js         navigate() / currentRoute() history helpers
+│  │  ├─ storage.js        safe localStorage get/set (never throws)
 │  │  └─ markdown.js       self-hosted marked + highlight.js (lazy chunk)
 │  ├─ hooks/               useWindowWidth, useCollapsed, useCopy, usePolledJSON
 │  ├─ components/
 │  │  ├─ Nav.jsx           top nav + theme toggle
+│  │  ├─ ErrorState.jsx    shared load-failure message + retry button
 │  │  └─ card/             link-card chrome: HeaderButtons, cardStyles, ContribGraph
 │  ├─ pages/               one folder per route (default exports)
 │  │  ├─ index.js          lazy page map (React.lazy) + preloadPage()
@@ -66,7 +69,7 @@ Static React portfolio, built with Vite, deployed to GitHub Pages at
 ├─ deployment/             self-host the stack (run compose from repo root)
 │  ├─ Dockerfile.web       site build → nginx
 │  ├─ Dockerfile.api       Node → api/server.js
-│  ├─ nginx.conf           SPA fallback
+│  ├─ nginx.conf           SPA fallback + gzip, cache + security headers
 │  └─ docker-compose.yml   web :8080 + api :8787
 │
 ├─ .dockerignore           kept at root — Docker needs it at the build context
