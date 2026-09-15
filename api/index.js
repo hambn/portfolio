@@ -257,6 +257,61 @@ async function handleDiscord(pathname, request, env) {
 
 
 // ═══════════════════════════════════════════════════════════════════════════
+//  LINKEDIN
+//  No public API for personal profiles — scrape the public profile page's
+//  OG meta tags instead. Cached hard (1h, via Cache API) so we don't hammer
+//  linkedin.com; a scrape failure falls back to the last good cache entry.
+//  Config:  LINKEDIN_URL — public profile URL, e.g. https://linkedin.com/in/hambn
+//  Routes:  /linkedin
+// ═══════════════════════════════════════════════════════════════════════════
+
+function metaContent(html, prop) {
+  const re = new RegExp(`<meta[^>]+property=["']${prop}["'][^>]+content=["']([^"']*)["']`, 'i');
+  const raw = html.match(re)?.[1];
+  return raw ? raw.replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'") : null;
+}
+
+const LINKEDIN_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36',
+  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+  'Accept-Language': 'en-US,en;q=0.9',
+  'Referer': 'https://www.google.com/',
+};
+
+// LinkedIn blocks a bare request with HTTP 999 — it only serves the page once
+// the client presents session cookies (bcookie/li_gc/JSESSIONID) issued by a
+// prior visit. So: warm up with one request to collect Set-Cookie, then
+// replay with those cookies attached.
+async function fetchLinkedInHtml(url) {
+  const warmup = await fetch(url, { headers: LINKEDIN_HEADERS });
+  const cookie = warmup.headers.getSetCookie().map(c => c.split(';')[0]).join('; ');
+
+  const res = await fetch(url, { headers: { ...LINKEDIN_HEADERS, Cookie: cookie } });
+  if (!res.ok) return null;
+  return res.text();
+}
+
+async function handleLinkedIn(pathname, request, env) {
+  if (pathname !== '/linkedin') return null;
+
+  return withCache(request, async () => {
+    const html = await fetchLinkedInHtml(env.LINKEDIN_URL);
+    if (!html) return json({ error: 'linkedin_fetch_failed' }, 200, 300);
+    const title = metaContent(html, 'og:title') ?? '';
+    // og:title is usually "Name - Headline | LinkedIn"
+    const [name, headline] = title.replace(/\s*\|\s*LinkedIn$/i, '').split(/\s+-\s+/, 2);
+
+    return json({
+      name:     name?.trim() || null,
+      headline: headline?.trim() || null,
+      avatar:   metaContent(html, 'og:image'),
+      url:      metaContent(html, 'og:url') ?? env.LINKEDIN_URL,
+    }, 200, 3600);
+  }, env.CACHE_VERSION);
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
 //  ROUTER
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -269,6 +324,7 @@ export default {
     if (pathname.startsWith('/spotify'))  return (await handleSpotify(pathname, env)) ?? json({ error: 'not found' }, 404);
     if (pathname.startsWith('/steam'))    return (await handleSteam(pathname, request, env))    ?? json({ error: 'not found' }, 404);
     if (pathname.startsWith('/discord'))  return (await handleDiscord(pathname, request, env))  ?? json({ error: 'not found' }, 404);
+    if (pathname.startsWith('/linkedin')) return (await handleLinkedIn(pathname, request, env)) ?? json({ error: 'not found' }, 404);
 
     return json({ error: 'not found' }, 404);
   },

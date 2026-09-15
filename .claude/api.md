@@ -37,6 +37,7 @@ secrets. Self-host: `process.env` (`SPOTIFY_CLIENT_ID=… STEAM_ID=… npm run a
 | `STEAM_API_KEY` | Steam Web API (get at https://steamcommunity.com/dev/apikey) |
 | `STEAM_ID` | 64-bit Steam ID (https://steamid.io) |
 | `DISCORD_ID` | Discord user ID (Lanyard lookup) |
+| `LINKEDIN_URL` | Public LinkedIn profile URL to scrape (e.g. `https://linkedin.com/in/hambn`) |
 | `CACHE_VERSION` | cache-bust token (auto-set per deploy) |
 
 ## Routes
@@ -50,6 +51,7 @@ secrets. Self-host: `process.env` (`SPOTIFY_CLIENT_ID=… STEAM_ID=… npm run a
 | `GET /spotify/recent` | 5m | `/me/player/recently-played` |
 | `GET /steam` | 5m | Steam Web API — status, level, current/favorite game, recent |
 | `GET /discord` | 60s | Lanyard (`api.lanyard.rest`) — status, activities, spotify |
+| `GET /linkedin` | 1h | scraped OG meta tags from `LINKEDIN_URL` — name, headline, avatar, url |
 
 ## Re-auth (Spotify)
 
