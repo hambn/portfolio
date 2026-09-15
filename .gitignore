@@ -1,10 +1,23 @@
-node_modules
-dist
-.tmp
-.DS_Store
+# dependencies
+node_modules/
+
+# build output
+dist/
+
+# local scratch
+.tmp/
 *.log
-.wrangler
-api/wrangler.gen.toml
+
+# secrets / env
 .env
 deployment/.env
 
+# cloudflare wrangler
+.wrangler/
+api/wrangler.gen.toml
+
+# local tool config
+.claude/settings.local.json
+
+# os cruft
+.DS_Store
