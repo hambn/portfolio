@@ -27,9 +27,9 @@ export function ensureScStyles() {
     .dc-hdr-btn:hover{color:#dbdee1;}
     .li-hdr-btn{color:#b0b7be;}
     .li-hdr-btn:hover{color:#e7e9ea;}
-    .sc-body{overflow:hidden;transition:max-height 0.35s ease,opacity 0.22s ease;}
-    .sc-body.open{max-height:4000px;opacity:1;}
-    .sc-body.closed{max-height:0;opacity:0;pointer-events:none;}
+    .sc-body{overflow:hidden;transition:max-height 0.35s ease,opacity 0.22s ease,visibility 0.35s;}
+    .sc-body.open{max-height:4000px;opacity:1;visibility:visible;}
+    .sc-body.closed{max-height:0;opacity:0;visibility:hidden;pointer-events:none;}
     @media(max-width:540px){
       .sc-hdr-label{display:none;}
       .sc-hdr-btn{padding:4px 5px;}

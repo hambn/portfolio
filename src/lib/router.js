@@ -10,7 +10,12 @@ export function navigate(page) {
   // Canonical form ends in a slash, matching the prerendered <link rel="canonical">
   // and how static hosts serve directory index.html files.
   const url = (clean ? `${BASE_PATH}/${clean}/` : `${BASE_PATH}/`) + (query ? `?${query}` : '');
+  // Remember where the outgoing page was scrolled so Back can restore it.
+  window.history.replaceState(
+    { ...(window.history.state || {}), scrollY: window.scrollY }, ''
+  );
   window.history.pushState({ page }, '', url);
+  window.scrollTo(0, 0);
   window.dispatchEvent(new PopStateEvent('popstate'));
 }
 

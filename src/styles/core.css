@@ -111,5 +111,17 @@ img, svg { display: block; max-width: 100%; }
 /* ── Selection ── */
 ::selection { background: var(--primary-subtle); color: var(--foreground); }
 
+/* ── Skip link ── */
+.skip-link {
+  position: absolute; left: -9999px; top: 0; z-index: 100;
+  background: var(--background); color: var(--foreground);
+  border: 1px solid var(--border-strong); border-radius: var(--radius-md);
+  padding: 8px 14px; font-size: var(--text-sm);
+}
+.skip-link:focus { left: 8px; top: 8px; }
+
+/* Programmatic focus target for client-side navigation — no visible outline. */
+#content { outline: none; }
+
 /* ── Focus ring helper ── */
 .focus-ring:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
