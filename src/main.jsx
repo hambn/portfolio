@@ -1,17 +1,14 @@
 // SPA entry — app shell + history router.
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-// Self-hosted JetBrains Mono (woff2 bundled by Vite — no Google Fonts request).
-import '@fontsource/jetbrains-mono/400.css';
-import '@fontsource/jetbrains-mono/500.css';
-import '@fontsource/jetbrains-mono/600.css';
-import '@fontsource/jetbrains-mono/700.css';
-import '@fontsource/jetbrains-mono/800.css';
+// Self-hosted JetBrains Mono variable font (one woff2 for every weight —
+// no Google Fonts request).
+import '@fontsource-variable/jetbrains-mono';
 import './styles/index.css';
 import './styles/blog.css';
 
 import Nav from './components/Nav.jsx';
-import { pages } from './pages/index.js';
+import { pages, preloadPage } from './pages/index.js';
 import { currentRoute } from './lib/router.js';
 
 // Round the tab favicon client-side: GitHub's avatar CDN sends CORS headers,
@@ -55,12 +52,28 @@ function App() {
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
+  // Warm every route chunk once the first page is interactive, so in-app
+  // navigation never waits on the network.
+  useEffect(() => {
+    const idle = window.requestIdleCallback || ((fn) => setTimeout(fn, 200));
+    const cancel = window.cancelIdleCallback || clearTimeout;
+    const id = idle(() => Object.keys(pages).forEach(preloadPage));
+    return () => cancel(id);
+  }, []);
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--background)', color: 'var(--foreground)' }}>
       <Nav page={page} />
-      <Page route={route} />
+      <Suspense fallback={null}>
+        <Page route={route} />
+      </Suspense>
     </div>
   );
 }
+
+// Kick the entry route's chunk off before the first render so the prerendered
+// HTML is swapped for the real page in one step.
+const initial = (currentRoute() || 'home').split('/')[0] || 'home';
+preloadPage(pages[initial] ? initial : 'home');
 
 createRoot(document.getElementById('root')).render(<App />);

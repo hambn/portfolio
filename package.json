@@ -11,7 +11,7 @@
     "api:deploy": "envsubst < api/wrangler.toml > api/wrangler.gen.toml && wrangler deploy --config api/wrangler.gen.toml --var CACHE_VERSION:$(date +%s) STEAM_ID:$STEAM_ID DISCORD_ID:$DISCORD_ID SPOTIFY_CLIENT_ID:$SPOTIFY_CLIENT_ID SPOTIFY_REFRESH_TOKEN:$SPOTIFY_REFRESH_TOKEN STEAM_API_KEY:$STEAM_API_KEY"
   },
   "dependencies": {
-    "@fontsource/jetbrains-mono": "^5.2.8",
+    "@fontsource-variable/jetbrains-mono": "5.3.0",
     "highlight.js": "^11.11.1",
     "marked": "^18.0.5",
     "mermaid": "^11.15.0",

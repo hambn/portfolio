@@ -1,14 +1,21 @@
-// Page registry — the router renders the entry matching the current route.
-import Home from './home/Home.jsx';
-import Projects from './projects/Projects.jsx';
-import Blog from './blog/Blog.jsx';
-import Links from './links/Links.jsx';
-import Resume from './resume/Resume.jsx';
+// Page registry — every route is a lazy chunk so the first load ships the app
+// shell plus only the page being viewed. main.jsx preloads the entry route and
+// prefetches the rest when idle.
+import { lazy } from 'react';
 
-export const pages = {
-  home: Home,
-  projects: Projects,
-  blog: Blog,
-  links: Links,
-  resume: Resume,
+const loaders = {
+  home: () => import('./home/Home.jsx'),
+  projects: () => import('./projects/Projects.jsx'),
+  blog: () => import('./blog/Blog.jsx'),
+  links: () => import('./links/Links.jsx'),
+  resume: () => import('./resume/Resume.jsx'),
 };
+
+export const pages = Object.fromEntries(
+  Object.entries(loaders).map(([key, load]) => [key, lazy(load)])
+);
+
+/** Start a route chunk download now (called before first render and when idle). */
+export function preloadPage(page) {
+  return loaders[page]?.();
+}

@@ -153,6 +153,9 @@ export default function Home() {
         <img
           src={profile?.avatar || (profile?.handle && `https://avatars.githubusercontent.com/${profile.handle}`) || undefined}
           alt={profile?.name || ''}
+          width="72"
+          height="72"
+          decoding="async"
           style={{ width: '72px', height: '72px', borderRadius: '50%', border: '2px solid var(--border)', flexShrink: 0 }}
         />
         <div>

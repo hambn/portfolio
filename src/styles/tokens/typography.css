@@ -1,9 +1,9 @@
 /* hambn Design System — Typography Tokens */
-/* Primary font: JetBrains Mono — self-hosted via @fontsource (see main.jsx). */
+/* Primary font: JetBrains Mono — self-hosted variable font via @fontsource (see main.jsx). */
 
 :root {
   /* ── Font families ── */
-  --font-mono:    'JetBrains Mono', 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+  --font-mono:    'JetBrains Mono Variable', 'JetBrains Mono', 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
   --font-body:    var(--font-mono);
   --font-display: var(--font-mono);
   --font-code:    var(--font-mono);

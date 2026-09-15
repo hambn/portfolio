@@ -41,6 +41,18 @@ function blogIndexPlugin() {
 export default defineConfig({
   base: process.env.BASE_PATH || '/',
   plugins: [blogIndexPlugin()],
+  build: {
+    // Emit .vite/manifest.json so the prerenderer can add modulepreload links
+    // for each route's lazy chunk (scripts/prerender.mjs reads then removes it).
+    manifest: true,
+    rollupOptions: {
+      output: {
+        // React gets its own long-lived chunk: its hash stays stable across app
+        // deploys, so browser/CDN caches keep it instead of refetching.
+        manualChunks: { react: ['react', 'react-dom'] },
+      },
+    },
+  },
   esbuild: {
     // Classic JSX (React.createElement) — every JSX file imports React itself.
     jsx: 'transform',
