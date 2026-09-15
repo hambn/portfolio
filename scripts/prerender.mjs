@@ -3,15 +3,15 @@
 // The app is a client-rendered SPA, so crawlers and social scrapers (which
 // don't run JS) would otherwise see an empty shell with one shared <title>.
 // This emits a real HTML file per route with a unique title/description/
-// canonical/OG tags, per-page JSON-LD, modulepreload hints for the route's
-// lazy chunk, AND the actual content (home, blog list, every post, links,
-// resume) baked in. The SPA still boots and takes over for users.
+// canonical/OG tags, JSON-LD, route chunk hints, and the actual React markup.
+// The client hydrates this markup without replacing it with a second layout.
 // It also writes sitemap.xml, robots.txt and the RSS feed.
 
 import { readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { marked } from 'marked';
+import { createServer } from 'vite';
 import { buildBlogIndex } from './blog-index.mjs';
 import { routes } from '../src/routes.js';
 
@@ -31,15 +31,6 @@ const esc = (s) =>
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 const dateParts = (d) => /^(\d{4})-(\d{2})-(\d{2})/.exec(d || '');
-const fmtDate = (d) => {
-  const m = dateParts(d);
-  if (!m) return d || '';
-  return new Date(+m[1], +m[2] - 1, +m[3]).toLocaleDateString('en', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-};
 const isoDate = (d) => (dateParts(d) ? dateParts(d)[0] : '');
 const rfc822 = (d) => {
   const m = dateParts(d);
@@ -138,18 +129,40 @@ const pageEntries = Object.fromEntries(
 function assetLinks(page, extra = []) {
   const seen = new Set();
   const out = [];
+  const linked = new Set([...template.matchAll(/(?:href|src)="([^"]+)"/g)].map((m) => m[1]));
+  function add(rel, file) {
+    const href = `${BASE}/${file}`;
+    if (linked.has(href)) return;
+    linked.add(href);
+    out.push(`  <link rel="${rel}" crossorigin href="${href}" />`);
+  }
   function visit(k) {
     if (!k || seen.has(k)) return;
     seen.add(k);
     const m = manifest[k];
     if (!m) return;
-    if (m.file) out.push(`  <link rel="modulepreload" href="${BASE}/${m.file}" />`);
-    for (const css of m.css || []) out.push(`  <link rel="stylesheet" href="${BASE}/${css}" />`);
+    if (m.file) add('modulepreload', m.file);
+    for (const css of m.css || []) add('stylesheet', css);
     for (const dep of m.imports || []) visit(dep);
   }
   visit(pageEntries[page]);
   for (const k of extra) visit(k);
   return out.join('\n');
+}
+
+// Load the real components for static rendering without starting an HTTP server.
+const server = await createServer({
+  configFile: false,
+  base: BASE || '/',
+  server: { middlewareMode: true },
+  appType: 'custom',
+  esbuild: { jsx: 'transform', jsxFactory: 'React.createElement', jsxFragment: 'React.Fragment' },
+});
+let render;
+try {
+  ({ render } = await server.ssrLoadModule('/src/entry-server.jsx'));
+} finally {
+  await server.close();
 }
 
 const template = readFileSync(join(dist, 'index.html'), 'utf8')
@@ -166,7 +179,6 @@ function page({
   desc,
   path,
   type = 'website',
-  content,
   robots = false,
   jsonLd,
   extraHead = '',
@@ -186,6 +198,14 @@ function page({
   ]
     .filter(Boolean)
     .join('\n');
+  const data = { profile, resume, links };
+  if (path === 'blog' || path?.startsWith('blog/')) data.blogIndex = posts;
+  if (path?.startsWith('blog/')) {
+    const post = posts.find((p) => `blog/${p.slug}` === path);
+    if (post) data.postHtml = { [post.slug]: marked.parse(post.body) };
+  }
+  const content = robots ? '' : render(path || 'home', data);
+  const serialized = JSON.stringify(data).replace(/</g, '\\u003c');
   let html = template
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(title)}</title>`)
     .replace(/(<meta name="description" content=")[^"]*(")/, `$1${esc(desc)}$2`)
@@ -193,7 +213,10 @@ function page({
     .replace(/(<meta property="og:description" content=")[^"]*(")/, `$1${esc(desc)}$2`)
     .replace(/(<meta property="og:type" content=")[^"]*(")/, `$1${type}$2`)
     .replace('</head>', `${head}\n</head>`)
-    .replace('<div id="root"></div>', `<div id="root">${content}</div>`);
+    .replace(
+      '<div id="root"></div>',
+      `<div id="root">${content}</div><script id="portfolio-data" type="application/json">${serialized}</script>`,
+    );
   if (jsonLd)
     html = html.replace(
       /<script type="application\/ld\+json">[\s\S]*?<\/script>/,
@@ -208,92 +231,12 @@ function write(path, html) {
   writeFileSync(join(dir, 'index.html'), html);
 }
 
-const link = (href, text) => `<a href="${esc(href)}">${esc(text)}</a>`;
-
 // Titles/descriptions come from the shared route registry (src/routes.js) so
 // the prerendered <head> and the SPA never drift apart.
 const ctx = { profile, links, resume };
 const meta = Object.fromEntries(
   routes.map((r) => [r.page, { title: r.title(ctx), desc: r.description(ctx) }]),
 );
-
-/* ── content blocks (semantic, text-first; SPA restyles for users) ── */
-
-const resumeEntry = (it) => {
-  const desc = Array.isArray(it.description)
-    ? `<ul>${it.description.map((d) => `<li>${esc(d)}</li>`).join('')}</ul>`
-    : '';
-  return `<div><h3>${esc(it.role || it.degree)}</h3><p>${esc(it.company || it.school)}${it.location ? ' · ' + esc(it.location) : ''} · ${esc(it.start)}–${esc(it.end)}</p>${desc}</div>`;
-};
-
-const homeContent = `
-<main>
-  <img src="${esc(profile.avatar)}" alt="${esc(profile.name)}" width="72" height="72" />
-  <h1>${esc(profile.name)}</h1>
-  <p>@${esc(profile.handle)}</p>
-  <p>${esc(profile.bio)}</p>
-  <nav>${link(BASE + '/projects/', 'projects')} ${link(BASE + '/blog/', 'blog')} ${link(BASE + '/links/', 'links')} ${link(BASE + '/resume/', 'resume')}</nav>
-  <section><h2>work &amp; education</h2>${(resume.items || []).map(resumeEntry).join('')}</section>
-</main>`;
-
-const blogListContent = `
-<main>
-  <h1>blog</h1>
-  <p>${esc(meta.blog.desc)}</p>
-  <ul>${posts.map((p) => `<li>${link(`${BASE}/blog/${p.slug}/`, p.title)}${p.description ? ' — ' + esc(p.description) : ''} <time datetime="${esc(p.date)}">${esc(fmtDate(p.date))}</time></li>`).join('')}</ul>
-</main>`;
-
-const postContent = (p) => `
-<main><article>
-  <p><time datetime="${esc(p.date)}">${esc(fmtDate(p.date))}</time></p>
-  <h1>${esc(p.title)}</h1>
-  ${p.tags?.length ? `<p>${p.tags.map((t) => `<span>${esc(t)}</span>`).join(' ')}</p>` : ''}
-  <div class="markdown-body">${marked.parse(p.body)}</div>
-</article></main>`;
-
-const linkRows = () => {
-  const rows = [];
-  if (links.email?.address) rows.push(['email', `mailto:${links.email.address}`]);
-  if (links.discord?.userId)
-    rows.push(['discord', `https://discord.com/users/${links.discord.userId}`]);
-  if (links.telegram)
-    rows.push(['telegram', links.telegram.url || `https://t.me/${links.telegram.handle}`]);
-  if (links.x) rows.push(['x', links.x.url || `https://x.com/${links.x.handle}`]);
-  if (links.github)
-    rows.push(['github', links.github.url || `https://github.com/${links.github.username}`]);
-  if (links.gitlab)
-    rows.push(['gitlab', links.gitlab.url || `https://gitlab.com/${links.gitlab.username}`]);
-  if (links.linkedin)
-    rows.push([
-      'linkedin',
-      links.linkedin.url || `https://linkedin.com/in/${links.linkedin.handle}`,
-    ]);
-  if (links.spotify?.userId)
-    rows.push(['spotify', `https://open.spotify.com/user/${links.spotify.userId}`]);
-  if (links.steam)
-    rows.push(['steam', links.steam.url || `https://steamcommunity.com/id/${links.steam.handle}`]);
-  return rows;
-};
-
-const linksContent = `
-<main>
-  <h1>links</h1>
-  <p>find me around the web</p>
-  <ul>${linkRows()
-    .map(([label, href]) => `<li>${link(href, label)}</li>`)
-    .join('')}</ul>
-</main>`;
-
-const work = (resume.items || []).filter((i) => i.type === 'work');
-const edu = (resume.items || []).filter((i) => i.type === 'education');
-const resumeContent = `
-<main>
-  <h1>${esc(profile.name)} — resume</h1>
-  <p>${esc(profile.title || '')}</p>
-  ${work.length ? `<section><h2>experience</h2>${work.map(resumeEntry).join('')}</section>` : ''}
-  ${edu.length ? `<section><h2>education</h2>${edu.map(resumeEntry).join('')}</section>` : ''}
-  ${resume.skills?.length ? `<section><h2>skills</h2><p>${resume.skills.map(esc).join(', ')}</p></section>` : ''}
-</main>`;
 
 /* ── emit ── */
 
@@ -308,7 +251,6 @@ write(
   page({
     ...meta.home,
     path: '',
-    content: homeContent,
     preload: assetLinks('home'),
     jsonLd: ldGraph({ ...pageNode('ProfilePage', meta.home, ''), mainEntity: personLd }),
   }),
@@ -319,7 +261,6 @@ write(
     ...meta.projects,
     path: 'projects',
     preload: assetLinks('projects'),
-    content: `<main><h1>projects</h1><p>public repositories on github — ${link(links.github?.url || 'https://github.com/' + (links.github?.username || 'hambn'), 'view on github')}</p></main>`,
     jsonLd: ldGraph(
       pageNode('CollectionPage', meta.projects, 'projects'),
       crumb('projects', 'projects'),
@@ -331,7 +272,6 @@ write(
   page({
     ...meta.blog,
     path: 'blog',
-    content: blogListContent,
     preload: assetLinks('blog'),
     jsonLd: ldGraph(
       {
@@ -360,7 +300,6 @@ write(
   page({
     ...meta.links,
     path: 'links',
-    content: linksContent,
     preload: assetLinks('links'),
     jsonLd: ldGraph(pageNode('CollectionPage', meta.links, 'links'), crumb('links', 'links')),
   }),
@@ -370,7 +309,6 @@ write(
   page({
     ...meta.resume,
     path: 'resume',
-    content: resumeContent,
     preload: assetLinks('resume'),
     jsonLd: ldGraph(pageNode('WebPage', meta.resume, 'resume'), crumb('resume', 'resume')),
   }),
@@ -385,7 +323,6 @@ for (const p of posts) {
       desc: p.description || p.title,
       path,
       type: 'article',
-      content: postContent(p),
       // The post body is re-rendered client-side from markdown, so its chunk is
       // needed right after boot — preload it alongside the blog chunk.
       preload: assetLinks('blog', ['src/lib/markdown.js']),
@@ -410,7 +347,7 @@ for (const p of posts) {
 }
 
 // SPA fallback for unknown deep links — boots the app, kept out of the index.
-writeFileSync(join(dist, '404.html'), page({ ...meta.home, path: '', content: '', robots: true }));
+writeFileSync(join(dist, '404.html'), page({ ...meta.home, path: '', robots: true }));
 
 // feed.xml — RSS 2.0 so readers and aggregators can follow the blog.
 const feed = `<?xml version="1.0" encoding="UTF-8"?>

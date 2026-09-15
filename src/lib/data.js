@@ -22,6 +22,16 @@ export const PortfolioData = (() => {
   })();
 
   const _cache = {};
+  let snapshot =
+    typeof document === 'undefined'
+      ? {}
+      : JSON.parse(document.getElementById('portfolio-data')?.textContent || '{}');
+  const seed = (data) => {
+    snapshot = data;
+    for (const key of Object.keys(_cache)) delete _cache[key];
+    for (const [key, value] of Object.entries(data)) _cache[key] = Promise.resolve(value);
+  };
+  seed(snapshot);
 
   /** Deduplicate in-flight requests and cache results. */
   const cached = (key, fn) => {
@@ -53,6 +63,8 @@ export const PortfolioData = (() => {
   const getBlogIndex = () => cached('blogIndex', () => getJSON('/blogs/blog-data.json'));
 
   return {
+    seed,
+    peek: (key) => snapshot[key] ?? null,
     /** { name, handle, title, bio, avatar } */
     getProfile: () => cached('profile', () => getJSON('/home/profile.json')),
 
