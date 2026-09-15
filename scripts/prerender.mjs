@@ -3,10 +3,12 @@
 // The app is a client-rendered SPA, so crawlers and social scrapers (which
 // don't run JS) would otherwise see an empty shell with one shared <title>.
 // This emits a real HTML file per route with a unique title/description/
-// canonical/OG tags AND the actual content (home, blog list, every post,
-// links, resume) baked in. The SPA still boots and takes over for users.
+// canonical/OG tags, per-page JSON-LD, modulepreload hints for the route's
+// lazy chunk, AND the actual content (home, blog list, every post, links,
+// resume) baked in. The SPA still boots and takes over for users.
+// It also writes sitemap.xml, robots.txt and the RSS feed.
 
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { marked } from 'marked';
@@ -23,10 +25,16 @@ const BASE = (process.env.BASE_PATH || '/').replace(/\/+$/, '');
 
 const readJSON = (p) => JSON.parse(readFileSync(join(contents, p), 'utf8'));
 const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const dateParts = (d) => /^(\d{4})-(\d{2})-(\d{2})/.exec(d || '');
 const fmtDate = (d) => {
-  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d || '');
+  const m = dateParts(d);
   if (!m) return d || '';
   return new Date(+m[1], +m[2] - 1, +m[3]).toLocaleDateString('en', { year: 'numeric', month: 'long', day: 'numeric' });
+};
+const isoDate = (d) => (dateParts(d) ? dateParts(d)[0] : '');
+const rfc822 = (d) => {
+  const m = dateParts(d);
+  return m ? new Date(+m[1], +m[2] - 1, +m[3]).toUTCString() : '';
 };
 
 const profile = readJSON('home/profile.json');
@@ -45,41 +53,114 @@ const sameAs = [
   links.linkedin && (links.linkedin.url || `https://linkedin.com/in/${links.linkedin.handle}`),
 ].filter(Boolean);
 
-const jsonLd = JSON.stringify({
-  '@context': 'https://schema.org',
+/* ── structured data ── */
+
+const abs = (path = '') => (path ? `${SITE}/${path}/` : `${SITE}/`);
+
+const personLd = {
   '@type': 'Person',
   name: profile.name,
   alternateName: profile.handle,
-  jobTitle: profile.title || '',
+  jobTitle: profile.title || undefined,
+  url: abs(),
+  image: profile.avatar,
   sameAs,
-}, null, 2);
+};
+
+const ldGraph = (...nodes) => JSON.stringify({ '@context': 'https://schema.org', '@graph': nodes.filter(Boolean) }, null, 2).replace(/<\//g, '<\\/');
+
+const pageNode = (type, meta, path) => ({
+  '@type': type,
+  name: meta.title,
+  description: meta.desc,
+  url: abs(path),
+  inLanguage: 'en',
+  about: personLd,
+});
+
+const breadcrumbs = (items) => ({
+  '@type': 'BreadcrumbList',
+  itemListElement: items.map(([name, path], i) => ({ '@type': 'ListItem', position: i + 1, name, item: abs(path) })),
+});
+
+const postLd = (p) => ({
+  '@type': 'BlogPosting',
+  headline: p.title,
+  description: p.description || p.title,
+  url: abs(`blog/${p.slug}`),
+  mainEntityOfPage: abs(`blog/${p.slug}`),
+  datePublished: isoDate(p.date) || undefined,
+  dateModified: isoDate(p.date) || undefined,
+  inLanguage: 'en',
+  image: profile.avatar,
+  keywords: p.tags?.length ? p.tags.join(', ') : undefined,
+  author: personLd,
+  publisher: personLd,
+  isPartOf: { '@type': 'Blog', name: `blog — ${profile.name}`, url: abs('blog') },
+});
+
+/* ── lazy route chunks ──
+ * Pages are dynamic imports, so the browser only discovers a route's chunk
+ * after the app boots — one round-trip too late. Vite's build manifest maps
+ * each page component to its built file; preload it (and its shared imports)
+ * with the HTML instead. */
+let manifest = {};
+try {
+  manifest = JSON.parse(readFileSync(join(dist, '.vite', 'manifest.json'), 'utf8'));
+} catch {
+  // manifest: false in vite.config.js — pages still work, just without the hint.
+}
+const pageEntries = Object.fromEntries(
+  (manifest['index.html']?.dynamicImports || [])
+    .filter((k) => /^src\/pages\/[^/]+\/[A-Z]/.test(k))
+    .map((k) => [/^src\/pages\/([^/]+)\//.exec(k)[1], k])
+);
+
+function assetLinks(page, extra = []) {
+  const seen = new Set();
+  const out = [];
+  function visit(k) {
+    if (!k || seen.has(k)) return;
+    seen.add(k);
+    const m = manifest[k];
+    if (!m) return;
+    if (m.file) out.push(`  <link rel="modulepreload" href="${BASE}/${m.file}" />`);
+    for (const css of m.css || []) out.push(`  <link rel="stylesheet" href="${BASE}/${css}" />`);
+    for (const dep of m.imports || []) visit(dep);
+  }
+  visit(pageEntries[page]);
+  for (const k of extra) visit(k);
+  return out.join('\n');
+}
 
 const template = readFileSync(join(dist, 'index.html'), 'utf8')
   .replace(/(<meta name="author" content=")[^"]*(")/, `$1${esc(profile.name)}$2`)
   .replace(/(<meta property="og:image" content=")[^"]*(")/, `$1${esc(profile.avatar)}$2`)
-  .replace(/(<meta name="twitter:creator" content=")[^"]*(")/, `$1@${esc(links.x?.handle || profile.handle)}$2`)
-  .replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/, `<script type="application/ld+json">\n${jsonLd}\n</script>`);
+  .replace(/(<meta name="twitter:creator" content=")[^"]*(")/, `$1@${esc(links.x?.handle || profile.handle)}$2`);
 
 /** Apply per-route <head> meta + inject body content into the shell. */
-function page({ title, desc, path, type = 'website', content, robots = false }) {
+function page({ title, desc, path, type = 'website', content, robots = false, jsonLd, extraHead = '', preload = '' }) {
   // Trailing slash matches how GitHub Pages serves directory index.html files.
-  const url = path ? `${SITE}/${path}/` : `${SITE}/`;
+  const url = abs(path);
+  const head = [
+    `  <link rel="canonical" href="${url}" />`,
+    `  <meta property="og:url" content="${url}" />`,
+    `  <meta name="twitter:title" content="${esc(title)}" />`,
+    `  <meta name="twitter:description" content="${esc(desc)}" />`,
+    `  <link rel="alternate" type="application/rss+xml" title="blog" href="${SITE}/feed.xml" />`,
+    robots ? `  <meta name="robots" content="noindex" />` : '',
+    preload,
+    extraHead,
+  ].filter(Boolean).join('\n');
   let html = template
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(title)}</title>`)
     .replace(/(<meta name="description" content=")[^"]*(")/, `$1${esc(desc)}$2`)
     .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${esc(title)}$2`)
     .replace(/(<meta property="og:description" content=")[^"]*(")/, `$1${esc(desc)}$2`)
     .replace(/(<meta property="og:type" content=")[^"]*(")/, `$1${type}$2`)
-    .replace(
-      '</head>',
-      `  <link rel="canonical" href="${url}" />\n` +
-      `  <meta property="og:url" content="${url}" />\n` +
-      `  <meta name="twitter:title" content="${esc(title)}" />\n` +
-      `  <meta name="twitter:description" content="${esc(desc)}" />\n` +
-      (robots ? `  <meta name="robots" content="noindex" />\n` : '') +
-      `</head>`
-    )
+    .replace('</head>', `${head}\n</head>`)
     .replace('<div id="root"></div>', `<div id="root">${content}</div>`);
+  if (jsonLd) html = html.replace(/<script type="application\/ld\+json">[\s\S]*?<\/script>/, `<script type="application/ld+json">\n${jsonLd}\n</script>`);
   return html;
 }
 
@@ -90,6 +171,11 @@ function write(path, html) {
 }
 
 const link = (href, text) => `<a href="${esc(href)}">${esc(text)}</a>`;
+
+// Titles/descriptions come from the shared route registry (src/routes.js) so
+// the prerendered <head> and the SPA never drift apart.
+const ctx = { profile, links, resume };
+const meta = Object.fromEntries(routes.map((r) => [r.page, { title: r.title(ctx), desc: r.description(ctx) }]));
 
 /* ── content blocks (semantic, text-first; SPA restyles for users) ── */
 
@@ -104,15 +190,15 @@ const homeContent = `
   <h1>${esc(profile.name)}</h1>
   <p>@${esc(profile.handle)}</p>
   <p>${esc(profile.bio)}</p>
-  <nav>${link(BASE + '/projects', 'projects')} ${link(BASE + '/blog', 'blog')} ${link(BASE + '/links', 'links')} ${link(BASE + '/resume', 'resume')}</nav>
+  <nav>${link(BASE + '/projects/', 'projects')} ${link(BASE + '/blog/', 'blog')} ${link(BASE + '/links/', 'links')} ${link(BASE + '/resume/', 'resume')}</nav>
   <section><h2>work &amp; education</h2>${(resume.items || []).map(resumeEntry).join('')}</section>
 </main>`;
 
 const blogListContent = `
 <main>
   <h1>blog</h1>
-  <p>notes on infra, tooling, and things i figure out</p>
-  <ul>${posts.map((p) => `<li>${link(`${BASE}/blog/${p.slug}`, p.title)}${p.description ? ' — ' + esc(p.description) : ''} <time datetime="${esc(p.date)}">${esc(fmtDate(p.date))}</time></li>`).join('')}</ul>
+  <p>${esc(meta.blog.desc)}</p>
+  <ul>${posts.map((p) => `<li>${link(`${BASE}/blog/${p.slug}/`, p.title)}${p.description ? ' — ' + esc(p.description) : ''} <time datetime="${esc(p.date)}">${esc(fmtDate(p.date))}</time></li>`).join('')}</ul>
 </main>`;
 
 const postContent = (p) => `
@@ -157,38 +243,110 @@ const resumeContent = `
 
 /* ── emit ── */
 
-// Titles/descriptions come from the shared route registry (src/routes.js) so
-// the prerendered <head> and the SPA never drift apart.
-const ctx = { profile, links, resume };
-const meta = Object.fromEntries(routes.map((r) => [r.page, { title: r.title(ctx), desc: r.description(ctx) }]));
+const crumb = (page, label) => breadcrumbs([['home', ''], [label, page]]);
 
-write('', page({ ...meta.home, path: '', content: homeContent }));
-write('projects', page({ ...meta.projects, path: 'projects', content: `<main><h1>projects</h1><p>public repositories on github — ${link(links.github?.url || 'https://github.com/' + (links.github?.username || 'hambn'), 'view on github')}</p></main>` }));
-write('blog', page({ ...meta.blog, path: 'blog', content: blogListContent }));
-write('links', page({ ...meta.links, path: 'links', content: linksContent }));
-write('resume', page({ ...meta.resume, path: 'resume', content: resumeContent }));
+write('', page({
+  ...meta.home, path: '', content: homeContent, preload: assetLinks('home'),
+  jsonLd: ldGraph({ ...pageNode('ProfilePage', meta.home, ''), mainEntity: personLd }),
+}));
+write('projects', page({
+  ...meta.projects, path: 'projects', preload: assetLinks('projects'),
+  content: `<main><h1>projects</h1><p>public repositories on github — ${link(links.github?.url || 'https://github.com/' + (links.github?.username || 'hambn'), 'view on github')}</p></main>`,
+  jsonLd: ldGraph(pageNode('CollectionPage', meta.projects, 'projects'), crumb('projects', 'projects')),
+}));
+write('blog', page({
+  ...meta.blog, path: 'blog', content: blogListContent, preload: assetLinks('blog'),
+  jsonLd: ldGraph({
+    '@type': 'Blog',
+    name: meta.blog.title,
+    description: meta.blog.desc,
+    url: abs('blog'),
+    inLanguage: 'en',
+    author: personLd,
+    blogPost: posts.map((p) => ({
+      '@type': 'BlogPosting',
+      headline: p.title,
+      description: p.description || undefined,
+      url: abs(`blog/${p.slug}`),
+      datePublished: isoDate(p.date) || undefined,
+      keywords: p.tags?.length ? p.tags.join(', ') : undefined,
+      author: personLd,
+    })),
+  }, crumb('blog', 'blog')),
+}));
+write('links', page({
+  ...meta.links, path: 'links', content: linksContent, preload: assetLinks('links'),
+  jsonLd: ldGraph(pageNode('CollectionPage', meta.links, 'links'), crumb('links', 'links')),
+}));
+write('resume', page({
+  ...meta.resume, path: 'resume', content: resumeContent, preload: assetLinks('resume'),
+  jsonLd: ldGraph(pageNode('WebPage', meta.resume, 'resume'), crumb('resume', 'resume')),
+}));
 
 for (const p of posts) {
-  write(`blog/${p.slug}`, page({
+  const path = `blog/${p.slug}`;
+  write(path, page({
     title: `${p.title} — ${profile.name}`,
     desc: p.description || p.title,
-    path: `blog/${p.slug}`,
+    path,
     type: 'article',
     content: postContent(p),
+    // The post body is re-rendered client-side from markdown, so its chunk is
+    // needed right after boot — preload it alongside the blog chunk.
+    preload: assetLinks('blog', ['src/lib/markdown.js']),
+    extraHead: [
+      isoDate(p.date) ? `  <meta property="article:published_time" content="${isoDate(p.date)}" />` : '',
+      ...(p.tags || []).map((t) => `  <meta property="article:tag" content="${esc(t)}" />`),
+    ].filter(Boolean).join('\n'),
+    jsonLd: ldGraph(postLd(p), breadcrumbs([['home', ''], ['blog', 'blog'], [p.title, path]])),
   }));
 }
 
 // SPA fallback for unknown deep links — boots the app, kept out of the index.
 writeFileSync(join(dist, '404.html'), page({ ...meta.home, path: '', content: '', robots: true }));
 
+// feed.xml — RSS 2.0 so readers and aggregators can follow the blog.
+const feed = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>${esc(meta.blog.title)}</title>
+    <link>${abs('blog')}</link>
+    <description>${esc(meta.blog.desc)}</description>
+    <language>en</language>
+    <atom:link href="${SITE}/feed.xml" rel="self" type="application/rss+xml" />
+${posts.map((p) => {
+  const url = abs(`blog/${p.slug}`);
+  return [
+    '    <item>',
+    `      <title>${esc(p.title)}</title>`,
+    `      <link>${url}</link>`,
+    `      <guid isPermaLink="true">${url}</guid>`,
+    rfc822(p.date) ? `      <pubDate>${rfc822(p.date)}</pubDate>` : '',
+    p.description ? `      <description>${esc(p.description)}</description>` : '',
+    ...(p.tags || []).map((t) => `      <category>${esc(t)}</category>`),
+    '    </item>',
+  ].filter(Boolean).join('\n');
+}).join('\n')}
+  </channel>
+</rss>
+`;
+writeFileSync(join(dist, 'feed.xml'), feed);
+
 // sitemap.xml — every indexable URL, matching the trailing-slash form served.
-const urls = routes.map((r) => (r.path ? `${r.path}/` : '')).concat(posts.map((p) => `blog/${p.slug}/`));
-const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls
-  .map((u) => `  <url><loc>${SITE}/${u}</loc></url>`)
+// lastmod is only emitted where there's a real content date (posts + blog index).
+const entries = routes.map((r) => ({
+  loc: r.path ? `${r.path}/` : '',
+  lastmod: r.page === 'blog' ? isoDate(posts[0]?.date) : '',
+})).concat(posts.map((p) => ({ loc: `blog/${p.slug}/`, lastmod: isoDate(p.date) })));
+const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries
+  .map(({ loc, lastmod }) => `  <url><loc>${SITE}/${loc}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}</url>`)
   .join('\n')}\n</urlset>\n`;
 writeFileSync(join(dist, 'sitemap.xml'), sitemap);
 
 // robots.txt — keep its Sitemap line on the same origin as everything else.
 writeFileSync(join(dist, 'robots.txt'), `User-agent: *\nAllow: /\n\nSitemap: ${SITE}/sitemap.xml\n`);
 
-console.log(`[prerender] wrote ${routes.length + posts.length} pages + 404 + sitemap (${urls.length} urls)`);
+// The manifest is a build artifact, not site content — drop it once read.
+rmSync(join(dist, '.vite'), { recursive: true, force: true });
+
+console.log(`[prerender] wrote ${routes.length + posts.length} pages + 404 + feed + sitemap (${entries.length} urls)`);
