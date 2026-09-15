@@ -5,12 +5,15 @@ Static React portfolio, built with Vite, deployed to GitHub Pages at
 
 ```
 .
-├─ index.html              Vite entry (meta/OG/JSON-LD live here)
-├─ vite.config.js          base path, classic-JSX, blog-index plugin
+├─ index.html              Vite entry (meta/OG/JSON-LD fallback live here)
+├─ vite.config.js          base path, classic-JSX, blog-index plugin,
+│                          build manifest + react vendor chunk
 ├─ package.json            scripts: dev / build / preview
 │
 ├─ src/                    browser app code (bundled by Vite)
-│  ├─ main.jsx             entry: app shell + history router; imports fonts/styles
+│  ├─ main.jsx             entry: app shell + history router; imports variable
+│  │                       font/styles, preloads the entry route chunk, then
+│  │                       prefetches the rest when idle
 │  ├─ routes.js            route registry: path + <head> meta (also read by prerender)
 │  ├─ lib/
 │  │  ├─ data.js           PortfolioData — fetches public/contents/
@@ -21,7 +24,7 @@ Static React portfolio, built with Vite, deployed to GitHub Pages at
 │  │  ├─ Nav.jsx           top nav + theme toggle
 │  │  └─ card/             link-card chrome: HeaderButtons, cardStyles, ContribGraph
 │  ├─ pages/               one folder per route (default exports)
-│  │  ├─ index.js          pages map the router renders from
+│  │  ├─ index.js          lazy page map (React.lazy) + preloadPage()
 │  │  ├─ home/Home.jsx
 │  │  ├─ projects/Projects.jsx   live GitHub repos
 │  │  ├─ resume/Resume.jsx
@@ -42,7 +45,8 @@ Static React portfolio, built with Vite, deployed to GitHub Pages at
 │
 ├─ scripts/                Node build tooling (NOT bundled — root by convention)
 │  ├─ blog-index.mjs       scans contents/blogs/*.md → blog index (Vite plugin)
-│  └─ prerender.mjs        post-build: static HTML + meta + sitemap per route
+│  └─ prerender.mjs        post-build: static HTML + meta + JSON-LD + RSS feed
+│                          + sitemap per route (also injects chunk preloads)
 │
 ├─ public/                 served as-is (not processed by Vite)
 │  ├─ robots.txt
@@ -74,17 +78,23 @@ Static React portfolio, built with Vite, deployed to GitHub Pages at
 - **Classic JSX, explicit React.** `vite.config.js` uses the classic JSX
   transform (`React.createElement`), so every `.jsx` file imports React itself.
   Do NOT switch to the automatic runtime.
-- **Pages are default exports** wired together in `src/pages/index.js`; the app
-  shell in `main.jsx` renders the map entry for the current route.
+- **Pages are default exports** wired together in `src/pages/index.js` as lazy
+  chunks (`React.lazy`); `main.jsx` preloads the entry route and prefetches the
+  rest once idle.
 - **Route metadata lives in `src/routes.js`** — plain JS, also imported by
   `scripts/prerender.mjs`, so the prerendered head and the SPA never drift.
 - **Content is data, not code.** Edit `public/contents/`; never hardcode it.
 - **Blog is auto-discovered.** No manifest. The index is generated at build
   (and served virtually in dev); raw `.md` are stripped from `dist/`.
-- **Self-hosted.** Fonts (`@fontsource`) and markdown libs (`marked`,
-  `highlight.js`, `mermaid`) are bundled/lazy-loaded — no third-party CDN.
+- **Self-hosted.** One variable font (`@fontsource-variable/jetbrains-mono`) and
+  markdown libs (`marked`, `highlight.js`, `mermaid`) are bundled/lazy-loaded —
+  no third-party CDN.
 - **SEO via prerender.** `scripts/prerender.mjs` emits a real HTML file per
-  route + per post with unique title/description/canonical/OG, plus sitemap.xml.
+  route + per post with unique title/description/canonical/OG, per-page JSON-LD
+  (BlogPosting/BreadcrumbList/…), a modulepreload hint for the route's lazy
+  chunk, plus sitemap.xml (with lastmod) and feed.xml.
+- **Canonical URLs end in a slash** (`/blog/`); `navigate()` pushes that form and
+  the prerendered links match it.
 - **GitHub Pages.** Known routes are real 200 HTML files; `404.html` is the SPA
   fallback for unknown URLs. `.nojekyll` present.
 

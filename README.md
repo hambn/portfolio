@@ -188,15 +188,16 @@ your post body in GitHub-flavored markdown…
 
 ```
 index.html          static shell + fallback meta
-vite.config.js      base path (env), classic-JSX, blog-index plugin
+vite.config.js      base path (env), classic-JSX, blog-index plugin,
+                    build manifest + react vendor chunk
 
 src/
-  main.jsx          entry: app shell + history router
+  main.jsx          entry: app shell + history router, route-chunk preloading
   routes.js         route registry: path + head meta (also read by prerender)
   lib/              data.js (PortfolioData), router.js, markdown.js (marked+hljs)
   hooks/            useWindowWidth, useCollapsed, useCopy, usePolledJSON
   components/       Nav.jsx + card/ (HeaderButtons, cardStyles, ContribGraph)
-  pages/            index.js (pages map) + one folder per route:
+  pages/            index.js (lazy page map) + one folder per route:
     home/           Home.jsx
     projects/       Projects.jsx
     resume/         Resume.jsx
@@ -207,7 +208,7 @@ src/
   styles/           index.css → tokens/ + core.css, plus blog.css
 scripts/            Node build tooling (NOT bundled — root by convention)
   blog-index.mjs    build-time blog scanner (Vite plugin)
-  prerender.mjs     static HTML/meta/sitemap/robots generator (post-build)
+  prerender.mjs     static HTML/meta/JSON-LD/sitemap/feed generator (post-build)
 public/contents/    all editable content
 api/                Backend for the link cards. See .claude/api.md
   index.js          Worker logic (CF-vanilla, runs on CF + Node)
@@ -226,9 +227,12 @@ Notes:
 - Blog index is generated in memory by the Vite plugin: served virtually in
   dev, emitted as `blog-data.json` at build. Raw `.md` are stripped from `dist/`.
 - Fonts and markdown libs (`marked`, `highlight.js`, `mermaid`) are
-  self-hosted/lazy-loaded — no third-party CDN.
+  self-hosted/lazy-loaded — no third-party CDN. One variable font file covers
+  every weight.
 - Every JSX file imports `React` explicitly and pages are default exports wired
   in `src/pages/index.js`. Vite uses the **classic JSX transform** — keep the
-  `React` import; don't switch to the automatic runtime.
+  `React` import; don't switch to the automatic runtime. Routes are `React.lazy`
+  chunks, preloaded via the build manifest and prefetched when idle.
 - Route titles/descriptions live in `src/routes.js`, shared by the SPA and
-  `scripts/prerender.mjs` so head tags can't drift.
+  `scripts/prerender.mjs` so head tags can't drift. The prerenderer also writes
+  per-page JSON-LD, `sitemap.xml` (with lastmod) and `feed.xml`.
