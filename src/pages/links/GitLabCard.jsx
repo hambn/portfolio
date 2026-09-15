@@ -4,7 +4,6 @@ import { useCopy } from '../../hooks/useCopy.js';
 import { usePolledJSON } from '../../hooks/usePolledJSON.js';
 import { ContribGraph } from '../../components/card/ContribGraph.jsx';
 import { HeaderButtons } from '../../components/card/HeaderButtons.jsx';
-import { ensureScStyles } from '../../components/card/cardStyles.js';
 
 const GL = {
   bg: '#1f1f23',
@@ -23,7 +22,6 @@ const GL_ICON =
   'M23.955 13.587l-1.342-4.135-2.664-8.189c-.135-.423-.73-.423-.867 0L16.418 9.45H7.582L4.919 1.263C4.783.84 4.185.84 4.05 1.263L1.386 9.452.044 13.587c-.121.375.014.789.331 1.023L12 23.054l11.625-8.443c.318-.235.453-.647.33-1.024';
 
 export function GitLabCard({ username, url }) {
-  ensureScStyles();
   const [profile, setProfile] = useState(null);
   const [collapsed, toggleCollapse] = useCollapsed('gl_card_collapsed');
 

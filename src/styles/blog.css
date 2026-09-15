@@ -162,7 +162,7 @@
   margin: 0 0 1.3em;
 }
 .markdown-body pre {
-  margin: 0;
+  margin: 0 0 1.3em;
   padding: 16px 18px;
   overflow-x: auto;
   background: var(--background-subtle);
@@ -418,4 +418,19 @@
 }
 [data-theme='light'] .markdown-body tr:nth-child(2n) td {
   background: #f6f8fa;
+}
+
+.markdown-body .code-block > pre {
+  margin-bottom: 0;
+}
+.markdown-body > table {
+  margin-bottom: 1.3em;
+}
+.markdown-body .code-copy:focus-visible {
+  opacity: 1;
+}
+
+.blog-search:focus-visible {
+  outline: 2px solid var(--ring) !important;
+  outline-offset: 2px;
 }

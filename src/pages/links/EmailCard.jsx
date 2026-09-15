@@ -2,10 +2,8 @@ import React, { useState } from 'react';
 import { useCollapsed } from '../../hooks/useCollapsed.js';
 import { useCopy } from '../../hooks/useCopy.js';
 import { HeaderButtons } from '../../components/card/HeaderButtons.jsx';
-import { ensureScStyles } from '../../components/card/cardStyles.js';
 
 export function EmailCard({ address }) {
-  ensureScStyles();
   const to = address; // Links.jsx only mounts this card when config.email exists
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');

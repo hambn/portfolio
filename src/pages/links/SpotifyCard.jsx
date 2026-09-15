@@ -6,44 +6,8 @@ import { useCollapsed } from '../../hooks/useCollapsed.js';
 import { useCopy } from '../../hooks/useCopy.js';
 import { usePolledJSON } from '../../hooks/usePolledJSON.js';
 import { HeaderButtons } from '../../components/card/HeaderButtons.jsx';
-import { ensureScStyles } from '../../components/card/cardStyles.js';
 
 // ── One-time CSS ──────────────────────────────────────────────────────────────
-let _spStyleDone = false;
-function ensureSpStyles() {
-  if (_spStyleDone) return;
-  _spStyleDone = true;
-  const el = document.createElement('style');
-  el.textContent = `
-    @keyframes sp-eq-a{0%,100%{height:5px}50%{height:12px}}
-    @keyframes sp-eq-b{0%,100%{height:10px}33%{height:4px}66%{height:9px}}
-    @keyframes sp-eq-c{0%,100%{height:7px}50%{height:11px}}
-    @keyframes sp-eq-d{0%,100%{height:3px}50%{height:9px}}
-    .sp-artist-link:hover{color:#fff !important;}
-    .sp-track-row{transition:background 0.1s;}
-    .sp-track-row:hover{background:rgba(255,255,255,0.05);border-radius:5px;}
-    .sp-tab-btn:hover{color:#b3b3b3 !important;}
-    .sp-artist-cell img{transition:transform 0.15s;}
-    .sp-artist-cell:hover img{transform:scale(1.06);}
-    .sp-artist-cell:hover .sp-artist-name{color:#fff !important;}
-    .sp-pl-cell:hover .sp-pl-name{color:#fff !important;}
-    .sp-pl-cell img{transition:transform 0.15s;}
-    .sp-pl-cell:hover img{transform:scale(1.04);}
-    .sp-ctx-pl:hover{background:rgba(255,255,255,0.1) !important;}
-    .sp-tabs-bar::-webkit-scrollbar{display:none;}
-    .sp-tabs-bar{scrollbar-width:none;-ms-overflow-style:none;}
-    .sp-open-btn{transition:background 0.15s,color 0.15s,border-color 0.15s;}
-    .sp-open-btn:hover{background:rgba(29,185,84,0.18) !important;color:#fff !important;border-color:#1DB954 !important;}
-    @media(max-width:540px){
-      .sp-now-track-name{font-size:13px !important;}
-      .sp-tab-btn{padding:8px 6px !important;font-size:10px !important;letter-spacing:0.04em !important;}
-      .sp-profile-section{padding:12px 14px !important;align-items:center !important;}
-      .sp-nowplaying-pad{padding:14px !important;}
-      .sp-open-label{display:none;}
-    }
-  `;
-  document.head.appendChild(el);
-}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function spFmtMs(ms) {
@@ -715,9 +679,6 @@ export function SpotifySimpleCard({ userId }) {
 
 // ── Main SpotifyCard ──────────────────────────────────────────────────────────
 export function SpotifyCard({ userId, apiEndpoint }) {
-  ensureScStyles();
-  ensureSpStyles();
-
   const [data, setData] = useState(null);
   const [progressMs, setProgressMs] = useState(0);
   const [tab, setTab] = useState('recent');

@@ -363,3 +363,76 @@ svg {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
+
+/* The first paint uses the same responsive layout as the interactive app. */
+.home-page {
+  padding: 130px 24px 80px;
+}
+.timeline-heading {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 16px;
+}
+.nav-brand,
+.nav-item {
+  font-size: 14px;
+  white-space: nowrap;
+}
+.nav-item[aria-current='page'] {
+  font-size: 15px;
+}
+.theme-light-icon {
+  display: none;
+}
+[data-theme='light'] .theme-dark-icon {
+  display: none;
+}
+[data-theme='light'] .theme-light-icon {
+  display: inline;
+}
+.page-loading {
+  max-width: 760px;
+  margin: auto;
+  padding: 88px 24px;
+}
+@media (max-width: 639px) {
+  .home-page {
+    padding: 80px 18px 96px;
+  }
+  .site-nav {
+    height: 52px !important;
+    justify-content: space-between !important;
+    padding: 0 10px;
+    gap: 2px;
+  }
+  .site-nav .nav-brand,
+  .site-nav .nav-item {
+    font-size: 12px;
+    padding: 5px 6px !important;
+  }
+  .site-nav .nav-item[aria-current='page'] {
+    font-size: 13px;
+  }
+  .site-nav > button {
+    position: static !important;
+    flex-shrink: 0;
+    padding: 6px !important;
+  }
+}
+@media (max-width: 559px) {
+  .timeline-heading {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

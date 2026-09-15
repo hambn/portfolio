@@ -3,7 +3,6 @@
 import React, { useEffect, useState } from 'react';
 import { PortfolioData } from '../../lib/data.js';
 import { navigate } from '../../lib/router.js';
-import { useWindowWidth } from '../../hooks/useWindowWidth.js';
 
 const WorkIcon = () => (
   <svg
@@ -40,9 +39,6 @@ const EduIcon = () => (
 );
 
 function GitTimeline({ items }) {
-  const winWidth = useWindowWidth();
-  const isMobile = winWidth < 560;
-
   return (
     <div style={{ position: 'relative', paddingLeft: '30px' }}>
       {/* vertical guide line */}
@@ -88,12 +84,12 @@ function GitTimeline({ items }) {
 
             {/* role + date — stacks on mobile */}
             <div
+              className="timeline-heading"
               style={{
                 display: 'flex',
-                flexDirection: isMobile ? 'column' : 'row',
+
                 justifyContent: 'space-between',
-                alignItems: isMobile ? 'flex-start' : 'baseline',
-                gap: isMobile ? '2px' : '16px',
+
                 marginBottom: '4px',
               }}
             >
@@ -179,11 +175,9 @@ function GitTimeline({ items }) {
 }
 
 export default function Home() {
-  const [profile, setProfile] = useState(null);
-  const [resume, setResume] = useState(null);
-  const [links, setLinks] = useState(null);
-  const winWidth = useWindowWidth();
-  const isMobile = winWidth < 640;
+  const [profile, setProfile] = useState(() => PortfolioData.peek('profile'));
+  const [resume, setResume] = useState(() => PortfolioData.peek('resume'));
+  const [links, setLinks] = useState(() => PortfolioData.peek('links'));
 
   useEffect(() => {
     PortfolioData.getProfile()
@@ -208,10 +202,10 @@ export default function Home() {
 
   return (
     <main
+      className="home-page"
       style={{
         maxWidth: '760px',
         margin: '0 auto',
-        padding: isMobile ? '80px 18px 96px' : '130px 24px 80px',
       }}
     >
       {/* ── Intro ── */}
@@ -266,7 +260,7 @@ export default function Home() {
 
       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '56px' }}>
         <a
-          href="/projects/"
+          href={import.meta.env.BASE_URL + 'projects/'}
           onClick={(e) => {
             e.preventDefault();
             navigate('projects');
@@ -276,7 +270,7 @@ export default function Home() {
           projects
         </a>
         <a
-          href="/blog/"
+          href={import.meta.env.BASE_URL + 'blog/'}
           onClick={(e) => {
             e.preventDefault();
             navigate('blog');
@@ -286,7 +280,7 @@ export default function Home() {
           blog
         </a>
         <a
-          href="/links/"
+          href={import.meta.env.BASE_URL + 'links/'}
           onClick={(e) => {
             e.preventDefault();
             navigate('links');
@@ -322,7 +316,7 @@ export default function Home() {
       {hasResume && (
         <div style={{ marginBottom: '40px' }}>
           <a
-            href="/resume/"
+            href={import.meta.env.BASE_URL + 'resume/'}
             onClick={(e) => {
               e.preventDefault();
               navigate('resume');

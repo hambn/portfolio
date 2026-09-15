@@ -15,8 +15,8 @@ import BlogList from './BlogList.jsx';
 import BlogPost from './BlogPost.jsx';
 
 export default function Blog({ route }) {
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [posts, setPosts] = useState(() => PortfolioData.peek('blogIndex') || []);
+  const [loading, setLoading] = useState(() => !PortfolioData.peek('blogIndex'));
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
 
@@ -25,7 +25,7 @@ export default function Blog({ route }) {
 
   useEffect(() => {
     let alive = true;
-    setLoading(true);
+    setLoading(!PortfolioData.peek('blogIndex'));
     setError(false);
     PortfolioData.getBlogIndex()
       .then((data) => {
@@ -62,7 +62,7 @@ export default function Blog({ route }) {
 
   if (slug) {
     const post = posts.find((p) => p.slug === slug);
-    if (post) return <BlogPost post={post} onBack={() => navigate('blog')} />;
+    if (post) return <BlogPost key={post.slug} post={post} onBack={() => navigate('blog')} />;
     return (
       <main style={wrap}>
         <button

@@ -3,18 +3,15 @@ import React, { useEffect, useState } from 'react';
 import { PortfolioData } from '../lib/data.js';
 import { navigate } from '../lib/router.js';
 import { storage } from '../lib/storage.js';
-import { useWindowWidth } from '../hooks/useWindowWidth.js';
 
 export default function Nav({ page }) {
-  const [theme, setTheme] = useState(() => storage.get('hambn-theme') || 'dark');
-  const [profile, setProfile] = useState(null);
-  const width = useWindowWidth();
-  const isMobile = width < 640;
+  const [theme, setTheme] = useState('dark');
+  const [profile, setProfile] = useState(() => PortfolioData.peek('profile'));
   const isHome = page === 'home';
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-  }, [theme]);
+    setTheme(document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark');
+  }, []);
 
   useEffect(() => {
     PortfolioData.getProfile()
@@ -44,134 +41,13 @@ export default function Nav({ page }) {
     const next = theme === 'dark' ? 'light' : 'dark';
     storage.set('hambn-theme', next);
     setTheme(next);
+    document.documentElement.setAttribute('data-theme', next);
   };
-
-  /* ── Mobile layout: single top bar ── */
-  if (isMobile) {
-    return (
-      <nav
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: '52px',
-          background: 'var(--background)',
-          borderBottom: '1px solid var(--border)',
-          zIndex: 50,
-          display: 'flex',
-          alignItems: 'center',
-          padding: '0 10px',
-          gap: '2px',
-        }}
-      >
-        {/* Brand */}
-        <a
-          href="/"
-          onClick={goHome}
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontWeight: isHome ? 700 : 600,
-            fontSize: isHome ? '13px' : '12px',
-            textDecoration: 'none',
-            letterSpacing: '-0.01em',
-            display: 'inline-flex',
-            alignItems: 'baseline',
-            padding: '5px 6px',
-            borderRadius: 'var(--radius-md)',
-            whiteSpace: 'nowrap',
-            flexShrink: 0,
-          }}
-        >
-          <span
-            style={{
-              color: isHome ? 'var(--primary)' : 'var(--foreground-faint)',
-              fontWeight: 400,
-            }}
-          >
-            ~/
-          </span>
-          <span style={{ color: 'var(--foreground-faint)', fontWeight: 400 }}>..</span>
-          <span
-            style={{
-              color: isHome ? 'var(--primary)' : 'var(--foreground-faint)',
-              fontWeight: 400,
-            }}
-          >
-            /
-          </span>
-          <span
-            style={{
-              color: isHome ? 'var(--foreground)' : 'var(--foreground-muted)',
-              transition: 'color 150ms',
-            }}
-          >
-            {handle}
-          </span>
-        </a>
-
-        {/* Nav links */}
-        {navItems.map(({ key, label }) => {
-          const active = page === key;
-          return (
-            <a
-              key={key}
-              href={'/' + key + '/'}
-              onClick={go(key)}
-              style={{
-                fontSize: active ? '13px' : '12px',
-                padding: '5px 6px',
-                borderRadius: 'var(--radius-md)',
-                color: active ? 'var(--foreground)' : 'var(--foreground-muted)',
-                fontWeight: active ? '700' : '500',
-                transition: 'color 150ms',
-                fontFamily: 'var(--font-mono)',
-                textDecoration: 'none',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-              }}
-            >
-              <span
-                style={{
-                  color: active ? 'var(--primary)' : 'var(--foreground-faint)',
-                  fontSize: '0.85em',
-                }}
-              >
-                ~/
-              </span>
-              {label}
-            </a>
-          );
-        })}
-
-        {/* Spacer */}
-        <div style={{ flex: 1 }} />
-
-        {/* Theme toggle */}
-        <button
-          onClick={toggleTheme}
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            color: 'var(--foreground-muted)',
-            padding: '6px 8px',
-            borderRadius: 'var(--radius-md)',
-            fontSize: '13px',
-            fontFamily: 'var(--font-mono)',
-            flexShrink: 0,
-          }}
-          aria-label="toggle theme"
-        >
-          {theme === 'dark' ? '☀' : '☾'}
-        </button>
-      </nav>
-    );
-  }
 
   /* ── Desktop layout: centered cluster, theme btn pinned right ── */
   return (
     <nav
+      className="site-nav"
       style={{
         position: 'fixed',
         top: 0,
@@ -190,12 +66,13 @@ export default function Nav({ page }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
         {/* Brand */}
         <a
-          href="/"
+          className="nav-brand"
+          href={import.meta.env.BASE_URL + ''}
           onClick={goHome}
           style={{
             fontFamily: 'var(--font-mono)',
             fontWeight: isHome ? 700 : 600,
-            fontSize: isHome ? '15px' : '14px',
+
             textDecoration: 'none',
             letterSpacing: '-0.01em',
             display: 'inline-flex',
@@ -236,10 +113,11 @@ export default function Nav({ page }) {
           return (
             <a
               key={key}
-              href={'/' + key + '/'}
+              className="nav-item"
+              aria-current={active ? 'page' : undefined}
+              href={import.meta.env.BASE_URL + key + '/'}
               onClick={go(key)}
               style={{
-                fontSize: active ? '15px' : '14px',
                 padding: '6px 10px',
                 borderRadius: 'var(--radius-md)',
                 color: active ? 'var(--foreground)' : 'var(--foreground-muted)',
@@ -280,7 +158,8 @@ export default function Nav({ page }) {
         }}
         aria-label="toggle theme"
       >
-        {theme === 'dark' ? '☀' : '☾'}
+        <span className="theme-dark-icon">☀</span>
+        <span className="theme-light-icon">☾</span>
       </button>
     </nav>
   );

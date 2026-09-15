@@ -1,6 +1,7 @@
 // Links.jsx — social cards page.
 // Each card lives in its own file in this folder; config comes from
 // contents/links/links.json (no hardcoded IDs/handles here).
+import '../../styles/cards.css';
 import React, { useEffect, useState } from 'react';
 import { PortfolioData } from '../../lib/data.js';
 import ErrorState from '../../components/ErrorState.jsx';
@@ -15,7 +16,7 @@ import { SpotifyCard, SpotifySimpleCard } from './SpotifyCard.jsx';
 import { SteamCard } from './SteamCard.jsx';
 
 export default function Links() {
-  const [config, setConfig] = useState(null);
+  const [config, setConfig] = useState(() => PortfolioData.peek('links'));
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [lanyardData, setLanyardData] = useState(null);
@@ -89,9 +90,9 @@ export default function Links() {
   if (error)
     return (
       <main style={wrap}>
-        <h2 style={{ fontSize: 'var(--text-2xl)', fontWeight: '700', marginBottom: '6px' }}>
+        <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: '700', marginBottom: '6px' }}>
           links
-        </h2>
+        </h1>
         <ErrorState message="failed to load links." onRetry={() => setAttempt((a) => a + 1)} />
       </main>
     );
@@ -99,9 +100,9 @@ export default function Links() {
   if (!config)
     return (
       <main style={wrap}>
-        <h2 style={{ fontSize: 'var(--text-2xl)', fontWeight: '700', marginBottom: '6px' }}>
+        <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: '700', marginBottom: '6px' }}>
           links
-        </h2>
+        </h1>
         <p style={{ color: 'var(--foreground-muted)', fontSize: 'var(--text-sm)' }}>loading...</p>
       </main>
     );
@@ -109,9 +110,9 @@ export default function Links() {
   return (
     <main style={wrap}>
       <div style={{ marginBottom: '40px' }}>
-        <h2 style={{ fontSize: 'var(--text-2xl)', fontWeight: '700', marginBottom: '6px' }}>
+        <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: '700', marginBottom: '6px' }}>
           links
-        </h2>
+        </h1>
         <p style={{ color: 'var(--foreground-muted)', fontSize: 'var(--text-sm)' }}>
           find me around the web
         </p>

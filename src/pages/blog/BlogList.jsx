@@ -6,10 +6,12 @@ const POSTS_PER_PAGE = 15;
 
 export default function PostList({ posts, onOpen }) {
   const [query, setQuery] = useState('');
-  const [activeTags, setActive] = useState(readUrlTags);
+  const [activeTags, setActive] = useState([]);
   const [filterOpen, setFilterOpen] = useState(false);
   const [page, setPage] = useState(1);
   const filterRef = useRef(null);
+
+  useEffect(() => setActive(readUrlTags()), []);
 
   // Reset to page 1 whenever filters change
   useEffect(() => {
@@ -76,7 +78,7 @@ export default function PostList({ posts, onOpen }) {
       }}
     >
       <div style={{ marginBottom: '28px' }}>
-        <h2 style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, marginBottom: '6px' }}>blog</h2>
+        <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, marginBottom: '6px' }}>blog</h1>
         <p style={{ color: 'var(--foreground-muted)', fontSize: 'var(--text-sm)' }}>
           notes on infra, tooling, and things i figure out
         </p>
@@ -109,6 +111,8 @@ export default function PostList({ posts, onOpen }) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="search posts..."
+            aria-label="search posts"
+            className="blog-search"
             style={{
               width: '100%',
               boxSizing: 'border-box',
@@ -324,7 +328,7 @@ export default function PostList({ posts, onOpen }) {
               {/* Stretched link: the whole row is clickable, and tag chips sit
                   above it instead of being nested inside an interactive element. */}
               <a
-                href={'/blog/' + post.slug + '/'}
+                href={import.meta.env.BASE_URL + 'blog/' + post.slug + '/'}
                 onClick={(e) => {
                   e.preventDefault();
                   onOpen(post.slug);

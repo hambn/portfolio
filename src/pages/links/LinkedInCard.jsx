@@ -2,23 +2,10 @@ import React, { useState } from 'react';
 import { useCollapsed } from '../../hooks/useCollapsed.js';
 import { useCopy } from '../../hooks/useCopy.js';
 import { HeaderButtons } from '../../components/card/HeaderButtons.jsx';
-import { ensureScStyles } from '../../components/card/cardStyles.js';
 
 // Simple Icons LinkedIn glyph
 const LI_ICON =
   'M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 23.2 23.227 23.2 22.271V1.729C24 .774 23.2 0 22.222 0h.003z';
-
-let _liStyleDone = false;
-function ensureLiStyles() {
-  if (_liStyleDone) return;
-  _liStyleDone = true;
-  const el = document.createElement('style');
-  el.textContent = `
-    .li-view-btn{transition:background 0.15s,border-color 0.15s,color 0.15s;}
-    .li-view-btn:hover{background:rgba(112,181,249,0.18) !important;border-color:#70b5f9 !important;color:#fff !important;}
-  `;
-  document.head.appendChild(el);
-}
 
 export function LinkedInCard({
   handle,
@@ -31,9 +18,6 @@ export function LinkedInCard({
   banner,
   avatar,
 }) {
-  ensureScStyles();
-  ensureLiStyles();
-
   const profileHref = url || `https://linkedin.com/in/${handle}`;
   const [imgError, setImgError] = useState(false);
   const [bannerError, setBannerError] = useState(false);

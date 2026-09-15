@@ -5,19 +5,6 @@ import { useCollapsed } from '../../hooks/useCollapsed.js';
 import { useCopy } from '../../hooks/useCopy.js';
 import { usePolledJSON } from '../../hooks/usePolledJSON.js';
 import { HeaderButtons } from '../../components/card/HeaderButtons.jsx';
-import { ensureScStyles } from '../../components/card/cardStyles.js';
-
-let _dcStyleDone = false;
-function ensureDcStyles() {
-  if (_dcStyleDone) return;
-  _dcStyleDone = true;
-  const el = document.createElement('style');
-  el.textContent = `
-    .dc-open-btn{transition:background 0.15s,color 0.15s,border-color 0.15s;}
-    .dc-open-btn:hover{background:rgba(88,101,242,0.2) !important;color:#fff !important;border-color:#5865F2 !important;}
-  `;
-  document.head.appendChild(el);
-}
 
 const DC = {
   bg: 'linear-gradient(155deg,#111214 0%,#1a1b1e 55%,#111214 100%)',
@@ -51,9 +38,6 @@ function DcIcon({ size, color }) {
 }
 
 export function DiscordCard({ userId, lanyardData, apiEndpoint }) {
-  ensureScStyles();
-  ensureDcStyles();
-
   const [apiData, setApiData] = useState(null);
   const [collapsed, toggleCollapse] = useCollapsed('dc_card_collapsed');
 

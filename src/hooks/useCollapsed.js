@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
 import { storage } from '../lib/storage.js';
 
-/** Collapse state persisted under a localStorage key. */
 export function useCollapsed(storageKey) {
-  const [collapsed, setCollapsed] = useState(() => storage.get(storageKey) === '1');
+  const [collapsed, setCollapsed] = useState(false);
   useEffect(() => {
-    storage.set(storageKey, collapsed ? '1' : '0');
-  }, [storageKey, collapsed]);
-  const toggle = () => setCollapsed((prev) => !prev);
+    setCollapsed(storage.get(storageKey) === '1');
+  }, [storageKey]);
+  const toggle = () => {
+    const next = !collapsed;
+    storage.set(storageKey, next ? '1' : '0');
+    setCollapsed(next);
+  };
   return [collapsed, toggle];
 }

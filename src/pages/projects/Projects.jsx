@@ -174,7 +174,16 @@ export default function Projects() {
   if (loading)
     return (
       <main style={wrap}>
-        <span style={{ color: 'var(--foreground-muted)', fontSize: 'var(--text-sm)' }}>
+        <h1 style={{ fontSize: 'var(--text-2xl)', marginBottom: '6px' }}>projects</h1>
+        <p style={{ marginBottom: '24px' }}>
+          <a href={PortfolioData.peek('links')?.github?.url || 'https://github.com/hambn'}>
+            view repositories on github ↗
+          </a>
+        </p>
+        <span
+          role="status"
+          style={{ color: 'var(--foreground-muted)', fontSize: 'var(--text-sm)' }}
+        >
           fetching repos...
         </span>
       </main>
@@ -190,9 +199,9 @@ export default function Projects() {
   return (
     <main style={wrap}>
       <div style={{ marginBottom: '40px' }}>
-        <h2 style={{ fontSize: 'var(--text-2xl)', fontWeight: '700', marginBottom: '6px' }}>
+        <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: '700', marginBottom: '6px' }}>
           projects
-        </h2>
+        </h1>
         <p style={{ color: 'var(--foreground-muted)', fontSize: 'var(--text-sm)' }}>
           {repos.length} public repositories on github
         </p>

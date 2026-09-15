@@ -1,5 +1,6 @@
 // BlogPost.jsx — single post view: markdown rendering + syntax highlighting.
 import React, { useEffect, useRef, useState } from 'react';
+import { PortfolioData } from '../../lib/data.js';
 import { ClickableTag, fmtDate, goToTag } from './blog-ui.jsx';
 
 function renderMarkdown(marked, body) {
@@ -102,7 +103,7 @@ function ensureMermaid() {
 export default function PostView({ post, onBack }) {
   const ref = useRef(null);
   const [libs, setLibs] = useState(null);
-  const [html, setHtml] = useState(null);
+  const [html, setHtml] = useState(() => PortfolioData.peek('postHtml')?.[post.slug] ?? null);
 
   // Load the markdown libs, then render the body.
   useEffect(() => {
@@ -118,7 +119,7 @@ export default function PostView({ post, onBack }) {
   }, [post.slug, post.body]);
 
   useEffect(() => {
-    if (html != null) enhanceMarkdown(ref.current, libs);
+    if (html != null && libs) enhanceMarkdown(ref.current, libs);
   }, [html, libs]);
 
   return (

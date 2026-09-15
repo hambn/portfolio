@@ -4,27 +4,8 @@ import { useCollapsed } from '../../hooks/useCollapsed.js';
 import { useCopy } from '../../hooks/useCopy.js';
 import { usePolledJSON } from '../../hooks/usePolledJSON.js';
 import { HeaderButtons } from '../../components/card/HeaderButtons.jsx';
-import { ensureScStyles } from '../../components/card/cardStyles.js';
 
 // ── One-time CSS ───────────────────────────────────────────────────────────────
-let _stStyleDone = false;
-function ensureStStyles() {
-  if (_stStyleDone) return;
-  _stStyleDone = true;
-  const el = document.createElement('style');
-  el.textContent = `
-    .st-game-row{transition:background 0.1s;}
-    .st-game-row:hover{background:rgba(102,192,244,0.07);border-radius:5px;}
-    .st-open-btn{transition:background 0.15s,color 0.15s,border-color 0.15s;}
-    .st-open-btn:hover{background:rgba(102,192,244,0.15) !important;color:#fff !important;border-color:#66c0f4 !important;}
-    .st-hero-img{transition:transform 0.2s;}
-    .st-hero-link:hover .st-hero-img{transform:scale(1.02);}
-    @media(max-width:540px){
-      .st-open-label{display:none;}
-    }
-  `;
-  document.head.appendChild(el);
-}
 
 // ── Palette (always dark — Steam brand) ───────────────────────────────────────
 const ST = {
@@ -289,9 +270,6 @@ function StFavoriteSection({ game }) {
 
 // ── Main SteamCard ────────────────────────────────────────────────────────────
 export function SteamCard({ handle, url, apiEndpoint }) {
-  ensureScStyles();
-  ensureStStyles();
-
   const [data, setData] = useState(null);
   const [collapsed, toggleCollapse] = useCollapsed('st_card_collapsed');
 

@@ -148,9 +148,9 @@ function ResumeEntry({
 }
 
 export default function Resume() {
-  const [resume, setResume] = useState(null);
-  const [profile, setProfile] = useState(null);
-  const [links, setLinks] = useState(null);
+  const [resume, setResume] = useState(() => PortfolioData.peek('resume'));
+  const [profile, setProfile] = useState(() => PortfolioData.peek('profile'));
+  const [links, setLinks] = useState(() => PortfolioData.peek('links'));
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [btnHover, setBtnHover] = useState(false);
