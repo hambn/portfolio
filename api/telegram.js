@@ -1,10 +1,15 @@
 import links from '../public/contents/links/links.json' with { type: 'json' };
 import { telegramUsername } from '../shared/telegram.js';
 
-const HEADERS = { 'User-Agent': 'Mozilla/5.0', 'Accept-Language': 'en-US,en;q=0.9' };
-const TELEGRAM_HEADERS = { ...HEADERS, Accept: 'text/html' };
+const HEADERS = {
+  'User-Agent':
+    'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36',
+  Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+  'Accept-Language': 'en-US,en;q=0.9',
+};
+const TELEGRAM_HEADERS = HEADERS;
 const fetchWithTimeout = (url, init = {}, ms = 10000) =>
-  fetch(url, { ...init, redirect: 'error', signal: AbortSignal.timeout(ms) });
+  fetch(url, { ...init, redirect: 'follow', signal: AbortSignal.timeout(ms) });
 export const configuredTelegramUsername = telegramUsername(
   links.telegram?.url || links.telegram?.username || links.telegram?.handle,
 );
@@ -171,6 +176,12 @@ async function fetchTelegramProfile(username) {
     return null;
   }
   if (!response.ok) return null;
+  try {
+    const finalUrl = new URL(response.url || profileUrl);
+    if (finalUrl.protocol !== 'https:' || finalUrl.hostname.toLowerCase() !== 't.me') return null;
+  } catch {
+    return null;
+  }
 
   let html;
   try {
@@ -181,11 +192,17 @@ async function fetchTelegramProfile(username) {
   }
   if (html == null) return null;
 
-  const title = telegramElementText(html, 'tgme_page_title');
-  if (!title) return null;
+  const title =
+    telegramElementText(html, 'tgme_page_title') ||
+    metaContent(html, 'og:title') ||
+    metaContent(html, 'twitter:title');
+  if (!title || /^telegram(?:\s*:\s*contact)?$/i.test(title)) return null;
   const pageExtra = telegramElementText(html, 'tgme_page_extra');
   const pageDescription = telegramElementText(html, 'tgme_page_description');
-  const description = pageDescription;
+  const description =
+    pageDescription ||
+    metaContent(html, 'og:description') ||
+    metaContent(html, 'twitter:description');
   const photo = telegramPhoto(html);
   const displayUsername = username;
   const contact = telegramElementText(html, 'tgme_page_additional');
