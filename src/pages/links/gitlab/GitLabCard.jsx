@@ -6,18 +6,21 @@ import { usePolledJSON } from '../../../hooks/usePolledJSON.js';
 import { ContribGraph } from '../../../components/card/ContribGraph.jsx';
 import { HeaderButtons } from '../../../components/card/HeaderButtons.jsx';
 const GL = {
-  bg: '#1f1f23',
-  bgHead: '#28272d',
-  border: '#3a3a42',
-  div: '#2e2d34',
-  orange: '#FC6D26',
-  orangeH: '#FCA326',
-  red: '#E24329',
-  text: '#ececef',
-  muted: '#a1a1aa',
-  faint: '#6f6f78',
+  bg: 'var(--gl-bg)',
+  bgHead: 'var(--gl-bgHead)',
+  border: 'var(--gl-border)',
+  div: 'var(--gl-div)',
+  orange: 'var(--gl-orange)',
+  orangeH: 'var(--gl-orangeH)',
+  red: 'var(--gl-red)',
+  text: 'var(--gl-text)',
+  muted: 'var(--gl-muted)',
+  faint: 'var(--gl-faint)',
+  action: 'var(--gl-action)',
+  actionHover: 'var(--gl-actionHover)',
+  accent: 'var(--gl-accent)',
 };
-const GL_LEVELS = ['#2e2d34', '#0e4429', '#006d32', '#26a641', '#39d353'];
+const GL_LEVELS = Array.from({ length: 5 }, (_, i) => `var(--gl-level-${i})`);
 const GL_ICON =
   'M23.955 13.587l-1.342-4.135-2.664-8.189c-.135-.423-.73-.423-.867 0L16.418 9.45H7.582L4.919 1.263C4.783.84 4.185.84 4.05 1.263L1.386 9.452.044 13.587c-.121.375.014.789.331 1.023L12 23.054l11.625-8.443c.318-.235.453-.647.33-1.024';
 export function GitLabCard({ username, url }) {
@@ -36,7 +39,7 @@ export function GitLabCard({ username, url }) {
         background: GL.bg,
         border: `1px solid ${GL.border}`,
       }}
-      className="gl-style-1"
+      className="gl-style-1 link-card"
     >
       {/* Header */}
       <div
@@ -44,19 +47,24 @@ export function GitLabCard({ username, url }) {
           background: GL.bgHead,
           borderBottom: collapsed ? 'none' : `1px solid ${GL.border}`,
         }}
-        className="gl-style-2"
+        className="gl-style-2 link-card-header"
       >
-        <a href={href} target="_blank" rel="noopener noreferrer" className="gl-style-3">
-          <svg viewBox="0 0 24 24" fill={GL.orange} width={18} height={18} className="gl-style-4">
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="gl-style-3 link-card-brand"
+        >
+          <svg viewBox="0 0 24 24" fill={GL.orange} width={24} height={24} className="gl-style-4">
             <path d={GL_ICON} />
           </svg>
           <span
             style={{
               color: GL.text,
             }}
-            className="gl-style-5"
+            className="gl-style-5 link-card-title"
           >
-            gitlab
+            GitLab
           </span>
         </a>
         {loading && !profile && (
@@ -69,21 +77,26 @@ export function GitLabCard({ username, url }) {
             loading…
           </span>
         )}
-        <div className="gl-style-7" />
-        <HeaderButtons
-          btnClass="sc-hdr-btn gl-hdr-btn"
-          labelClass="sc-hdr-label"
-          accent={GL.orangeH}
-          copied={copied}
-          onCopy={copyLink}
-          href={href}
-          openTitle="Open on GitLab"
-          collapsed={collapsed}
-          onToggle={toggleCollapse}
-        />
+        <div className="gl-style-7 link-card-spacer" />
+        <div className="link-card-actions">
+          <HeaderButtons
+            btnClass="sc-hdr-btn gl-hdr-btn link-card-hdr-btn"
+            labelClass="sc-hdr-label"
+            accent={GL.accent}
+            copied={copied}
+            onCopy={copyLink}
+            href={href}
+            openTitle="Open on GitLab"
+            collapsed={collapsed}
+            onToggle={toggleCollapse}
+          />
+        </div>
       </div>
       {/* Body */}
-      <div className={`sc-body ${collapsed ? 'closed' : 'open'}`}>
+      <div
+        className={`sc-body ${collapsed ? 'closed' : 'open'}`}
+        inert={collapsed ? '' : undefined}
+      >
         <div
           style={{
             borderBottom: `1px solid ${GL.div}`,
@@ -114,6 +127,7 @@ export function GitLabCard({ username, url }) {
             </div>
           )}
           <div className="gl-style-12">
+            <span className="gl-profile-label">Public profile</span>
             <a
               href={href}
               target="_blank"
@@ -149,13 +163,7 @@ export function GitLabCard({ username, url }) {
             target="_blank"
             rel="noopener noreferrer"
             style={{
-              background: GL.orange,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = GL.orangeH;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = GL.orange;
+              background: GL.action,
             }}
             className="gl-style-16"
           >

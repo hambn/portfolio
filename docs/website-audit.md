@@ -47,9 +47,8 @@ and Vite's [static rendering workflow](https://vite.dev/guide/ssr).
 - Projects and social cards still depend on external APIs. Their final content,
   latency, and later layout changes depend on those services. This audit did
   not establish production API reliability or measure a full polling cycle.
-- `usePolledJSON` does not check HTTP status before parsing JSON, abort requests
-  on unmount, or pause polling in hidden tabs. Those are useful follow-up fixes
-  for the live cards, separate from static-page startup.
+- `usePolledJSON` still polls while the tab is hidden. Pausing hidden-tab polls
+  would save requests, but it is separate from static-page startup.
 - Mermaid's core chunk is about 621 KB before compression, 149 KB gzip. It is
   already loaded only when a post contains a diagram. Static diagram generation
   would remove that browser cost, but needs a separate diagram build workflow.

@@ -1,3 +1,35 @@
+.tg-style-1 {
+  --tg-bg: #17212b;
+  --tg-bgHead: #232e3c;
+  --tg-border: #303f50;
+  --tg-div: #303f50;
+  --tg-blue: #2481cc;
+  --tg-blueLt: #6ab2f2;
+  --tg-text: #f5f5f5;
+  --tg-muted: #a5b5c5;
+  --tg-faint: #a5b5c5;
+  font-family:
+    'Roboto Variable',
+    Roboto,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  color: var(--tg-text);
+  color-scheme: dark;
+}
+[data-theme='light'] .tg-style-1 {
+  --tg-bg: #ffffff;
+  --tg-bgHead: #ffffff;
+  --tg-border: #dfe5eb;
+  --tg-div: #e7ebef;
+  --tg-blue: #2481cc;
+  --tg-blueLt: #1672b5;
+  --tg-text: #101820;
+  --tg-muted: #596c7c;
+  --tg-faint: #596c7c;
+  color-scheme: light;
+}
 .tg-style-14 {
   flex-shrink: 0;
 }
@@ -20,9 +52,9 @@
   font-size: 12px;
 }
 .tg-style-11 {
-  font-weight: 800;
-  font-size: 17px;
-  line-height: 1;
+  font-weight: 600;
+  font-size: 21px;
+  line-height: 1.25;
   margin-bottom: 4px;
 }
 .tg-style-10 {
@@ -42,44 +74,56 @@
   justify-content: center;
 }
 .tg-style-7 {
-  padding: 16px 20px;
+  padding: 24px 20px;
   display: flex;
   align-items: center;
   gap: 14px;
 }
-.tg-style-6 {
-  flex: 1;
-}
-.tg-style-5 {
-  font-weight: 700;
-  font-size: 13px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-.tg-style-4 {
-  flex-shrink: 0;
-  display: block;
-}
-.tg-style-3 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  text-decoration: none;
-  flex-shrink: 0;
-}
-.tg-style-2 {
-  padding: 10px 14px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.tg-style-1 {
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-}
 .tg-hdr-btn {
-  color: #7eb5d4;
+  color: var(--tg-muted);
 }
 .tg-hdr-btn:hover {
-  color: #e8f4fc;
+  color: var(--tg-text);
+  background: var(--tg-div);
+}
+
+.tg-profile-label {
+  display: block;
+  color: var(--tg-muted);
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+.tg-style-1 :is(a, button):focus-visible {
+  outline: 2px solid var(--tg-text);
+  outline-offset: 3px;
+}
+@container (max-width: 480px) {
+  .tg-style-7 {
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 18px 16px;
+  }
+  .tg-style-13 {
+    margin-left: auto;
+  }
+}
+
+.tg-style-7 {
+  background: radial-gradient(
+    ellipse at top right,
+    color-mix(in srgb, var(--tg-blue) 10%, transparent),
+    transparent 70%
+  );
+}
+.tg-style-13 {
+  border-radius: 24px;
+  padding: 10px 18px;
+}
+.tg-style-13:hover {
+  filter: brightness(0.92);
+}
+.tg-style-11,
+.tg-style-12 {
+  overflow-wrap: anywhere;
 }

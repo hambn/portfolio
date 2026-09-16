@@ -46,7 +46,7 @@ export function LinkedInCard({
         background: LI.card,
         border: `1px solid ${LI.border}`,
       }}
-      className="li-style-1"
+      className="li-style-1 link-card"
     >
       {/* ── Header bar — always visible (mirrors Spotify header) ── */}
       <div
@@ -54,17 +54,22 @@ export function LinkedInCard({
           background: LI.bgHead,
           borderBottom: collapsed ? 'none' : `1px solid ${LI.border}`,
         }}
-        className="li-style-2"
+        className="li-style-2 link-card-header"
       >
         {/* Icon + wordmark — clickable */}
-        <a href={profileHref} target="_blank" rel="noopener noreferrer" className="li-style-3">
+        <a
+          href={profileHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="li-style-3 link-card-brand"
+        >
           <div
             style={{
               background: LI.blue,
             }}
-            className="li-style-4"
+            className="li-style-4 link-card-brand-box"
           >
-            <svg viewBox="0 0 24 24" fill="white" width="13" height="13">
+            <svg viewBox="0 0 24 24" fill="white" width="15" height="15">
               <path d={LI_ICON} />
             </svg>
           </div>
@@ -72,27 +77,29 @@ export function LinkedInCard({
             style={{
               color: LI.blueLt,
             }}
-            className="li-style-5"
+            className="li-style-5 link-card-title"
           >
-            linkedin
+            LinkedIn
           </span>
         </a>
 
-        <div className="li-style-6" />
+        <div className="li-style-6 link-card-spacer" />
 
-        <HeaderButtons
-          btnClass="sc-hdr-btn li-hdr-btn"
-          labelClass="sc-hdr-label"
-          accent={LI.blueLt}
-          copied={copied}
-          onCopy={copyLink}
-          copyTitle="Copy profile link"
-          href={profileHref}
-          openLabel="open profile"
-          openTitle="Open on LinkedIn"
-          collapsed={collapsed}
-          onToggle={toggleCollapse}
-        />
+        <div className="link-card-actions">
+          <HeaderButtons
+            btnClass="sc-hdr-btn li-hdr-btn link-card-hdr-btn"
+            labelClass="sc-hdr-label"
+            accent={LI.blueLt}
+            copied={copied}
+            onCopy={copyLink}
+            copyTitle="Copy profile link"
+            href={profileHref}
+            openLabel="open profile"
+            openTitle="Open on LinkedIn"
+            collapsed={collapsed}
+            onToggle={toggleCollapse}
+          />
+        </div>
       </div>
 
       {/* ── Collapsible body ── */}

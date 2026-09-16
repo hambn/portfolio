@@ -2,6 +2,7 @@
 // Each card and its styles live in their own folder; config comes from
 // contents/links/links.json (no hardcoded IDs/handles here).
 import '../../components/card/cards.css';
+import './link-cards.css';
 import React, { useEffect, useState } from 'react';
 import { PortfolioData } from '../../lib/data.js';
 import ErrorState from '../../components/ErrorState.jsx';
@@ -41,47 +42,80 @@ export default function Links() {
     const userId = config?.discord?.userId;
     if (!userId) return;
 
-    let ws,
-      heartbeat,
-      cancelled = false;
+    let ws;
+    let heartbeat;
+    let reconnect;
+    let handshake;
+    let cancelled = false;
 
     function connect() {
       if (cancelled) return;
-      ws = new WebSocket('wss://api.lanyard.rest/socket');
-
-      ws.onmessage = (e) => {
-        let msg;
+      clearTimeout(reconnect);
+      clearTimeout(handshake);
+      clearInterval(heartbeat);
+      if (ws) {
+        ws.onclose = null;
+        ws.onmessage = null;
+        ws.onerror = null;
+        ws.close();
+      }
+      setLanyardData(null);
+      const socket = new WebSocket('wss://api.lanyard.rest/socket');
+      ws = socket;
+      // A socket can remain CONNECTING after a network change.
+      handshake = setTimeout(() => socket.close(), 15000);
+      socket.onmessage = (event) => {
+        if (cancelled || socket !== ws) return;
+        let message;
         try {
-          msg = JSON.parse(e.data);
+          message = JSON.parse(event.data);
         } catch {
           return;
         }
-        const { op, d } = msg;
-
+        const { op, d } = message;
         if (op === 1) {
+          clearInterval(heartbeat);
           heartbeat = setInterval(() => {
-            if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ op: 3 }));
+            if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ op: 3 }));
           }, d.heartbeat_interval);
-          ws.send(JSON.stringify({ op: 2, d: { subscribe_to_id: userId } }));
+          socket.send(JSON.stringify({ op: 2, d: { subscribe_to_id: userId } }));
         }
-
-        if (op === 0 && d) setLanyardData(d);
+        if (op === 0 && d) {
+          clearTimeout(handshake);
+          setLanyardData(d);
+        }
       };
-
-      ws.onclose = () => {
+      socket.onclose = () => {
         clearInterval(heartbeat);
-        if (!cancelled) setTimeout(connect, 4000);
+        clearTimeout(handshake);
+        if (!cancelled) {
+          setLanyardData(null);
+          reconnect = setTimeout(connect, 4000);
+        }
       };
-      ws.onerror = () => ws.close();
+      socket.onerror = () => socket.close();
+    }
+
+    function resume() {
+      if (document.visibilityState === 'visible') connect();
     }
 
     connect();
+    window.addEventListener('online', resume);
+    document.addEventListener('visibilitychange', resume);
     return () => {
       cancelled = true;
       clearInterval(heartbeat);
-      try {
+      clearTimeout(handshake);
+      clearTimeout(reconnect);
+      window.removeEventListener('online', resume);
+      document.removeEventListener('visibilitychange', resume);
+      if (ws) {
+        ws.onclose = null;
+        ws.onmessage = null;
+        ws.onerror = null;
         ws.close();
-      } catch (_) {}
+      }
     };
   }, [config?.discord?.userId]);
 

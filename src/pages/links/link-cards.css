@@ -1,0 +1,93 @@
+/* link-cards.css — shared geometry for every link card header.
+ *
+ * Visual reference is SpotifyCard (.sp-card): these values mirror it exactly,
+ * so Spotify itself needs no changes. Brand stylesheets keep ONLY their
+ * brand tokens (colors, font stacks, backgrounds, hover states, body layout).
+ * Card size / shape / header spacing / title size / button placement live here.
+ *
+ * Usage per card:
+ *   root:        `link-card` (+ brand root class)
+ *   header:      `link-card-header` (+ brand header class)
+ *   brand link:  `link-card-brand` (+ brand brand class)
+ *   title text:  `link-card-title` (+ brand title class, color only)
+ *   spacer:      `link-card-spacer`
+ *   actions:     wrap <HeaderButtons/> in `link-card-actions`
+ *   buttons:     add `link-card-hdr-btn` to HeaderButtons btnClass
+ *   logo box (LinkedIn-style): `link-card-brand-box`
+ */
+.link-card {
+  border-radius: 12px;
+  overflow: hidden;
+  container-type: inline-size;
+  min-width: 0;
+  line-height: 1.5;
+}
+.link-card-header {
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.link-card-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.link-card svg {
+  flex-shrink: 0;
+}
+/* Brand glyph — exact Spotify icon size; overrides per-card width/height props. */
+.link-card-brand > svg {
+  width: 25px;
+  height: 25px;
+  display: block;
+  flex-shrink: 0;
+}
+/* Squared logo box variant (e.g. LinkedIn). Glyph inside keeps brand size. */
+.link-card-brand-box {
+  width: 25px;
+  height: 25px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+/* Title size/weight mirror Spotify; font-family + color stay brand-specific. */
+.link-card-title {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -1px;
+}
+.link-card-spacer {
+  flex: 1;
+}
+.link-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+/* Header button geometry mirrors Spotify; color/hover stay brand-specific. */
+.link-card-hdr-btn {
+  border-radius: 6px;
+  font-family: var(--font-mono, monospace);
+  font-size: 10px;
+  min-width: 32px;
+  min-height: 32px;
+  justify-content: center;
+  opacity: 1;
+}
+@container (max-width: 480px) {
+  .link-card-header {
+    padding: 14px 16px;
+  }
+  .link-card-header .sc-hdr-label {
+    display: none;
+  }
+  .link-card-header .link-card-hdr-btn {
+    min-width: 36px;
+    min-height: 36px;
+  }
+}

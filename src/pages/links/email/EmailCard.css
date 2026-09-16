@@ -1,83 +1,183 @@
+.em-style-1 {
+  --em-bg: #1e1f20;
+  --em-bgHead: #131314;
+  --em-border: #444746;
+  --em-div: #333537;
+  --em-input: #282a2c;
+  --em-blue: #8ab4f8;
+  --em-red: #f28b82;
+  --em-text: #e3e3e3;
+  --em-muted: #9aa0a6;
+  --em-faint: #8e918f;
+  --em-sendText: #202124;
+  --em-sendH: #aecbfa;
+  font-family:
+    'Roboto Variable',
+    Roboto,
+    'Google Sans',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  color: var(--em-text);
+  color-scheme: dark;
+}
+[data-theme='light'] .em-style-1 {
+  --em-bg: #ffffff;
+  --em-bgHead: #f8fafd;
+  --em-border: #dadce0;
+  --em-div: #e8eaed;
+  --em-input: #f1f3f4;
+  --em-blue: #1a73e8;
+  --em-red: #ea4335;
+  --em-text: #202124;
+  --em-muted: #5f6368;
+  --em-faint: #80868b;
+  --em-sendText: #ffffff;
+  --em-sendH: #1765cc;
+  color-scheme: light;
+}
+.em-style-1 :is(a, button):focus-visible {
+  outline: 2px solid var(--em-blue);
+  outline-offset: 2px;
+}
+.em-hdr-btn {
+  color: var(--em-muted);
+}
+.em-hdr-btn:hover {
+  color: var(--em-text);
+  background: var(--em-input);
+}
 .em-style-15 {
   font-size: 12px;
   text-decoration: none;
+}
+.em-style-15:hover {
+  text-decoration: underline;
 }
 .em-style-14 {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 9px 18px;
-  border-radius: var(--radius-md, 6px);
+  padding: 9px 22px;
+  border-radius: 100px;
   border: none;
-  color: var(--primary-foreground, #fff);
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 500;
   font-family: inherit;
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition:
+    background 0.15s,
+    box-shadow 0.15s;
+}
+.em-style-14:hover {
+  background: var(--em-sendH) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.24);
 }
 .em-style-13 {
   display: flex;
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+  padding-top: 16px;
+  border-top: 1px solid var(--em-div);
 }
 .em-style-12 {
   resize: vertical;
-  min-height: 88px;
+  display: block;
+  width: 100%;
+  min-height: 120px;
   line-height: 1.5;
 }
-.em-style-11 {
-  font-size: 13px;
-  line-height: 1.5;
-}
-.em-style-10 {
-  font-size: 14px;
-  font-weight: 600;
-}
-.em-style-9 {
-  flex-shrink: 0;
-}
-.em-style-8 {
+.em-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  text-decoration: none;
-  align-self: flex-start;
+  gap: 12px;
+  min-height: 48px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--em-div);
+}
+.em-row-label {
+  flex-shrink: 0;
+  width: 52px;
+  font-size: 13px;
+  color: var(--em-muted);
+}
+.em-row-field {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  color: var(--em-text);
+  font-family: inherit;
+  font-size: 14px;
+  padding: 4px 0;
+  outline: none;
+}
+.em-row-field::placeholder {
+  color: var(--em-faint);
 }
 .em-style-7 {
-  padding: 16px 20px;
+  padding: 8px 24px 20px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
 }
-.em-style-6 {
-  flex: 1;
+.em-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--em-input);
+  border: 1px solid var(--em-div);
+  border-radius: 100px;
+  padding: 3px 10px 3px 6px;
+  min-width: 0;
 }
-.em-style-5 {
-  font-weight: 700;
+.em-chip-av {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--em-red);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+.em-chip-name {
   font-size: 13px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-.em-style-4 {
-  flex-shrink: 0;
-  display: block;
-}
-.em-style-3 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  text-decoration: none;
-  flex-shrink: 0;
-}
-.em-style-2 {
-  padding: 10px 14px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.em-style-1 {
-  border-radius: var(--radius-lg);
+  font-weight: 500;
+  color: var(--em-text);
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Use the existing divider as the field focus indicator. */
+.em-subject-row,
+.em-message {
+  transition: border-color 0.15s;
+}
+.em-subject-row:focus-within {
+  border-bottom-color: var(--em-blue);
+}
+.em-message {
+  margin: 16px 0;
+  padding-left: 12px;
+  border-left: 2px solid var(--em-div);
+}
+.em-message:focus-within {
+  border-left-color: var(--em-blue);
+}
+.em-style-1 .em-row-field:focus-visible {
+  outline: none;
+}
+@container (max-width: 480px) {
+  .em-style-7 {
+    padding: 8px 16px 16px;
+  }
+  .em-row-field {
+    font-size: 16px;
+  }
 }

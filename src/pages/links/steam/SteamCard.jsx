@@ -10,14 +10,14 @@ import { HeaderButtons } from '../../../components/card/HeaderButtons.jsx';
 
 // ── Palette (always dark — Steam brand) ───────────────────────────────────────
 const ST = {
-  bg: 'linear-gradient(155deg,#1b2838 0%,#2a475e 55%,#1b2838 100%)',
-  bgHead: 'rgba(0,0,0,0.45)',
-  border: '#3d5a73',
+  bg: 'linear-gradient(145deg,#233448 0%,#1b2838 55%,#171d25 100%)',
+  bgHead: '#171d25',
+  border: '#344659',
   div: 'rgba(61,90,115,0.45)',
   blue: '#66c0f4',
-  white: '#c7d5e0',
+  white: '#e5e9ed',
   muted: '#8f98a0',
-  faint: '#4f6a7a',
+  faint: '#8b9bad',
   surf: 'rgba(102,192,244,0.07)',
   ingame: '#90ba3c',
   online: '#57cbde',
@@ -50,7 +50,7 @@ function stFmtHrs(h) {
 }
 
 // ── Game Row (prefixed to avoid window collision) ─────────────────────────────
-function StGameRow({ game, rank, showRecent }) {
+function StGameRow({ game, showRecent }) {
   if (!game) return null;
   const href = `https://store.steampowered.com/app/${game.appid}`;
   return (
@@ -58,16 +58,6 @@ function StGameRow({ game, rank, showRecent }) {
       {/* library_hero as subtle background */}
       {game.images?.hero && (
         <img src={game.images.hero} alt="" aria-hidden="true" className="st-style-3" />
-      )}
-      {rank != null && (
-        <span
-          style={{
-            color: ST.faint,
-          }}
-          className="st-style-4"
-        >
-          {rank}
-        </span>
       )}
       {game.images?.header ? (
         <img src={game.images.header} alt={game.name} className="st-style-5" />
@@ -98,7 +88,7 @@ function StGameRow({ game, rank, showRecent }) {
               }}
               className="st-style-10"
             >
-              {stFmtHrs(game.playtime_2weeks_hours)} past 2 wks
+              {stFmtHrs(game.playtime_2weeks_hours)} past 2 weeks
             </span>
           )}
           {(game.playtime_total_hours != null || game.playtime_hours != null) && (
@@ -108,7 +98,7 @@ function StGameRow({ game, rank, showRecent }) {
               }}
               className="st-style-11"
             >
-              {stFmtHrs(game.playtime_total_hours ?? game.playtime_hours)} total
+              {stFmtHrs(game.playtime_total_hours ?? game.playtime_hours)} on record
             </span>
           )}
         </div>
@@ -118,15 +108,16 @@ function StGameRow({ game, rank, showRecent }) {
 }
 
 // ── Section label ─────────────────────────────────────────────────────────────
-function StSectionLabel({ children }) {
+function StSectionLabel({ children, detail }) {
   return (
     <div
       style={{
-        color: ST.faint,
+        color: ST.white,
       }}
       className="st-style-12"
     >
-      {children}
+      <span>{children}</span>
+      {detail && <span className="st-section-detail">{detail}</span>}
     </div>
   );
 }
@@ -141,13 +132,13 @@ function StRecentSection({ items }) {
         }}
         className="st-style-13"
       >
-        no recent activity
+        No recent activity
       </p>
     );
   return (
     <div className="st-style-14">
       {items.map((game, i) => (
-        <StGameRow key={game.appid || i} game={game} rank={i + 1} showRecent={true} />
+        <StGameRow key={game.appid || i} game={game} showRecent={true} />
       ))}
     </div>
   );
@@ -158,7 +149,7 @@ function StFavoriteSection({ game }) {
   if (!game) return null;
   const href = `https://store.steampowered.com/app/${game.appid}`;
   return (
-    <div>
+    <div className="st-favorite">
       {(game.images?.hero || game.images?.header) && (
         <a
           href={href}
@@ -191,17 +182,22 @@ function StFavoriteSection({ game }) {
           >
             {game.name}
           </a>
-          {(game.playtime_hours != null || game.playtime_total_hours != null) && (
-            <div
-              style={{
-                color: ST.blue,
-              }}
-              className="st-style-22"
-            >
-              {stFmtHrs(game.playtime_hours ?? game.playtime_total_hours)} on record
-            </div>
-          )}
         </div>
+        {(game.playtime_hours != null || game.playtime_total_hours != null) && (
+          <div
+            style={{
+              color: ST.blue,
+            }}
+            className="st-style-22"
+          >
+            <span className="st-hours-value">
+              {Number(game.playtime_hours ?? game.playtime_total_hours).toLocaleString('en-US', {
+                maximumFractionDigits: 1,
+              })}
+            </span>
+            <span className="st-hours-label">Hours played</span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -272,7 +268,7 @@ export function SteamCard({ handle, url, apiEndpoint }) {
         background: ST.bg,
         border: `1px solid ${ST.border}`,
       }}
-      className="st-style-27"
+      className="st-style-27 link-card"
     >
       {/* ── Brand header — always visible ── */}
       <div
@@ -280,17 +276,22 @@ export function SteamCard({ handle, url, apiEndpoint }) {
           background: ST.bgHead,
           borderBottom: collapsed ? 'none' : `1px solid ${ST.border}`,
         }}
-        className="st-style-28"
+        className="st-style-28 link-card-header"
       >
-        <a href={profileUrl} target="_blank" rel="noopener noreferrer" className="st-style-29">
-          <StIcon size={18} />
+        <a
+          href={profileUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="st-style-29 link-card-brand"
+        >
+          <StIcon size={24} color="#dcdedf" />
           <span
             style={{
-              color: ST.blue,
+              color: '#dcdedf',
             }}
-            className="st-style-30"
+            className="st-style-30 link-card-title"
           >
-            steam
+            Steam
           </span>
         </a>
 
@@ -306,22 +307,24 @@ export function SteamCard({ handle, url, apiEndpoint }) {
         )}
         {error && <span className="st-style-32">error</span>}
 
-        <div className="st-style-33" />
+        <div className="st-style-33 link-card-spacer" />
 
-        <HeaderButtons
-          btnClass="sc-hdr-btn st-hdr-btn"
-          labelClass="sc-hdr-label"
-          accent={ST.blue}
-          copied={copied}
-          onCopy={copyLink}
-          copyLabel="copy profile link"
-          copyTitle="Copy profile link"
-          href={profileUrl}
-          openLabel="open in steam"
-          openTitle="Open in Steam"
-          collapsed={collapsed}
-          onToggle={toggleCollapse}
-        />
+        <div className="link-card-actions">
+          <HeaderButtons
+            btnClass="sc-hdr-btn st-hdr-btn link-card-hdr-btn"
+            labelClass="sc-hdr-label"
+            accent={ST.blue}
+            copied={copied}
+            onCopy={copyLink}
+            copyLabel="Copy link"
+            copyTitle="Copy profile link"
+            href={profileUrl}
+            openLabel="View profile"
+            openTitle="View Steam profile"
+            collapsed={collapsed}
+            onToggle={toggleCollapse}
+          />
+        </div>
       </div>
 
       {/* ── Collapsible body ── */}
@@ -395,16 +398,6 @@ export function SteamCard({ handle, url, apiEndpoint }) {
 
               {/* Meta row: level, game count, member since */}
               <div className="st-style-43">
-                {data.level != null && (
-                  <span
-                    style={{
-                      background: ST.blue,
-                    }}
-                    className="st-style-44"
-                  >
-                    LVL {data.level}
-                  </span>
-                )}
                 {data.totalGames != null && (
                   <span
                     style={{
@@ -430,25 +423,33 @@ export function SteamCard({ handle, url, apiEndpoint }) {
                     }}
                     className="st-style-47"
                   >
-                    since {new Date(data.memberSince).getFullYear()}
+                    Member since {new Date(data.memberSince).getFullYear()}
                   </span>
                 )}
               </div>
             </div>
 
-            <a
-              href={profileUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="st-open-btn st-style-48"
-              style={{
-                border: `1px solid ${ST.blue}`,
-                color: ST.blue,
-              }}
-            >
-              <StIcon size={13} />
-              <span className="st-open-label">Open in Steam</span>
-            </a>
+            <div className="st-profile-side">
+              {data.level != null && (
+                <span className="st-level">
+                  Level <span className="st-style-44">{data.level}</span>
+                </span>
+              )}
+              <a
+                href={profileUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="View Steam profile"
+                className="st-open-btn st-style-48"
+                style={{
+                  border: '1px solid transparent',
+                  color: '#fff',
+                }}
+              >
+                <StIcon size={14} color="#fff" />
+                <span className="st-open-label">View profile</span>
+              </a>
+            </div>
           </div>
         )}
 
@@ -515,15 +516,23 @@ export function SteamCard({ handle, url, apiEndpoint }) {
         {data && (
           <div className="st-style-58">
             {data.recentActivity?.length > 0 && (
-              <div>
-                <StSectionLabel>recent activity</StSectionLabel>
+              <div className="st-showcase">
+                <StSectionLabel
+                  detail={
+                    data.recentActivity.some((game) => game.playtime_2weeks_hours != null)
+                      ? `${stFmtHrs(data.recentActivity.reduce((total, game) => total + (Number(game.playtime_2weeks_hours) || 0), 0))} past 2 weeks`
+                      : null
+                  }
+                >
+                  Recent activity
+                </StSectionLabel>
                 <StRecentSection items={data.recentActivity} />
               </div>
             )}
 
             {data.favoriteGame && (
-              <div>
-                <StSectionLabel>favorite game</StSectionLabel>
+              <div className="st-showcase">
+                <StSectionLabel>Favorite game</StSectionLabel>
                 <StFavoriteSection game={data.favoriteGame} />
               </div>
             )}
