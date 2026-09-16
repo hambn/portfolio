@@ -28,7 +28,7 @@ export function EmailCard({ address }) {
       }}
       className="em-style-1 link-card"
     >
-      {/* Header — Gmail top bar */}
+      {/* Header — email top bar */}
       <div
         style={{
           background: 'var(--em-bgHead)',
@@ -47,7 +47,7 @@ export function EmailCard({ address }) {
             <path d={ENV} />
           </svg>
           <span style={{ color: 'var(--em-text)' }} className="em-style-5 link-card-title">
-            Gmail
+            Email
           </span>
         </a>
         <div className="em-style-6 link-card-spacer" />
