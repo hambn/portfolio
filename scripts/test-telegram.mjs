@@ -22,7 +22,7 @@ test('username validation and URL configuration', async () => {
   }
 });
 
-test('scheduled snapshots cache HTML and image; visitors never scrape; failed refresh retains data', async (t) => {
+test('cold requests bootstrap once; scheduled snapshots cache HTML and image; failed refresh retains data', async (t) => {
   const values = new Map();
   const env = {
     SPOTIFY_KV: {
@@ -41,9 +41,8 @@ test('scheduled snapshots cache HTML and image; visitors never scrape; failed re
   });
   const request = (path = '/telegram', method = 'GET') =>
     worker.fetch(new Request(`https://api.test${path}`, { method }), env);
-  assert.equal((await request()).status, 503);
-  assert.equal(requests, 0);
-  await worker.scheduled({}, env);
+  const coldResponse = await request();
+  assert.equal(coldResponse.status, 200);
   assert.equal(requests, 2);
   for (let i = 0; i < 10; i++) {
     const response = await request(`/telegram?username=${username}`);
@@ -70,10 +69,19 @@ test('scheduled snapshots cache HTML and image; visitors never scrape; failed re
   assert.equal(requests, 5);
 });
 
-test('invalid HTML and oversized or unsafe images never replace the cached profile', async (t) => {
+test('invalid HTML never replaces the cache; profile metadata survives avatar failures', async (t) => {
   let writes = 0;
   let upstream = '<html>Not a profile</html>';
-  const env = { SPOTIFY_KV: { put: async () => writes++ } };
+  const values = new Map();
+  const env = {
+    SPOTIFY_KV: {
+      get: async (key) => values.get(key),
+      put: async (key, value) => {
+        writes++;
+        values.set(key, value);
+      },
+    },
+  };
   t.mock.method(globalThis, 'fetch', async () => new Response(upstream));
   await assert.rejects(worker.scheduled({}, env));
   assert.equal(writes, 0);
@@ -87,13 +95,17 @@ test('invalid HTML and oversized or unsafe images never replace the cached profi
           headers: { 'Content-Type': 'image/jpeg' },
         }),
   );
-  await assert.rejects(worker.scheduled({}, env));
-  assert.equal(writes, 0);
+  await worker.scheduled({}, env);
+  assert.equal(writes, 1);
+  const snapshot = JSON.parse(values.get('telegram:profile:v1:ham_bn'));
+  assert.equal(snapshot.profile.name, 'Hamed & Friends');
+  assert.equal(snapshot.image, null);
   t.mock.method(globalThis, 'fetch', async (url) =>
     String(url).startsWith('https://t.me/')
       ? new Response(html)
       : new Response('<svg></svg>', { headers: { 'Content-Type': 'image/svg+xml' } }),
   );
-  await assert.rejects(worker.scheduled({}, env));
-  assert.equal(writes, 0);
+  await worker.scheduled({}, env);
+  assert.equal(writes, 2);
+  assert.equal(JSON.parse(values.get('telegram:profile:v1:ham_bn')).image, null);
 });

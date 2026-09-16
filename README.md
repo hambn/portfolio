@@ -143,10 +143,11 @@ must match it.
 The Worker cron (`0 * * * *`) fetches the public Telegram HTML and photo once per
 hour, including hours with no visits. A single snapshot in the existing
 `SPOTIFY_KV` namespace stores the name, username, description, public metadata,
-photo bytes, and update time. Requests only read the snapshot. Failed refreshes
-keep the previous data. On a first Worker deployment, the profile becomes
-available after the first hourly trigger; until then, the API returns 503 and
-the card still links to Telegram. KV propagation can briefly delay updates.
+photo bytes, and update time. Requests read the snapshot. If a new deployment
+has no snapshot yet, the first request performs one bootstrap refresh; concurrent
+cold requests share that refresh and retries are throttled for one minute.
+Failed refreshes keep the previous data. KV propagation can briefly delay
+updates.
 
 The Node adapter refreshes at startup and every hour while running. Its cache is
 in memory, so a restart performs an extra initial fetch. Run one API instance if

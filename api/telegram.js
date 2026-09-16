@@ -10,6 +10,9 @@ export const configuredTelegramUsername = telegramUsername(
 );
 const cacheKey = (username) => `telegram:profile:v1:${username}`;
 const CORS = { 'Access-Control-Allow-Origin': '*' };
+const REFRESH_COOLDOWN_MS = 60 * 1000;
+let refreshInFlight = null;
+let lastRefreshAttempt = 0;
 const json = (data, status = 200) =>
   new Response(JSON.stringify(data), {
     status,
@@ -204,7 +207,8 @@ async function fetchTelegramProfile(username) {
   };
 }
 
-// Only the scheduler writes this snapshot. Public requests never trigger a scrape.
+// The scheduler owns normal refreshes. A cold public request can bootstrap the
+// first snapshot so a new deployment is usable before its first cron window.
 // Keep the last successful value indefinitely so upstream outages do not blank the card.
 export async function refreshTelegram(env) {
   const username = configuredTelegramUsername;
@@ -214,18 +218,23 @@ export async function refreshTelegram(env) {
   let image = null;
   const source = telegramPhotoSource(profile.photo);
   if (source) {
-    const response = await fetchWithTimeout(source, { headers: HEADERS });
-    const contentType = response.headers.get('Content-Type')?.split(';')[0];
-    if (!response.ok || !/^image\/(jpeg|png|webp|gif)$/.test(contentType)) {
-      throw new Error('Telegram avatar fetch failed');
+    try {
+      const response = await fetchWithTimeout(source, { headers: HEADERS });
+      const contentType = response.headers.get('Content-Type')?.split(';')[0];
+      if (!response.ok || !/^image\/(jpeg|png|webp|gif)$/.test(contentType)) {
+        throw new Error('unexpected avatar response');
+      }
+      const bytes = await readBytes(response, 1024 * 1024);
+      if (!bytes) throw new Error('avatar exceeds 1 MiB');
+      let binary = '';
+      for (let offset = 0; offset < bytes.length; offset += 8192) {
+        binary += String.fromCharCode(...bytes.subarray(offset, offset + 8192));
+      }
+      image = { contentType, data: btoa(binary) };
+    } catch (error) {
+      // A temporary CDN problem should not discard valid profile metadata.
+      console.warn('Telegram avatar refresh failed:', error?.message || String(error));
     }
-    const bytes = await readBytes(response, 1024 * 1024);
-    if (!bytes) throw new Error('Telegram avatar exceeds 1 MiB');
-    let binary = '';
-    for (let offset = 0; offset < bytes.length; offset += 8192) {
-      binary += String.fromCharCode(...bytes.subarray(offset, offset + 8192));
-    }
-    image = { contentType, data: btoa(binary) };
   }
   await env.SPOTIFY_KV.put(
     cacheKey(username),
@@ -237,17 +246,61 @@ export async function refreshTelegram(env) {
   );
 }
 
+async function readTelegramSnapshot(env) {
+  if (!configuredTelegramUsername || !env?.SPOTIFY_KV?.get) return null;
+  const raw = await env.SPOTIFY_KV.get(cacheKey(configuredTelegramUsername));
+  if (!raw) return null;
+  try {
+    const snapshot = JSON.parse(raw);
+    if (!snapshot?.profile?.username || !snapshot.updatedAt) return null;
+    return snapshot;
+  } catch {
+    return null;
+  }
+}
+
+async function ensureTelegramSnapshot(env) {
+  let snapshot = await readTelegramSnapshot(env);
+  if (snapshot) return snapshot;
+
+  // The first request after deployment should not make visitors wait for the
+  // first cron window. Coalesce concurrent cold-start requests and throttle
+  // retries while Telegram or KV is unavailable.
+  const now = Date.now();
+  if (!refreshInFlight && now - lastRefreshAttempt >= REFRESH_COOLDOWN_MS) {
+    lastRefreshAttempt = now;
+    refreshInFlight = refreshTelegram(env).finally(() => {
+      refreshInFlight = null;
+    });
+  }
+  if (refreshInFlight) {
+    try {
+      await refreshInFlight;
+    } catch (error) {
+      console.warn('Telegram profile refresh failed:', error?.message || String(error));
+    }
+  }
+  snapshot = await readTelegramSnapshot(env);
+  return snapshot;
+}
+
 export async function handleTelegram(request, env) {
   const url = new URL(request.url);
   const match = url.pathname.match(/^\/telegram(?:\/(avatar))?\/?$/);
   if (!match) return json({ error: 'not_found' }, 404);
+  if (!configuredTelegramUsername) return json({ error: 'telegram_not_configured' }, 503);
   const requested = url.searchParams.get('username');
   if (requested && telegramUsername(requested) !== configuredTelegramUsername) {
     return json({ error: 'telegram_username_not_configured' }, 400);
   }
-  const raw = await env.SPOTIFY_KV.get(cacheKey(configuredTelegramUsername));
-  if (!raw) return json({ error: 'telegram_cache_pending' }, 503);
-  const { profile, image, updatedAt } = JSON.parse(raw);
+  const snapshot = await ensureTelegramSnapshot(env);
+  if (!snapshot) {
+    return new Response(JSON.stringify({ error: 'telegram_cache_pending' }), {
+      status: 503,
+      headers: { ...CORS, 'Content-Type': 'application/json', 'Retry-After': '60' },
+    });
+  }
+  const { profile, image, updatedAt } = snapshot;
   if (match[1]) {
     if (!image) return json({ error: 'telegram_photo_unavailable' }, 404);
     const bytes = Uint8Array.from(atob(image.data), (character) => character.charCodeAt(0));
