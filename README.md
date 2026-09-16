@@ -124,8 +124,8 @@ npm run api:deploy
 | `GET /discord` | 60s | presence + activities + Spotify (via Lanyard) |
 | `GET /discord/avatar` | 1h | proxied Discord avatar image |
 | `GET /linkedin` | 1h | profile OG tags scraped from `LINKEDIN_URL` |
-| `GET /telegram[?username=<username>]` | 1h | profile metadata scraped from the public `t.me` page (defaults to `TELEGRAM_USERNAME`) |
-| `GET /telegram/avatar[?username=<username>]` | 1h | Telegram profile photo proxied and cached by the Worker/CDN |
+| `GET /telegram[?username=<username>]` | 1h | scheduled snapshot of the profile configured in `links.json` |
+| `GET /telegram/avatar[?username=<username>]` | 1h | photo bytes stored with the hourly profile snapshot |
 | `GET /health` | none | `{ ok: true }` liveness check |
 
 The Spotify card checks playback every 3 seconds while the page is visible and
@@ -134,6 +134,29 @@ profile and library data refresh every minute and after track/context changes.
 Deploy the API update with the frontend to enable playback-only responses. Older
 API deployments still work, but return the slower aggregate response.
 Run `npm run test:spotify` for the playback clock and API regression checks.
+
+Telegram reads `telegram.url` in `public/contents/links/links.json`, with
+`username` or `handle` as fallbacks. Redeploy the API and frontend after changing
+this file. Only that configured profile is served; the optional `username` query
+must match it.
+
+The Worker cron (`0 * * * *`) fetches the public Telegram HTML and photo once per
+hour, including hours with no visits. A single snapshot in the existing
+`SPOTIFY_KV` namespace stores the name, username, description, public metadata,
+photo bytes, and update time. Requests only read the snapshot. Failed refreshes
+keep the previous data. On a first Worker deployment, the profile becomes
+available after the first hourly trigger; until then, the API returns 503 and
+the card still links to Telegram. KV propagation can briefly delay updates.
+
+The Node adapter refreshes at startup and every hour while running. Its cache is
+in memory, so a restart performs an extra initial fetch. Run one API instance if
+you want 24 scheduled profile fetches per day. Each refresh also downloads the
+photo when available. Run `npm run test:telegram` for scheduler, cache, parsing,
+and failure regression checks.
+
+The card's wallpaper asset comes from
+[Telegram's public profile background](https://telegram.org/img/tgme/pattern.svg?1).
+
 
 Full reference + Spotify re-auth flow: [`.claude/api.md`](.claude/api.md).
 

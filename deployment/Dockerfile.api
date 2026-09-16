@@ -4,5 +4,7 @@ FROM node:20-alpine
 WORKDIR /app
 COPY package.json ./
 COPY api ./api
+COPY shared ./shared
+COPY public/contents/links/links.json ./public/contents/links/links.json
 EXPOSE 8787
 CMD ["node", "api/server.js"]

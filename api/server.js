@@ -66,6 +66,13 @@ if (process.argv.includes('--check')) {
   process.exit(0);
 }
 
+// Warm the in-memory snapshot at startup, then refresh without visitor traffic.
+const refreshTelegram = () => worker.scheduled({}, env).catch((error) => {
+  console.error('Telegram refresh failed:', error.message);
+});
+await refreshTelegram();
+setInterval(refreshTelegram, 60 * 60 * 1000).unref();
+
 const PORT = process.env.PORT || 8787;
 http.createServer(async (req, res) => {
   try {
