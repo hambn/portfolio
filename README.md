@@ -125,6 +125,7 @@ npm run api:deploy
 | `GET /discord/avatar` | 1h | proxied Discord avatar image |
 | `GET /linkedin` | 1h | profile OG tags scraped from `LINKEDIN_URL` |
 | `GET /telegram[?username=<username>]` | 1h | profile metadata scraped from the public `t.me` page (defaults to `TELEGRAM_USERNAME`) |
+| `GET /telegram/avatar[?username=<username>]` | 1h | Telegram profile photo proxied and cached by the Worker/CDN |
 | `GET /health` | none | `{ ok: true }` liveness check |
 
 The Spotify card checks playback every 3 seconds while the page is visible and

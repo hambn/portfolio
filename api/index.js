@@ -14,7 +14,13 @@ const json = (data, status = 200, ttl = 0) =>
     headers: {
       'Content-Type': 'application/json',
       ...CORS,
-      ...(ttl > 0 ? { 'Cache-Control': `public, max-age=${ttl}` } : {}),
+      ...(ttl > 0
+        ? {
+            'Cache-Control': `public, max-age=${ttl}`,
+            'Cloudflare-CDN-Cache-Control': `public, max-age=${ttl}`,
+            'CDN-Cache-Control': `public, max-age=${ttl}`,
+          }
+        : {}),
     },
   });
 
@@ -352,7 +358,7 @@ async function handleLinkedIn(pathname, request, env) {
 //  TELEGRAM
 //  Telegram's public t.me pages include profile data in their HTML metadata.
 //  Config:  username query parameter, e.g. /telegram?username=ham_bn
-//  Routes:  /telegram
+//  Routes:  /telegram, /telegram/avatar
 //  Cache:   1h (profile metadata changes infrequently)
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -366,6 +372,12 @@ const TELEGRAM_HEADERS = {
     'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/149.0.0.0 Mobile Safari/537.36',
   Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
   'Accept-Language': 'en-US,en;q=0.9',
+};
+
+const TELEGRAM_IMAGE_HEADERS = {
+  'User-Agent': TELEGRAM_HEADERS['User-Agent'],
+  Accept: 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+  'Accept-Language': TELEGRAM_HEADERS['Accept-Language'],
 };
 
 // Telegram usernames may be written as "@name" in config. Accepting a full
@@ -513,72 +525,120 @@ async function readTelegramHtml(response, maxBytes = 256 * 1024) {
   return new TextDecoder().decode(bytes);
 }
 
+function telegramPhotoProxy(requestUrl, username) {
+  const url = new URL('/telegram/avatar', requestUrl.origin);
+  url.searchParams.set('username', username);
+  return url.toString();
+}
+
+// Only proxy Telegram-owned media. The username is validated, but the public
+// page can still contain arbitrary metadata, so this also prevents an open
+// image proxy if Telegram changes its HTML.
+function telegramPhotoSource(value) {
+  let candidate = String(value ?? '').trim();
+  if (!candidate) return null;
+  if (candidate.startsWith('//')) candidate = `https:${candidate}`;
+
+  let parsed;
+  try {
+    parsed = new URL(candidate);
+  } catch {
+    return null;
+  }
+  if (parsed.protocol !== 'https:') return null;
+
+  const hostname = parsed.hostname.toLowerCase();
+  const telegramHost =
+    hostname === 'telesco.pe' ||
+    hostname.endsWith('.telesco.pe') ||
+    hostname === 'telegram.org' ||
+    hostname.endsWith('.telegram.org');
+  return telegramHost ? parsed.toString() : null;
+}
+
+async function fetchTelegramProfile(username) {
+  const profileUrl = `https://t.me/${username}`;
+  let response;
+  try {
+    response = await fetchWithTimeout(profileUrl, { headers: TELEGRAM_HEADERS }, 10000);
+  } catch {
+    return null;
+  }
+  if (!response.ok) return null;
+
+  let html;
+  try {
+    html = await readTelegramHtml(response);
+  } catch {
+    return null;
+  }
+  if (html == null) return null;
+
+  const title =
+    metaContent(html, 'og:title') ||
+    metaContent(html, 'twitter:title') ||
+    telegramElementText(html, 'tgme_page_title');
+  const pageExtra = telegramElementText(html, 'tgme_page_extra');
+  const pageDescription = telegramElementText(html, 'tgme_page_description');
+  const description =
+    metaContent(html, 'og:description') ||
+    metaContent(html, 'twitter:description') ||
+    pageDescription;
+  const photo = telegramPhoto(html);
+  const displayUsername =
+    pageExtra?.match(/@?([A-Za-z0-9_]{5,32})/)?.[1]?.toLowerCase() || username;
+  const contact = telegramElementText(html, 'tgme_page_additional');
+
+  return {
+    username: displayUsername,
+    handle: displayUsername,
+    name: title,
+    displayName: title,
+    description,
+    photo,
+    url: profileUrl,
+    profileUrl,
+    messageUrl: profileUrl,
+    contact,
+    siteName: metaContent(html, 'og:site_name') || 'Telegram',
+    title: htmlTitle(html) || `Telegram: Contact @${displayUsername}`,
+  };
+}
+
+function telegramRequestedUsername(pathname, requestUrl, env, prefix) {
+  return telegramUsername(
+    requestUrl.searchParams.get('username') ||
+      requestUrl.searchParams.get('handle') ||
+      pathname.slice(prefix.length) ||
+      env?.TELEGRAM_USERNAME ||
+      env?.TELEGRAM_HANDLE ||
+      env?.TELEGRAM_URL ||
+      DEFAULT_TELEGRAM_USERNAME,
+  );
+}
+
 async function handleTelegram(pathname, request, env) {
   if (pathname !== '/telegram' && !pathname.startsWith('/telegram/')) return null;
 
   const requestUrl = new URL(request.url);
-  const requested =
-    requestUrl.searchParams.get('username') ||
-    requestUrl.searchParams.get('handle') ||
-    pathname.slice('/telegram/'.length) ||
-    env?.TELEGRAM_USERNAME ||
-    env?.TELEGRAM_HANDLE ||
-    env?.TELEGRAM_URL ||
-    DEFAULT_TELEGRAM_USERNAME;
-  const username = telegramUsername(requested);
+  const username = telegramRequestedUsername(pathname, requestUrl, env, '/telegram/');
   if (!username) return json({ error: 'telegram_username_invalid' }, 400);
 
   return withCache(
     request,
     async () => {
-      const profileUrl = `https://t.me/${username}`;
-      let response;
-      try {
-        response = await fetchWithTimeout(profileUrl, { headers: TELEGRAM_HEADERS }, 10000);
-      } catch {
-        return json({ error: 'telegram_fetch_failed' }, 502);
-      }
-      if (!response.ok) return json({ error: 'telegram_fetch_failed' }, 502);
+      const profile = await fetchTelegramProfile(username);
+      if (!profile) return json({ error: 'telegram_fetch_failed' }, 502);
 
-      let html;
-      try {
-        html = await readTelegramHtml(response);
-      } catch {
-        return json({ error: 'telegram_fetch_failed' }, 502);
-      }
-      if (html == null) return json({ error: 'telegram_fetch_failed' }, 502);
-      const title =
-        metaContent(html, 'og:title') ||
-        metaContent(html, 'twitter:title') ||
-        telegramElementText(html, 'tgme_page_title');
-      const pageExtra = telegramElementText(html, 'tgme_page_extra');
-      const pageDescription = telegramElementText(html, 'tgme_page_description');
-      const description =
-        metaContent(html, 'og:description') ||
-        metaContent(html, 'twitter:description') ||
-        pageDescription;
-      const photo = telegramPhoto(html);
-      const displayUsername =
-        pageExtra?.match(/@?([A-Za-z0-9_]{5,32})/)?.[1]?.toLowerCase() || username;
-      const contact = telegramElementText(html, 'tgme_page_additional');
-
+      const photo = profile.photo ? telegramPhotoProxy(requestUrl, username) : null;
       return json(
         {
-          username: displayUsername,
-          handle: displayUsername,
-          name: title,
-          displayName: title,
-          description,
+          ...profile,
           photo,
           // avatar is kept as an alias so consumers can use the same shape as the
-          // other profile cards.
+          // other profile cards. photoSource is used by the cached image proxy.
           avatar: photo,
-          url: profileUrl,
-          profileUrl,
-          messageUrl: profileUrl,
-          contact,
-          siteName: metaContent(html, 'og:site_name') || 'Telegram',
-          title: htmlTitle(html) || `Telegram: Contact @${displayUsername}`,
+          photoSource: profile.photo,
         },
         200,
         3600,
@@ -586,6 +646,66 @@ async function handleTelegram(pathname, request, env) {
     },
     env.CACHE_VERSION,
     `/telegram/${username}`,
+  );
+}
+
+async function handleTelegramAvatar(pathname, request, env) {
+  const prefix = '/telegram/avatar/';
+  if (pathname !== '/telegram/avatar' && !pathname.startsWith(prefix)) return null;
+
+  const requestUrl = new URL(request.url);
+  const username = telegramRequestedUsername(pathname, requestUrl, env, prefix);
+  if (!username) return json({ error: 'telegram_username_invalid' }, 400);
+
+  return withCache(
+    request,
+    async () => {
+      // Reuse the one-hour profile cache so the image request does not cause a
+      // second t.me scrape during the same refresh window.
+      const profileRequest = new Request(`${requestUrl.origin}/telegram/${username}`, {
+        headers: request.headers,
+      });
+      const profileResponse = await handleTelegram(`/telegram/${username}`, profileRequest, env);
+      if (!profileResponse || profileResponse.status !== 200) {
+        return json({ error: 'telegram_photo_unavailable' }, 404);
+      }
+
+      const profile = await profileResponse.json();
+      const source = telegramPhotoSource(profile.photoSource || profile.photo);
+      if (!source) return json({ error: 'telegram_photo_unavailable' }, 404);
+
+      let response;
+      try {
+        response = await fetchWithTimeout(source, { headers: TELEGRAM_IMAGE_HEADERS }, 10000);
+      } catch {
+        return json({ error: 'telegram_photo_fetch_failed' }, 502);
+      }
+      if (!response.ok) return json({ error: 'telegram_photo_fetch_failed' }, 502);
+
+      const contentType = response.headers.get('Content-Type') || '';
+      if (!/^image\//i.test(contentType)) {
+        return json({ error: 'telegram_photo_fetch_failed' }, 502);
+      }
+      const length = Number(response.headers.get('Content-Length'));
+      if (Number.isFinite(length) && length > 10 * 1024 * 1024) {
+        return json({ error: 'telegram_photo_too_large' }, 502);
+      }
+
+      const headers = new Headers({
+        'Content-Type': contentType,
+        ...CORS,
+        'Cache-Control': 'public, max-age=3600',
+        'Cloudflare-CDN-Cache-Control': 'public, max-age=3600',
+        'CDN-Cache-Control': 'public, max-age=3600',
+      });
+      for (const name of ['Content-Length', 'ETag', 'Last-Modified']) {
+        const value = response.headers.get(name);
+        if (value) headers.set(name, value);
+      }
+      return new Response(response.body, { status: 200, headers });
+    },
+    env.CACHE_VERSION,
+    `/telegram/avatar/${username}`,
   );
 }
 
@@ -615,6 +735,7 @@ export default {
     if (pathname.startsWith('/steam'))    return (await handleSteam(pathname, request, env))    ?? json({ error: 'not found' }, 404);
     if (pathname.startsWith('/discord'))  return (await handleDiscord(pathname, request, env))  ?? json({ error: 'not found' }, 404);
     if (pathname.startsWith('/linkedin')) return (await handleLinkedIn(pathname, request, env)) ?? json({ error: 'not found' }, 404);
+    if (pathname.startsWith('/telegram/avatar')) return (await handleTelegramAvatar(pathname, request, env)) ?? json({ error: 'not found' }, 404);
     if (pathname.startsWith('/telegram')) return (await handleTelegram(pathname, request, env)) ?? json({ error: 'not found' }, 404);
 
     return json({ error: 'not found' }, 404);
