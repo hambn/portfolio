@@ -236,14 +236,13 @@ export async function refreshTelegram(env) {
       console.warn('Telegram avatar refresh failed:', error?.message || String(error));
     }
   }
-  await env.SPOTIFY_KV.put(
-    cacheKey(username),
-    JSON.stringify({
-      profile,
-      image,
-      updatedAt: new Date().toISOString(),
-    }),
-  );
+  const snapshot = {
+    profile,
+    image,
+    updatedAt: new Date().toISOString(),
+  };
+  await env.SPOTIFY_KV.put(cacheKey(username), JSON.stringify(snapshot));
+  return snapshot;
 }
 
 async function readTelegramSnapshot(env) {
@@ -273,15 +272,18 @@ async function ensureTelegramSnapshot(env) {
       refreshInFlight = null;
     });
   }
+  let refreshedSnapshot = null;
   if (refreshInFlight) {
     try {
-      await refreshInFlight;
+      refreshedSnapshot = await refreshInFlight;
     } catch (error) {
       console.warn('Telegram profile refresh failed:', error?.message || String(error));
     }
   }
   snapshot = await readTelegramSnapshot(env);
-  return snapshot;
+  // KV is eventually consistent. Return the value written by this request if
+  // the local read still sees the pre-refresh value.
+  return snapshot || refreshedSnapshot;
 }
 
 export async function handleTelegram(request, env) {
