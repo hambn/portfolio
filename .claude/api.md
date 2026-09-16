@@ -57,6 +57,7 @@ GitHub Actions secrets; credentials uploaded as Worker secrets with
 | `GET /discord` | 60s | Lanyard (`api.lanyard.rest`) — status, activities, spotify |
 | `GET /discord/avatar` | 1h | proxied Discord avatar image |
 | `GET /linkedin` | 1h | scraped OG meta tags from `LINKEDIN_URL` — name, headline, avatar, url (503 if unset) |
+| `GET /telegram?username=<username>` | 1h | scraped public `t.me` HTML — name, username, photo, description, contact |
 | `GET /health` | none | `{ ok: true }` liveness check |
 
 Anything else 404s; non-GET/HEAD 405s.

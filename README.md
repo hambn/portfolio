@@ -62,7 +62,7 @@ BASE_PATH=/portfolio/ SITE_URL=https://hambn.github.io/portfolio npm run build
 
 ## API (link cards)
 
-The Spotify / Discord / Steam link cards read live data from a small backend in
+The Spotify / Discord / Steam / Telegram link cards read live data from a small backend in
 `api/` (one file, `index.js`). The **same code** runs two ways:
 
 ### Cloudflare Worker (current — free)
@@ -124,6 +124,7 @@ npm run api:deploy
 | `GET /discord` | 60s | presence + activities + Spotify (via Lanyard) |
 | `GET /discord/avatar` | 1h | proxied Discord avatar image |
 | `GET /linkedin` | 1h | profile OG tags scraped from `LINKEDIN_URL` |
+| `GET /telegram?username=<username>` | 1h | profile metadata scraped from the public `t.me` page |
 | `GET /health` | none | `{ ok: true }` liveness check |
 
 The Spotify card checks playback every 3 seconds while the page is visible and

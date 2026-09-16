@@ -43,7 +43,9 @@ Open `links/links.json`. Each platform has its own block:
 - `spotify.userId` — your Spotify user ID (shows now-playing via Lanyard)
 - `github.username` — drives the repo list on the Projects page
 - `steam.handle` — your Steam vanity URL handle
-- `x / telegram / linkedin` — handle + url
+- `x / telegram / linkedin` — handle + url. Telegram also accepts an
+  `apiEndpoint` (normally `https://api.portfolio.hgh.dev/telegram`) and loads
+  the public profile metadata once per hour.
 
 Remove any block to hide that card from the Links page.
 

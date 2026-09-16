@@ -29,7 +29,8 @@
   },
   "telegram": {
     "handle": "ham_bn",
-    "url": "https://t.me/ham_bn"
+    "url": "https://t.me/ham_bn",
+    "apiEndpoint": "https://api.portfolio.hgh.dev/telegram"
   },
   "linkedin": {
     "handle": "hambn",

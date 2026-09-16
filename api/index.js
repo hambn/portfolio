@@ -18,12 +18,14 @@ const json = (data, status = 200, ttl = 0) =>
     },
   });
 
-// version param busts cache on deploy — pass env.CACHE_VERSION from every handler.
-// Cache key uses origin + pathname only, so query strings share one entry.
-async function withCache(request, fn, version) {
+// Version param busts cache on deploy. Handlers can pass a canonical path when
+// their response varies by a query parameter.
+async function withCache(request, fn, version, cachePath) {
   const cache = caches.default;
   const { origin, pathname } = new URL(request.url);
-  const key = new Request(`${origin}${pathname}?__v=${version}`);
+  const key = new Request(
+    `${origin}${cachePath || pathname}?__v=${encodeURIComponent(version ?? '0')}`,
+  );
   const hit = await cache.match(key);
   if (hit) return hit;
   const res = await fn();
@@ -289,12 +291,6 @@ async function handleDiscord(pathname, request, env) {
 //  Routes:  /linkedin
 // ═══════════════════════════════════════════════════════════════════════════
 
-function metaContent(html, prop) {
-  const re = new RegExp(`<meta[^>]+property=["']${prop}["'][^>]+content=["']([^"']*)["']`, 'i');
-  const raw = html.match(re)?.[1];
-  return raw ? raw.replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'") : null;
-}
-
 const LINKEDIN_HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36',
   'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
@@ -353,6 +349,241 @@ async function handleLinkedIn(pathname, request, env) {
 
 
 // ═══════════════════════════════════════════════════════════════════════════
+//  TELEGRAM
+//  Telegram's public t.me pages include profile data in their HTML metadata.
+//  Config:  username query parameter, e.g. /telegram?username=ham_bn
+//  Routes:  /telegram
+//  Cache:   1h (profile metadata changes infrequently)
+// ═══════════════════════════════════════════════════════════════════════════
+
+const TELEGRAM_HEADERS = {
+  'User-Agent':
+    'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/149.0.0.0 Mobile Safari/537.36',
+  Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+  'Accept-Language': 'en-US,en;q=0.9',
+};
+
+// Telegram usernames may be written as "@name" in config. Accepting a full
+// t.me URL too is convenient, but the request below is always rebuilt from the
+// validated username so this endpoint cannot be used as an open proxy.
+function telegramUsername(value) {
+  if (value == null) return null;
+  let candidate = String(value).trim();
+  try {
+    candidate = decodeURIComponent(candidate);
+  } catch {
+    return null;
+  }
+  if (/^https?:\/\//i.test(candidate)) {
+    try {
+      const parsed = new URL(candidate);
+      if (!/(^|\.)t\.me$/i.test(parsed.hostname)) return null;
+      candidate = parsed.pathname.split('/').filter(Boolean)[0] || '';
+    } catch {
+      return null;
+    }
+  }
+  candidate = candidate.replace(/^@/, '').trim();
+  return /^[A-Za-z0-9_]{5,32}$/.test(candidate) ? candidate.toLowerCase() : null;
+}
+
+function decodeHtml(value) {
+  return String(value ?? '')
+    .replace(
+      /&(?:amp|lt|gt|quot|apos|nbsp);/gi,
+      (entity) =>
+        ({
+          '&amp;': '&',
+          '&lt;': '<',
+          '&gt;': '>',
+          '&quot;': '"',
+          '&apos;': "'",
+          '&nbsp;': ' ',
+        })[entity.toLowerCase()] ?? entity,
+    )
+    .replace(/&#(x[\da-f]+|\d+);/gi, (_, code) => {
+      const value =
+        code[0].toLowerCase() === 'x'
+          ? Number.parseInt(code.slice(1), 16)
+          : Number.parseInt(code, 10);
+      if (!Number.isFinite(value) || value < 0 || value > 0x10ffff) return _;
+      try {
+        return String.fromCodePoint(value);
+      } catch {
+        return _;
+      }
+    });
+}
+
+function stripHtml(value) {
+  return decodeHtml(
+    String(value ?? '')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<[^>]*>/g, ''),
+  )
+    .replace(/[ \t\r\f]+/g, ' ')
+    .replace(/\n\s+/g, '\n')
+    .trim();
+}
+
+function htmlAttributes(tag) {
+  const attrs = {};
+  const re = /([:\w-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g;
+  let match;
+  while ((match = re.exec(tag))) attrs[match[1].toLowerCase()] = match[2] ?? match[3] ?? match[4];
+  return attrs;
+}
+
+// Telegram has used both property/name and different attribute orders over
+// time. Reading the complete meta tag keeps the scraper tolerant of either.
+function metaContent(html, key) {
+  const wanted = key.toLowerCase();
+  for (const tag of html.match(/<meta\b[^>]*>/gi) || []) {
+    const attrs = htmlAttributes(tag);
+    if ((attrs.property || attrs.name || '').toLowerCase() === wanted && attrs.content != null) {
+      return decodeHtml(attrs.content).trim() || null;
+    }
+  }
+  return null;
+}
+
+function telegramElementText(html, className) {
+  const re = new RegExp(
+    `<([a-z][\\w-]*)[^>]*class=["'][^"']*\\b${className}\\b[^"']*["'][^>]*>([\\s\\S]*?)<\\/\\1>`,
+    'i',
+  );
+  const text = stripHtml(html.match(re)?.[2]);
+  return text || null;
+}
+
+function htmlTitle(html) {
+  const title = html.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i)?.[1];
+  return stripHtml(title) || null;
+}
+
+function telegramPhoto(html) {
+  const photo = metaContent(html, 'og:image') || metaContent(html, 'twitter:image');
+  if (photo) return photo.startsWith('//') ? `https:${photo}` : photo;
+  const block = html.match(
+    /class=["'][^"']*\btgme_page_photo\b[^"']*["'][\s\S]*?<img\b[^>]*>/i,
+  )?.[0];
+  const src = block ? htmlAttributes(block).src : null;
+  const value = src ? decodeHtml(src).trim() : '';
+  return value ? (value.startsWith('//') ? `https:${value}` : value) : null;
+}
+
+async function readTelegramHtml(response, maxBytes = 256 * 1024) {
+  const length = Number(response.headers.get('Content-Length'));
+  if (Number.isFinite(length) && length > maxBytes) return null;
+  if (!response.body?.getReader) {
+    const text = await response.text();
+    return text.length <= maxBytes ? text : null;
+  }
+
+  const reader = response.body.getReader();
+  const chunks = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > maxBytes) {
+        await reader.cancel();
+        return null;
+      }
+      chunks.push(value);
+    }
+  } catch {
+    await reader.cancel().catch(() => {});
+    return null;
+  }
+
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder().decode(bytes);
+}
+
+async function handleTelegram(pathname, request, env) {
+  if (pathname !== '/telegram' && !pathname.startsWith('/telegram/')) return null;
+
+  const requestUrl = new URL(request.url);
+  const requested =
+    requestUrl.searchParams.get('username') ||
+    requestUrl.searchParams.get('handle') ||
+    pathname.slice('/telegram/'.length) ||
+    env?.TELEGRAM_USERNAME ||
+    env?.TELEGRAM_HANDLE ||
+    env?.TELEGRAM_URL;
+  const username = telegramUsername(requested);
+  if (!username) return json({ error: 'telegram_username_invalid' }, 400);
+
+  return withCache(
+    request,
+    async () => {
+      const profileUrl = `https://t.me/${username}`;
+      let response;
+      try {
+        response = await fetchWithTimeout(profileUrl, { headers: TELEGRAM_HEADERS }, 10000);
+      } catch {
+        return json({ error: 'telegram_fetch_failed' }, 502);
+      }
+      if (!response.ok) return json({ error: 'telegram_fetch_failed' }, 502);
+
+      let html;
+      try {
+        html = await readTelegramHtml(response);
+      } catch {
+        return json({ error: 'telegram_fetch_failed' }, 502);
+      }
+      if (html == null) return json({ error: 'telegram_fetch_failed' }, 502);
+      const title =
+        metaContent(html, 'og:title') ||
+        metaContent(html, 'twitter:title') ||
+        telegramElementText(html, 'tgme_page_title');
+      const pageExtra = telegramElementText(html, 'tgme_page_extra');
+      const pageDescription = telegramElementText(html, 'tgme_page_description');
+      const description =
+        metaContent(html, 'og:description') ||
+        metaContent(html, 'twitter:description') ||
+        pageDescription;
+      const photo = telegramPhoto(html);
+      const displayUsername =
+        pageExtra?.match(/@?([A-Za-z0-9_]{5,32})/)?.[1]?.toLowerCase() || username;
+      const contact = telegramElementText(html, 'tgme_page_additional');
+
+      return json(
+        {
+          username: displayUsername,
+          handle: displayUsername,
+          name: title,
+          displayName: title,
+          description,
+          photo,
+          // avatar is kept as an alias so consumers can use the same shape as the
+          // other profile cards.
+          avatar: photo,
+          url: profileUrl,
+          profileUrl,
+          messageUrl: profileUrl,
+          contact,
+          siteName: metaContent(html, 'og:site_name') || 'Telegram',
+          title: htmlTitle(html) || `Telegram: Contact @${displayUsername}`,
+        },
+        200,
+        3600,
+      );
+    },
+    env.CACHE_VERSION,
+    `/telegram/${username}`,
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 //  ROUTER
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -362,7 +593,7 @@ export default {
 
     if (pathname === '/health') return json({ ok: true });
 
-    const known = ['/spotify', '/steam', '/discord', '/linkedin']
+    const known = ['/spotify', '/steam', '/discord', '/linkedin', '/telegram']
       .some(route => pathname === route || pathname.startsWith(`${route}/`));
     if (!known) return json({ error: 'not found' }, 404);
 
@@ -378,6 +609,7 @@ export default {
     if (pathname.startsWith('/steam'))    return (await handleSteam(pathname, request, env))    ?? json({ error: 'not found' }, 404);
     if (pathname.startsWith('/discord'))  return (await handleDiscord(pathname, request, env))  ?? json({ error: 'not found' }, 404);
     if (pathname.startsWith('/linkedin')) return (await handleLinkedIn(pathname, request, env)) ?? json({ error: 'not found' }, 404);
+    if (pathname.startsWith('/telegram')) return (await handleTelegram(pathname, request, env)) ?? json({ error: 'not found' }, 404);
 
     return json({ error: 'not found' }, 404);
   },

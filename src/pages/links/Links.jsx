@@ -165,7 +165,12 @@ export default function Links() {
         )}
 
         {config.telegram && (
-          <TelegramCard handle={config.telegram.handle} url={config.telegram.url} />
+          <TelegramCard
+            username={config.telegram.username || config.telegram.handle || config.telegram.url}
+            handle={config.telegram.handle}
+            url={config.telegram.url}
+            apiEndpoint={config.telegram.apiEndpoint || 'https://api.portfolio.hgh.dev/telegram'}
+          />
         )}
 
         {config.x && <XCard handle={config.x.handle} url={config.x.url} />}
