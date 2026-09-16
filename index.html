@@ -53,6 +53,28 @@
       } catch (e) {}
     })();
   </script>
+
+  <!-- If a deploy removes a cached hashed entry chunk, recover on a normal reload. -->
+  <script>
+    (function () {
+      var marker = '__asset_reload';
+      var current = new URL(window.location.href);
+      if (current.searchParams.has(marker)) return;
+      window.addEventListener('error', function (event) {
+        var target = event.target;
+        if (
+          !target ||
+          target.tagName !== 'SCRIPT' ||
+          !target.src ||
+          !target.src.includes('/assets/')
+        )
+          return;
+        var next = new URL(window.location.href);
+        next.searchParams.set(marker, String(Date.now()));
+        window.location.replace(next.href);
+      }, true);
+    })();
+  </script>
 </head>
 <body>
   <div id="root"></div>
