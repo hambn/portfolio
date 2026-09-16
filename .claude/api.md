@@ -46,6 +46,7 @@ GitHub Actions secrets; credentials uploaded as Worker secrets with
 | `STEAM_ID` | var | 64-bit Steam ID (https://steamid.io) |
 | `DISCORD_ID` | var | Discord user ID (Lanyard lookup) |
 | `LINKEDIN_URL` | var | Public LinkedIn profile URL to scrape (e.g. `https://linkedin.com/in/hambn`); must be https + `*.linkedin.com` or `/linkedin` returns 503 |
+| `TELEGRAM_USERNAME` | var | Public Telegram username used by `/telegram` when no query or path username is supplied (defaults to `ham_bn`) |
 | `CACHE_VERSION` | var | cache-bust token (auto-set per deploy) |
 
 ## Routes
@@ -57,7 +58,7 @@ GitHub Actions secrets; credentials uploaded as Worker secrets with
 | `GET /discord` | 60s | Lanyard (`api.lanyard.rest`) — status, activities, spotify |
 | `GET /discord/avatar` | 1h | proxied Discord avatar image |
 | `GET /linkedin` | 1h | scraped OG meta tags from `LINKEDIN_URL` — name, headline, avatar, url (503 if unset) |
-| `GET /telegram?username=<username>` | 1h | scraped public `t.me` HTML — name, username, photo, description, contact |
+| `GET /telegram[?username=<username>]` | 1h | scraped public `t.me` HTML — name, username, photo, description, contact; defaults to `TELEGRAM_USERNAME` |
 | `GET /health` | none | `{ ok: true }` liveness check |
 
 Anything else 404s; non-GET/HEAD 405s.

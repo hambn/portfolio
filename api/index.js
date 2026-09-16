@@ -356,6 +356,11 @@ async function handleLinkedIn(pathname, request, env) {
 //  Cache:   1h (profile metadata changes infrequently)
 // ═══════════════════════════════════════════════════════════════════════════
 
+// Public fallback for the profile shown by the portfolio. The Worker var in
+// wrangler.toml is the deploy-time source of truth and can override this for a
+// different profile; keeping a fallback makes the self-host adapter useful too.
+const DEFAULT_TELEGRAM_USERNAME = 'ham_bn';
+
 const TELEGRAM_HEADERS = {
   'User-Agent':
     'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 Chrome/149.0.0.0 Mobile Safari/537.36',
@@ -518,7 +523,8 @@ async function handleTelegram(pathname, request, env) {
     pathname.slice('/telegram/'.length) ||
     env?.TELEGRAM_USERNAME ||
     env?.TELEGRAM_HANDLE ||
-    env?.TELEGRAM_URL;
+    env?.TELEGRAM_URL ||
+    DEFAULT_TELEGRAM_USERNAME;
   const username = telegramUsername(requested);
   if (!username) return json({ error: 'telegram_username_invalid' }, 400);
 

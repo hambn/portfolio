@@ -124,7 +124,7 @@ npm run api:deploy
 | `GET /discord` | 60s | presence + activities + Spotify (via Lanyard) |
 | `GET /discord/avatar` | 1h | proxied Discord avatar image |
 | `GET /linkedin` | 1h | profile OG tags scraped from `LINKEDIN_URL` |
-| `GET /telegram?username=<username>` | 1h | profile metadata scraped from the public `t.me` page |
+| `GET /telegram[?username=<username>]` | 1h | profile metadata scraped from the public `t.me` page (defaults to `TELEGRAM_USERNAME`) |
 | `GET /health` | none | `{ ok: true }` liveness check |
 
 The Spotify card checks playback every 3 seconds while the page is visible and
@@ -155,6 +155,7 @@ Environment variables:
 | `STEAM_ID` | config | yes |
 | `DISCORD_ID` | config | yes |
 | `LINKEDIN_URL` | config | no (`/linkedin` returns 503 without it) |
+| `TELEGRAM_USERNAME` | config | no (defaults to `ham_bn`) |
 | `CACHE_VERSION` | config | no (default: `0`) |
 
 ## self-host (Docker)

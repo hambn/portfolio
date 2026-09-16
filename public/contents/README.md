@@ -45,7 +45,8 @@ Open `links/links.json`. Each platform has its own block:
 - `steam.handle` — your Steam vanity URL handle
 - `x / telegram / linkedin` — handle + url. Telegram also accepts an
   `apiEndpoint` (normally `https://api.portfolio.hgh.dev/telegram`) and loads
-  the public profile metadata once per hour.
+  the public profile metadata once per hour. The API defaults to this Telegram
+  handle when the endpoint is opened without a username.
 
 Remove any block to hide that card from the Links page.
 
