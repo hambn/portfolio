@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { playbackProgress } from './playbackClock.js';
 
-const POLL_MS = 3000;
+const POLL_MS = 10000;
 const LIBRARY_MS = 60000;
 
 export function useSpotifyPlayback(endpoint) {
