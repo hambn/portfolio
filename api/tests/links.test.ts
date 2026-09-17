@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { handleRequest } from '../src/app.js';
 import { testServices } from './helpers.js';
+import { DISCORD_TTL, PROFILE_TTL, STEAM_TTL } from '../src/lib/ttl.js';
 
 const request = (path: string, method = 'GET') =>
   new Request(`https://api.test${path}`, { method });
@@ -90,6 +91,26 @@ test('each card reports the max-age its own route sends', async () => {
   }
   assert.equal(body.cards.discord.maxAge, 60);
   assert.equal(body.cards.github.maxAge, 3600);
+});
+
+test('no card is advertised as fresher than its own refresh cadence', async () => {
+  // A zone-level Browser Cache TTL rewrites Cache-Control on cached responses
+  // (Discord came back as max-age=14400 in production, not 60), so the header
+  // alone cannot be trusted: every card is capped at the TTL its route uses.
+  const { body } = await batch('/links');
+  const caps: Record<string, number> = {
+    discord: DISCORD_TTL,
+    steam: STEAM_TTL,
+    spotify: 0,
+    telegram: PROFILE_TTL,
+    x: PROFILE_TTL,
+    linkedin: PROFILE_TTL,
+    github: PROFILE_TTL,
+    githubContributions: PROFILE_TTL,
+    gitlab: PROFILE_TTL,
+  };
+  for (const [key, cap] of Object.entries(caps))
+    assert.ok(body.cards[key].maxAge <= cap, `${key} must not exceed ${cap}s`);
 });
 
 test('batch cards carry the same rewritten media URLs as their own route', async () => {
