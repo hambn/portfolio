@@ -4,8 +4,16 @@ The TypeScript application in `src/app.ts` runs on Cloudflare Workers and Node 2
 Provider modules receive typed services for configuration, state, cache, fetch,
 time, and background tasks. Keep platform globals in adapters and entrypoints.
 
+- `src/routes.ts`: flat path -> handler table; `app.ts` only strips the prefix,
+  handles methods, rewrites media, and wraps errors.
+- `src/identities.ts`: the single place the API reads `links.json`; the configured
+  username per provider. Never take an identity from a query parameter.
+- `src/links.ts`: the batch `/links` route; calls the same provider handlers the
+  single-card routes use, so caches, TTLs, and cooldowns are shared.
 - `src/providers/`: provider requests and response shaping.
 - `src/lib/`: bounded HTTP reads, HTML parsing, schemas, cache policy, presence protocol.
+  `lib/ttl.ts` holds the named cache lifetimes; `lib/snapshot.ts` holds the shared
+  persisted-snapshot serving (retry cooldown, 7-day stale limit, image download).
 - `src/media/`: allowlisted image sources, asset URLs, and cached image responses.
 - `src/adapters/`: Cloudflare KV/Cache API and persistent Node disk storage; WebSocket relays.
 - `src/entrypoints/`: Worker handlers and Node HTTP startup/shutdown.
@@ -86,6 +94,7 @@ images, data requests, and the live presence socket go through the API.
 | Route | Cache / behavior |
 | --- | --- |
 | `/health` | Uncached liveness |
+| `/links` | Uncached aggregate of every card; `include=`/`exclude=` filter by card key |
 | `/spotify` | Uncached aggregate library and playback |
 | `/spotify?playback=1` | Uncached playback only; preserves rate-limit response and Retry-After |
 | `/steam` | 5 minutes |
@@ -98,6 +107,12 @@ images, data requests, and the live presence socket go through the API.
 | `/github`, `/github/repos`, `/github/contributions` | 1 hour, configured GitHub account only |
 | `/gitlab` | 1 hour, configured GitLab account only |
 | `/media/<provider>/<asset>` | 24 hours, allowlisted raster image proxy |
+
+`/links` is what the links page requests on load. It fans out to the same handlers
+the single-card routes use, so each card hits its own cache and a batch call warms
+it. A card that fails carries `{ maxAge: 0, error }` and never fails the envelope;
+a card that succeeds carries its route's `Cache-Control` max-age, which the client
+uses to decide whether an expanded card still needs its own request.
 
 Cloudflare Cron refreshes Telegram hourly. Node refreshes on startup and hourly
 without blocking HTTP startup; overlapping Node refresh jobs share one promise.

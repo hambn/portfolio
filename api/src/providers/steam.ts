@@ -1,6 +1,7 @@
 import type { Services } from '../contracts.js';
 import { json, fetchWithTimeout, readJSON } from '../lib/http.js';
 import { withCache } from '../lib/cache.js';
+import { STEAM_TTL } from '../lib/ttl.js';
 import { steamData } from '../lib/schemas.js';
 
 const STEAM_STATUS = [
@@ -47,8 +48,6 @@ async function steamGet(
 }
 
 export async function handle(request: Request, services: Services) {
-  const { pathname } = new URL(request.url);
-  if (pathname !== '/steam') return null;
   if (!services.config.STEAM_API_KEY || !/^\d+$/.test(services.config.STEAM_ID))
     return json({ error: 'steam_not_configured' }, 503);
 
@@ -122,7 +121,7 @@ export async function handle(request: Request, services: Services) {
         })),
       },
       200,
-      300,
+      STEAM_TTL,
     );
   });
 }

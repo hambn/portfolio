@@ -1,12 +1,12 @@
 import type { Services } from '../contracts.js';
 import { json, fetchWithTimeout, readJSON } from '../lib/http.js';
 import { withCache } from '../lib/cache.js';
+import { DISCORD_TTL, PROFILE_TTL } from '../lib/ttl.js';
 import { lanyardData } from '../lib/schemas.js';
 import { fetchMedia } from '../media/handler.js';
 
 export async function handle(request: Request, services: Services) {
   const { pathname } = new URL(request.url);
-  if (!['/discord', '/discord/avatar'].includes(pathname)) return null;
   if (!/^\d+$/.test(services.config.DISCORD_ID))
     return json({ error: 'discord_not_configured' }, 503);
   if (pathname === '/discord/avatar') {
@@ -25,12 +25,10 @@ export async function handle(request: Request, services: Services) {
         : `https://cdn.discordapp.com/embed/avatars/${(BigInt(user.id) >> 22n) % 6n}.png`;
 
       const image = await fetchMedia(services, 'discord', cdnUrl);
-      if (image.ok) image.headers.set('Cache-Control', 'public, max-age=3600');
+      if (image.ok) image.headers.set('Cache-Control', `public, max-age=${PROFILE_TTL}`);
       return image;
     });
   }
-
-  if (pathname !== '/discord') return null;
 
   return withCache(services, request, async () => {
     const res = await fetchWithTimeout(
@@ -39,7 +37,7 @@ export async function handle(request: Request, services: Services) {
     );
     const { success, data } = await readJSON(res, lanyardData);
 
-    if (!success || !data) return json({ error: 'lanyard_failed' }, 200, 60);
+    if (!success || !data) return json({ error: 'lanyard_failed' }, 200, DISCORD_TTL);
 
     const user = data.discord_user;
 
@@ -53,7 +51,7 @@ export async function handle(request: Request, services: Services) {
         activities: data.activities, // games, custom status, etc.
       },
       200,
-      60,
+      DISCORD_TTL,
     );
   });
 }

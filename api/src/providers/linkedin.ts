@@ -1,7 +1,16 @@
-import links from '../../../public/contents/links/links.json' with { type: 'json' };
 import { linkedinUsername } from '../../../shared/linkedin.js';
+import { identities } from '../identities.js';
 import type { Services } from '../contracts.js';
-import { CORS, json, readBytes, fetchAllowed } from '../lib/http.js';
+import { json, readBytes, fetchAllowed } from '../lib/http.js';
+import {
+  downloadImage,
+  imageResponse,
+  parseSnapshot,
+  pendingResponse,
+  refreshWithCooldown,
+  snapshotExpired,
+} from '../lib/snapshot.js';
+import { HOUR } from '../lib/ttl.js';
 import { linkedinProfileSchema, parseLinkedInProfile } from './linkedin-html.js';
 import { allowedMedia } from '../media/sources.js';
 import { z } from 'zod';
@@ -32,9 +41,7 @@ const IMAGE_HEADERS = {
   'User-Agent': HEADERS['user-agent'],
   Accept: 'image/avif,image/webp,image/*',
 };
-export const configuredLinkedInUsername = linkedinUsername(
-  links.linkedin.handle || links.linkedin.url,
-);
+export const configuredLinkedInUsername = identities.linkedin;
 export const linkedInUsernameFor = (services: Services) =>
   services.config.LINKEDIN_URL
     ? linkedinUsername(services.config.LINKEDIN_URL)
@@ -62,7 +69,6 @@ class LinkedInFetchError extends Error {
     super(failure.error);
   }
 }
-const MAX_STALE_MS = 7 * 86400000;
 const allowedProfile = (source: string) => {
   const url = new URL(source);
   return (
@@ -77,13 +83,8 @@ const allowedProfile = (source: string) => {
 export async function readLinkedInSnapshot(services: Services): Promise<Snapshot | null> {
   const username = linkedInUsernameFor(services);
   if (!username) return null;
-  const raw = await services.state.get(cacheKey(username));
-  try {
-    const result = snapshotSchema.safeParse(JSON.parse(raw || 'null'));
-    return result.success && result.data.profile.username === username ? result.data : null;
-  } catch {
-    return null;
-  }
+  const snapshot = parseSnapshot(await services.state.get(cacheKey(username)), snapshotSchema);
+  return snapshot?.profile.username === username ? snapshot : null;
 }
 
 export async function refreshLinkedIn(services: Services): Promise<Snapshot | undefined> {
@@ -96,7 +97,7 @@ export async function refreshLinkedIn(services: Services): Promise<Snapshot | un
       error instanceof LinkedInFetchError ? error.failure : { error: 'linkedin_fetch_failed' };
     console.warn('LinkedIn refresh failed', failure);
     await services.state.put(failureKey(services), JSON.stringify(failure), {
-      expirationTtl: 3600,
+      expirationTtl: HOUR,
     });
     throw error;
   }
@@ -135,29 +136,17 @@ async function fetchAndCacheLinkedIn(services: Services): Promise<Snapshot | und
   for (const kind of ['avatar', 'banner'] as const) {
     const source = profile[kind];
     if (!source || !allowedMedia('linkedin', source)) continue;
-    try {
-      const imageResponse = await fetchAllowed(
+    // Keep a previously downloaded image when the CDN is temporarily unavailable.
+    images[kind] =
+      (await downloadImage(
         services,
+        'linkedin',
         source,
-        (url) => allowedMedia('linkedin', url),
-        {
-          headers: IMAGE_HEADERS,
-        },
-      );
-      const contentType = imageResponse.headers.get('Content-Type')?.split(';')[0] || '';
-      if (!imageResponse.ok || !/^image\/(jpeg|png|webp|gif)$/.test(contentType)) {
-        await imageResponse.body?.cancel();
-        throw new Error('Unexpected LinkedIn image response');
-      }
-      const imageBytes = await readBytes(imageResponse, 2 * 1024 * 1024);
-      if (!imageBytes) throw new Error('LinkedIn image exceeds 2 MiB');
-      let binary = '';
-      for (let offset = 0; offset < imageBytes.length; offset += 8192)
-        binary += String.fromCharCode(...imageBytes.subarray(offset, offset + 8192));
-      images[kind] = { contentType, data: btoa(binary) };
-    } catch {
-      images[kind] = previous?.images[kind] ?? null;
-    }
+        { headers: IMAGE_HEADERS },
+        2 * 1024 * 1024,
+      )) ??
+      previous?.images[kind] ??
+      null;
   }
   const snapshot = { profile, images, updatedAt: new Date(services.now()).toISOString() };
   await services.state.put(cacheKey(username), JSON.stringify(snapshot));
@@ -173,47 +162,21 @@ export async function handle(request: Request, services: Services): Promise<Resp
   const requested = url.searchParams.get('username');
   if (requested && linkedinUsername(requested) !== username)
     return json({ error: 'linkedin_username_not_configured' }, 400);
-  let snapshot = await readLinkedInSnapshot(services);
-  if (!snapshot) {
-    const cooldown = `linkedin:retry:${username}`;
-    if (!(await services.state.get(cooldown))) {
-      await services.state.put(cooldown, '1', { expirationTtl: 60 });
-      try {
-        snapshot = (await refreshLinkedIn(services)) ?? null;
-      } catch {
-        /* Retry on the next scheduled refresh. */
-      }
-    }
-  }
-  if (!snapshot || services.now() - Date.parse(snapshot.updatedAt) > MAX_STALE_MS) {
-    let failure: Failure | undefined;
-    try {
-      const parsed = failureSchema.safeParse(
-        JSON.parse((await services.state.get(failureKey(services))) || 'null'),
-      );
-      if (parsed.success) failure = parsed.data;
-    } catch {
-      /* A missing or invalid failure record is still a pending cache. */
-    }
-    const response = json(failure || { error: 'linkedin_cache_pending' }, 503);
-    response.headers.set('Retry-After', '60');
-    return response;
+  const snapshot =
+    (await readLinkedInSnapshot(services)) ??
+    (await refreshWithCooldown(services, `linkedin:retry:${username}`, () =>
+      refreshLinkedIn(services),
+    ));
+  if (!snapshot || snapshotExpired(services, snapshot.updatedAt)) {
+    // A missing or invalid failure record is still just a pending cache.
+    const failure = parseSnapshot(await services.state.get(failureKey(services)), failureSchema);
+    return pendingResponse(failure || { error: 'linkedin_cache_pending' });
   }
   const { profile, images, updatedAt } = snapshot;
   if (match[1]) {
     const image = images[match[1] as 'avatar' | 'banner'];
     if (!image) return json({ error: 'linkedin_image_unavailable' }, 404);
-    return new Response(
-      Uint8Array.from(atob(image.data), (c) => c.charCodeAt(0)),
-      {
-        headers: {
-          ...CORS,
-          'Content-Type': image.contentType,
-          'Cache-Control': 'public, max-age=3600',
-          'X-Content-Type-Options': 'nosniff',
-        },
-      },
-    );
+    return imageResponse(image);
   }
   const imagePath = (kind: 'avatar' | 'banner') =>
     images[kind]

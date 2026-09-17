@@ -1,13 +1,21 @@
-import links from '../../../public/contents/links/links.json' with { type: 'json' };
 import { xUsername } from '../../../shared/x.js';
+import { identities } from '../identities.js';
 import type { Services } from '../contracts.js';
-import { CORS, json, readBytes, fetchAllowed } from '../lib/http.js';
+import { json, readBytes, fetchAllowed } from '../lib/http.js';
+import {
+  downloadImage,
+  imageResponse,
+  parseSnapshot,
+  pendingResponse,
+  refreshWithCooldown,
+  snapshotExpired,
+} from '../lib/snapshot.js';
 import { stripHtml, metaContent, htmlAttributes, decodeHtml } from '../lib/html.js';
 import { allowedMedia } from '../media/sources.js';
 import { z } from 'zod';
 
 const HEADERS = { 'User-Agent': 'Mozilla/5.0', 'Accept-Language': 'en-US,en;q=0.9' };
-export const configuredXUsername = xUsername(links.x.handle || links.x.url);
+export const configuredXUsername = identities.x;
 const cacheKey = (username: string) => `x:profile:v1:${username}`;
 const imageSchema = z.object({ contentType: z.string(), data: z.string() }).nullable();
 const profileSchema = z.object({
@@ -30,7 +38,6 @@ const snapshotSchema = z.object({
   updatedAt: z.string().datetime(),
 });
 type Snapshot = z.infer<typeof snapshotSchema>;
-const MAX_STALE_MS = 7 * 86400000;
 const allowedProfile = (source: string) => {
   const url = new URL(source);
   return (
@@ -86,15 +93,11 @@ export function parseXProfile(html: string, username: string) {
 
 export async function readXSnapshot(services: Services): Promise<Snapshot | null> {
   if (!configuredXUsername) return null;
-  const raw = await services.state.get(cacheKey(configuredXUsername));
-  try {
-    const result = snapshotSchema.safeParse(JSON.parse(raw || 'null'));
-    return result.success && result.data.profile.username === configuredXUsername
-      ? result.data
-      : null;
-  } catch {
-    return null;
-  }
+  const snapshot = parseSnapshot(
+    await services.state.get(cacheKey(configuredXUsername)),
+    snapshotSchema,
+  );
+  return snapshot?.profile.username === configuredXUsername ? snapshot : null;
 }
 
 export async function refreshX(services: Services): Promise<Snapshot | undefined> {
@@ -117,24 +120,11 @@ export async function refreshX(services: Services): Promise<Snapshot | undefined
   for (const kind of ['avatar', 'banner'] as const) {
     const source = profile[kind];
     if (!source || !allowedMedia('x', source)) continue;
-    try {
-      const imageResponse = await fetchAllowed(services, source, (url) => allowedMedia('x', url), {
-        headers: HEADERS,
-      });
-      const contentType = imageResponse.headers.get('Content-Type')?.split(';')[0] || '';
-      if (!imageResponse.ok || !/^image\/(jpeg|png|webp|gif)$/.test(contentType)) {
-        await imageResponse.body?.cancel();
-        throw new Error('Unexpected X image response');
-      }
-      const imageBytes = await readBytes(imageResponse, 2 * 1024 * 1024);
-      if (!imageBytes) throw new Error('X image exceeds 2 MiB');
-      let binary = '';
-      for (let offset = 0; offset < imageBytes.length; offset += 8192)
-        binary += String.fromCharCode(...imageBytes.subarray(offset, offset + 8192));
-      images[kind] = { contentType, data: btoa(binary) };
-    } catch {
-      images[kind] = previous?.images[kind] ?? null;
-    }
+    // Keep a previously downloaded image when the CDN is temporarily unavailable.
+    images[kind] =
+      (await downloadImage(services, 'x', source, { headers: HEADERS }, 2 * 1024 * 1024)) ??
+      previous?.images[kind] ??
+      null;
   }
   const snapshot = { profile, images, updatedAt: new Date(services.now()).toISOString() };
   await services.state.put(cacheKey(configuredXUsername), JSON.stringify(snapshot));
@@ -149,38 +139,18 @@ export async function handle(request: Request, services: Services): Promise<Resp
   const requested = url.searchParams.get('username');
   if (requested && xUsername(requested) !== configuredXUsername)
     return json({ error: 'x_username_not_configured' }, 400);
-  let snapshot = await readXSnapshot(services);
-  if (!snapshot) {
-    const cooldown = `x:retry:${configuredXUsername}`;
-    if (!(await services.state.get(cooldown))) {
-      await services.state.put(cooldown, '1', { expirationTtl: 60 });
-      try {
-        snapshot = (await refreshX(services)) ?? null;
-      } catch {
-        /* Retry on the next scheduled refresh. */
-      }
-    }
-  }
-  if (!snapshot || services.now() - Date.parse(snapshot.updatedAt) > MAX_STALE_MS) {
-    const response = json({ error: 'x_cache_pending' }, 503);
-    response.headers.set('Retry-After', '60');
-    return response;
-  }
+  const snapshot =
+    (await readXSnapshot(services)) ??
+    (await refreshWithCooldown(services, `x:retry:${configuredXUsername}`, () =>
+      refreshX(services),
+    ));
+  if (!snapshot || snapshotExpired(services, snapshot.updatedAt))
+    return pendingResponse({ error: 'x_cache_pending' });
   const { profile, images, updatedAt } = snapshot;
   if (match[1]) {
     const image = images[match[1] as 'avatar' | 'banner'];
     if (!image) return json({ error: 'x_image_unavailable' }, 404);
-    return new Response(
-      Uint8Array.from(atob(image.data), (c) => c.charCodeAt(0)),
-      {
-        headers: {
-          ...CORS,
-          'Content-Type': image.contentType,
-          'Cache-Control': 'public, max-age=3600',
-          'X-Content-Type-Options': 'nosniff',
-        },
-      },
-    );
+    return imageResponse(image);
   }
   const imagePath = (kind: 'avatar' | 'banner') =>
     images[kind]

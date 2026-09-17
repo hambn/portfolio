@@ -1,8 +1,9 @@
-import links from '../../../public/contents/links/links.json' with { type: 'json' };
 import { z } from 'zod';
+import { identities } from '../identities.js';
 import type { Services } from '../contracts.js';
 import { fetchWithTimeout, readJSON, json } from '../lib/http.js';
 import { withCache } from '../lib/cache.js';
+import { PROFILE_TTL } from '../lib/ttl.js';
 const contributions = z.looseObject({
   contributions: z.array(
     z.object({ date: z.string(), count: z.number(), level: z.number().min(0).max(4) }),
@@ -12,9 +13,8 @@ const profile = z.looseObject({ login: z.string(), avatar_url: z.string() });
 const repositories = z.array(z.looseObject({ id: z.number(), name: z.string() }));
 export async function handle(request: Request, services: Services) {
   const url = new URL(request.url);
-  const username = url.searchParams.get('username') || links.github.username;
-  if (username !== links.github.username)
-    return json({ error: 'github_username_not_configured' }, 400);
+  const username = url.searchParams.get('username') || identities.github;
+  if (username !== identities.github) return json({ error: 'github_username_not_configured' }, 400);
   const name = encodeURIComponent(username);
   const routes = {
     '/github/contributions': {
@@ -36,6 +36,6 @@ export async function handle(request: Request, services: Services) {
       headers: { 'User-Agent': 'portfolio-api', Accept: 'application/json' },
     });
     if (!response.ok) return json({ error: 'github_unavailable' }, 502);
-    return json(await readJSON(response, route.schema), 200, 3600);
+    return json(await readJSON(response, route.schema), 200, PROFILE_TTL);
   });
 }
