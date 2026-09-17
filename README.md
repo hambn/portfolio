@@ -99,7 +99,7 @@ wrangler kv namespace create SPOTIFY_KV   # → copy id into SPOTIFY_KV_ID
 | `STEAM_API_KEY` | steamcommunity.com/dev/apikey |
 | `STEAM_ID` | your 64-bit Steam ID (https://steamid.io) |
 | `DISCORD_ID` | your Discord user ID (right-click → Copy User ID) |
-| `LINKEDIN_URL` | your public LinkedIn profile URL (e.g. `https://linkedin.com/in/hambn`) |
+| `LINKEDIN_URL` | legacy deployment variable; profile selection now comes from `links.json` |
 
 Pages deploy needs no secrets — GitHub's `GITHUB_TOKEN` is automatic. `STEAM_ID`
 and `DISCORD_ID` are public on your profiles; kept as secrets only so nothing
@@ -125,10 +125,21 @@ npm run api:deploy
 | `GET /steam` | 5m | status, level, current/favorite game, recent activity |
 | `GET /discord` | 60s | presence + activities + Spotify (via Lanyard) |
 | `GET /discord/avatar` | 1h | proxied Discord avatar image |
-| `GET /linkedin` | 1h | profile OG tags scraped from `LINKEDIN_URL` |
+| `GET /linkedin[?username=<username>]` | hourly snapshot | public profile configured in `links.json` |
+| `GET /linkedin/avatar` and `GET /linkedin/banner` | 1h | image bytes stored with the profile snapshot |
 | `GET /telegram[?username=<username>]` | 1h | scheduled snapshot of the profile configured in `links.json` |
 | `GET /telegram/avatar[?username=<username>]` | 1h | photo bytes stored with the hourly profile snapshot |
 | `GET /health` | none | `{ ok: true }` liveness check |
+
+LinkedIn reads the configured handle from `public/contents/links/links.json`.
+The API refreshes its public profile and images hourly on both Workers and Node,
+and the card polls the API hourly. It reads the public name, headline, location,
+counts, organizations, About, and languages when present. It does not extract
+experience hidden behind sign-in. Failed refreshes retain the last successful
+snapshot for up to seven days; without a usable snapshot the API returns 503.
+LinkedIn can block server requests even when the page is visible in a browser.
+Live requests returned HTTP 999 during local validation, so the parser was tested
+with representative public-page fixtures rather than verified against this profile.
 
 The Spotify card checks playback every 3 seconds while the page is visible and
 refreshes immediately on return. The timeline uses elapsed time between samples;
@@ -183,7 +194,7 @@ Environment variables:
 | `STEAM_API_KEY` | secret | yes |
 | `STEAM_ID` | config | yes |
 | `DISCORD_ID` | config | yes |
-| `LINKEDIN_URL` | config | no (`/linkedin` returns 503 without it) |
+| `LINKEDIN_URL` | legacy config | unused; set `linkedin.handle` in `public/contents/links/links.json` |
 | `CACHE_VERSION` | config | no (Node default: `1`, stable across restarts) |
 | `API_DATA_DIR` | config | no (default: `.api-data`) |
 | `API_CACHE_MAX_BYTES` | config | no (default: `268435456`) |

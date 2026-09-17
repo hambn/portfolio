@@ -1,120 +1,153 @@
-import { z } from 'zod';
+import links from '../../../public/contents/links/links.json' with { type: 'json' };
+import { linkedinUsername } from '../../../shared/linkedin.js';
 import type { Services } from '../contracts.js';
-import { json, fetchAllowed, readBytes } from '../lib/http.js';
-import { withCache } from '../lib/cache.js';
-import { metaContent } from '../lib/html.js';
+import { CORS, json, readBytes, fetchAllowed } from '../lib/http.js';
+import { linkedinProfileSchema, parseLinkedInProfile } from './linkedin-html.js';
+import { allowedMedia } from '../media/sources.js';
+import { z } from 'zod';
 
-const MAX_STALE_MS = 7 * 86400000;
-
+const HEADERS = {
+  'User-Agent': 'Mozilla/5.0',
+  'Accept-Language': 'en-US,en;q=0.9',
+  Accept: 'text/html',
+};
+export const configuredLinkedInUsername = linkedinUsername(
+  links.linkedin.handle || links.linkedin.url,
+);
+const cacheKey = (username: string) => `linkedin:profile:v1:${username}`;
+const imageSchema = z.object({ contentType: z.string(), data: z.string() }).nullable();
 const snapshotSchema = z.object({
-  updatedAt: z.number(),
-  profile: z.object({
-    name: z.string().nullable(),
-    headline: z.string().nullable(),
-    avatar: z.string().nullable(),
-    url: z.string(),
-  }),
+  profile: linkedinProfileSchema,
+  images: z.object({ avatar: imageSchema, banner: imageSchema }),
+  updatedAt: z.string().datetime(),
 });
-
-function readSnapshot(raw: string | null) {
-  if (!raw) return null;
-  try {
-    const parsed = snapshotSchema.safeParse(JSON.parse(raw));
-    return parsed.success ? parsed.data : null;
-  } catch {
-    return null;
-  }
-}
-
-function allowedLinkedIn(value: string): boolean {
-  const url = new URL(value);
+type Snapshot = z.infer<typeof snapshotSchema>;
+const MAX_STALE_MS = 7 * 86400000;
+const allowedProfile = (source: string) => {
+  const url = new URL(source);
   return (
     url.protocol === 'https:' &&
-    !url.username &&
-    !url.password &&
+    ['linkedin.com', 'www.linkedin.com'].includes(url.hostname) &&
     !url.port &&
-    /(^|\.)linkedin\.com$/i.test(url.hostname)
+    !url.username &&
+    !url.password
   );
-}
-
-const LINKEDIN_HEADERS = {
-  'User-Agent':
-    'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36',
-  Accept:
-    'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-  'Accept-Language': 'en-US,en;q=0.9',
-  Referer: 'https://www.google.com/',
 };
 
-// Only ever fetch a real https://*.linkedin.com URL from env — never an
-// arbitrary string that could point anywhere.
-function linkedinProfileUrl(services: Services) {
-  if (!services.config.LINKEDIN_URL) return null;
+export async function readLinkedInSnapshot(services: Services): Promise<Snapshot | null> {
+  if (!configuredLinkedInUsername) return null;
+  const raw = await services.state.get(cacheKey(configuredLinkedInUsername));
   try {
-    const u = new URL(services.config.LINKEDIN_URL);
-    if (u.protocol !== 'https:') return null;
-    if (!/(^|\.)linkedin\.com$/i.test(u.hostname)) return null;
-    return u.href;
+    const result = snapshotSchema.safeParse(JSON.parse(raw || 'null'));
+    return result.success && result.data.profile.username === configuredLinkedInUsername
+      ? result.data
+      : null;
   } catch {
     return null;
   }
 }
 
-// LinkedIn blocks a bare request with HTTP 999 — it only serves the page once
-// the client presents session cookies (bcookie/li_gc/JSESSIONID) issued by a
-// prior visit. So: warm up with one request to collect Set-Cookie, then
-// replay with those cookies attached.
-async function fetchLinkedInHtml(services: Services, url: string) {
-  const warmup = await fetchAllowed(services, url, allowedLinkedIn, { headers: LINKEDIN_HEADERS });
-  const cookie = warmup.headers
+export async function refreshLinkedIn(services: Services): Promise<Snapshot | undefined> {
+  if (!configuredLinkedInUsername) return;
+  const profileUrl = `https://www.linkedin.com/in/${configuredLinkedInUsername}/`;
+  let response = await fetchAllowed(services, profileUrl, allowedProfile, { headers: HEADERS });
+  // A public guest response can issue cookies before serving the profile.
+  const cookie = response.headers
     .getSetCookie()
-    .map((c) => c.split(';')[0])
+    .map((value) => value.split(';')[0])
     .join('; ');
-
-  await warmup.body?.cancel();
-  const res = await fetchAllowed(services, url, allowedLinkedIn, {
-    headers: { ...LINKEDIN_HEADERS, Cookie: cookie },
-  });
-  if (!res.ok) return null;
-  const bytes = await readBytes(res, 256 * 1024);
-  return bytes ? new TextDecoder().decode(bytes) : null;
+  if ([403, 999].includes(response.status) && cookie) {
+    await response.body?.cancel();
+    response = await fetchAllowed(services, profileUrl, allowedProfile, {
+      headers: { ...HEADERS, Cookie: cookie },
+    });
+  }
+  if (!response.ok) {
+    await response.body?.cancel();
+    throw new Error('LinkedIn profile fetch failed');
+  }
+  const bytes = await readBytes(response, 2 * 1024 * 1024);
+  const profile =
+    bytes && parseLinkedInProfile(new TextDecoder().decode(bytes), configuredLinkedInUsername);
+  if (!profile) throw new Error('LinkedIn profile HTML unavailable');
+  const previous = await readLinkedInSnapshot(services);
+  const images: Snapshot['images'] = { avatar: null, banner: null };
+  for (const kind of ['avatar', 'banner'] as const) {
+    const source = profile[kind];
+    if (!source || !allowedMedia('linkedin', source)) continue;
+    try {
+      const imageResponse = await fetchAllowed(
+        services,
+        source,
+        (url) => allowedMedia('linkedin', url),
+        {
+          headers: HEADERS,
+        },
+      );
+      const contentType = imageResponse.headers.get('Content-Type')?.split(';')[0] || '';
+      if (!imageResponse.ok || !/^image\/(jpeg|png|webp|gif)$/.test(contentType)) {
+        await imageResponse.body?.cancel();
+        throw new Error('Unexpected LinkedIn image response');
+      }
+      const imageBytes = await readBytes(imageResponse, 2 * 1024 * 1024);
+      if (!imageBytes) throw new Error('LinkedIn image exceeds 2 MiB');
+      let binary = '';
+      for (let offset = 0; offset < imageBytes.length; offset += 8192)
+        binary += String.fromCharCode(...imageBytes.subarray(offset, offset + 8192));
+      images[kind] = { contentType, data: btoa(binary) };
+    } catch {
+      images[kind] = previous?.images[kind] ?? null;
+    }
+  }
+  const snapshot = { profile, images, updatedAt: new Date(services.now()).toISOString() };
+  await services.state.put(cacheKey(configuredLinkedInUsername), JSON.stringify(snapshot));
+  return snapshot;
 }
 
-export async function handle(request: Request, services: Services) {
-  const { pathname } = new URL(request.url);
-  if (pathname !== '/linkedin') return null;
-
-  const profileUrl = linkedinProfileUrl(services);
-  if (!profileUrl) return json({ error: 'linkedin_not_configured' }, 503);
-
-  return withCache(services, request, async () => {
-    const stateKey = `linkedin:profile:v1:${profileUrl}`;
-    try {
-      const html = await fetchLinkedInHtml(services, profileUrl);
-      const title = html ? metaContent(html, 'og:title') : null;
-      if (!title || /sign in|sign up|security verification/i.test(title))
-        throw new Error('linkedin_fetch_failed');
-      const [name, headline] = title.replace(/\s*\|\s*LinkedIn$/i, '').split(/\s+-\s+/, 2);
-      const profile = {
-        name: name?.trim() || null,
-        headline: headline?.trim() || null,
-        avatar: metaContent(html || '', 'og:image'),
-        url: profileUrl,
-      };
-      await services.state.put(stateKey, JSON.stringify({ profile, updatedAt: services.now() }));
-      return json(profile, 200, 3600);
-    } catch (error) {
-      // Logged so an upstream block stays distinguishable from a code bug,
-      // both of which otherwise surface as the same graceful fallback.
-      console.warn('LinkedIn profile fetch failed', error instanceof Error ? error.message : error);
-      // A malformed snapshot cannot be used as a fallback.
-      const snapshot = readSnapshot(await services.state.get(stateKey));
-      if (snapshot && services.now() - snapshot.updatedAt < MAX_STALE_MS) {
-        const response = json(snapshot.profile, 200, 300);
-        response.headers.set('X-Cache-Stale', 'true');
-        return response;
+export async function handle(request: Request, services: Services): Promise<Response> {
+  const url = new URL(request.url);
+  const match = url.pathname.match(/^\/linkedin(?:\/(avatar|banner))?\/?$/);
+  if (!match) return json({ error: 'not_found' }, 404);
+  if (!configuredLinkedInUsername) return json({ error: 'linkedin_not_configured' }, 503);
+  const requested = url.searchParams.get('username');
+  if (requested && linkedinUsername(requested) !== configuredLinkedInUsername)
+    return json({ error: 'linkedin_username_not_configured' }, 400);
+  let snapshot = await readLinkedInSnapshot(services);
+  if (!snapshot) {
+    const cooldown = `linkedin:retry:${configuredLinkedInUsername}`;
+    if (!(await services.state.get(cooldown))) {
+      await services.state.put(cooldown, '1', { expirationTtl: 60 });
+      try {
+        snapshot = (await refreshLinkedIn(services)) ?? null;
+      } catch {
+        /* Retry on the next scheduled refresh. */
       }
-      return json({ error: 'linkedin_fetch_failed' }, 200, 300);
     }
-  });
+  }
+  if (!snapshot || services.now() - Date.parse(snapshot.updatedAt) > MAX_STALE_MS) {
+    const response = json({ error: 'linkedin_cache_pending' }, 503);
+    response.headers.set('Retry-After', '60');
+    return response;
+  }
+  const { profile, images, updatedAt } = snapshot;
+  if (match[1]) {
+    const image = images[match[1] as 'avatar' | 'banner'];
+    if (!image) return json({ error: 'linkedin_image_unavailable' }, 404);
+    return new Response(
+      Uint8Array.from(atob(image.data), (c) => c.charCodeAt(0)),
+      {
+        headers: {
+          ...CORS,
+          'Content-Type': image.contentType,
+          'Cache-Control': 'public, max-age=3600',
+          'X-Content-Type-Options': 'nosniff',
+        },
+      },
+    );
+  }
+  const imagePath = (kind: 'avatar' | 'banner') =>
+    images[kind]
+      ? `/linkedin/${kind}?username=${profile.username}&v=${encodeURIComponent(updatedAt)}`
+      : null;
+  return json({ ...profile, avatar: imagePath('avatar'), banner: imagePath('banner'), updatedAt });
 }

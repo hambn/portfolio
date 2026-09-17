@@ -1,9 +1,14 @@
 import type { Services } from './contracts.js';
+import { refreshLinkedIn } from './providers/linkedin.js';
 import { refreshX } from './providers/x.js';
 import { refreshTelegram } from './providers/telegram.js';
 
 export async function refresh(services: Services) {
-  const results = await Promise.allSettled([refreshTelegram(services), refreshX(services)]);
+  const results = await Promise.allSettled([
+    refreshTelegram(services),
+    refreshX(services),
+    refreshLinkedIn(services),
+  ]);
   const errors = results
     .filter((result) => result.status === 'rejected')
     .map((result) => result.reason);

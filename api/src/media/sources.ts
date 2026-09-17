@@ -75,7 +75,7 @@ export function rewriteMedia(value: unknown, base: string, imageField = false): 
   if (typeof value === 'string') {
     const path = mediaPath(value);
     if (path) return `${base}${path}`;
-    if (/^\/(?:(telegram|discord)\/avatar|x\/(avatar|banner))(?:\?|$)/.test(value))
+    if (/^\/(?:(telegram|discord)\/avatar|(x|linkedin)\/(avatar|banner))(?:\?|$)/.test(value))
       return `${base}${value}`;
     return imageField && /^https?:|^\/\//.test(value) ? null : value;
   }
