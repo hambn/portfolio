@@ -10,7 +10,9 @@ export function mediaUrl(source) {
   if (source.startsWith('/') && !source.startsWith('//')) {
     if (
       /^https?:/.test(API_BASE) &&
-      /^\/(?:api\/)?(?:media\/|telegram\/avatar|discord\/avatar)/.test(source)
+      /^\/(?:api\/)?(?:media\/|telegram\/avatar|discord\/avatar|(?:x|linkedin)\/(?:avatar|banner))/.test(
+        source,
+      )
     ) {
       return new URL(source, API_BASE).href;
     }

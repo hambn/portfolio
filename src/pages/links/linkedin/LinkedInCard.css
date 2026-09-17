@@ -1,120 +1,145 @@
-.li-style-22 {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 16px;
-  border-radius: 100px;
-  flex-shrink: 0;
-  font-size: 12px;
-  font-weight: 600;
-  text-decoration: none;
+.li-card {
+  background: #fff;
+  color: #191919;
+  border: 1px solid #dedede;
+  color-scheme: light;
+  font-family: Arial, sans-serif;
 }
-.li-style-21 {
-  font-size: 12px;
+.li-header {
+  color: #0a66c2;
+  border-bottom: 1px solid #e8e8e8;
 }
-.li-style-20 {
-  font-size: 12px;
-  font-weight: 600;
+.li-hdr-btn {
+  color: #666;
 }
-.li-style-19 {
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
+.li-hdr-btn:hover {
+  color: #0a66c2;
+  background: #edf3f8;
 }
-.li-style-18 {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
+.li-banner {
+  aspect-ratio: 4 / 1;
+  background: #dce6e8;
+  overflow: hidden;
 }
-.li-style-17 {
-  font-size: 13px;
-  line-height: 1.5;
-  margin-bottom: 8px;
-}
-.li-style-16 {
-  font-weight: 700;
-  font-size: 20px;
-  line-height: 1.2;
-  margin-bottom: 4px;
-}
-.li-style-15 {
-  flex: 1 1 220px;
-  min-width: 0;
-}
-.li-style-14 {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-.li-style-13 {
-  padding: 46px 22px 18px;
-}
-.li-style-12 {
-  width: 76px;
-  height: 76px;
-  border-radius: 50%;
-  border: 3px solid #1d2226;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.li-style-11 {
-  width: 76px;
-  height: 76px;
-  border-radius: 50%;
-  border: 3px solid #1d2226;
+.li-banner img {
   display: block;
-  object-fit: cover;
-}
-.li-style-10 {
-  position: absolute;
-  bottom: -38px;
-  left: 22px;
-}
-.li-style-9 {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  display: block;
 }
-.li-style-8 {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
+.li-identity {
+  padding: 0 22px 20px;
 }
-.li-style-7 {
-  height: 100px;
+.li-avatar {
   position: relative;
-  flex-shrink: 0;
+  display: block;
+  width: 88px;
+  height: 88px;
+  margin-top: -44px;
+  margin-bottom: 12px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #edf3f8;
+  box-shadow: 0 0 0 1px #ddd;
 }
-.li-hdr-btn {
-  color: #b0b7be;
+.li-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #0a66c2;
 }
-.li-hdr-btn:hover {
-  color: #e7e9ea;
+.li-intro {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 22px;
 }
-.li-view-btn {
-  transition:
-    background 0.15s,
-    border-color 0.15s,
-    color 0.15s;
+.li-intro > div {
+  flex: 1 1 200px;
+  min-width: 0;
 }
-.li-view-btn:hover {
-  background: rgba(112, 181, 249, 0.18) !important;
-  border-color: #70b5f9 !important;
-  color: #fff !important;
+.li-name {
+  margin: 0 0 6px;
+  font-size: 21px;
+  line-height: 1.3;
+  font-weight: 600;
 }
-
-/* Wordmark — LinkedIn's lockup is bold and tightly tracked. */
-.li-style-1 .li-style-5 {
-  font-weight: 700;
-  letter-spacing: -0.6px;
+.li-headline,
+.li-location {
+  margin: 4px 0;
+  font-size: 14px;
+  line-height: 1.5;
 }
-/* Match the other cards: the collapse chevron gets a hover plate too. */
-.li-hdr-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
+.li-location,
+.li-counts,
+.li-status {
+  color: #666;
+  font-size: 13px;
+}
+.li-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 6px 0 14px;
+}
+.li-organizations {
+  max-width: 200px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #0a66c2;
+}
+.li-organizations li + li {
+  margin-top: 8px;
+}
+.li-profile-button {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 9px 18px;
+  border-radius: 24px;
+  background: #0a66c2;
+  color: #fff;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+}
+.li-profile-button:hover {
+  background: #004182;
+}
+.li-section {
+  margin: 0 22px;
+  padding: 20px 0;
+  border-top: 1px solid #e8e8e8;
+}
+.li-section h3 {
+  margin: 0 0 12px;
+  font-size: 17px;
+  font-weight: 600;
+}
+.li-about {
+  margin: 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.li-languages {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.li-languages > div + div {
+  margin-top: 14px;
+}
+.li-languages dd {
+  margin: 2px 0 0;
+  color: #666;
+  font-size: 12px;
+}
+.li-card :is(a, button):focus-visible {
+  outline: 2px solid #0a66c2;
+  outline-offset: 3px;
 }
