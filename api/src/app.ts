@@ -36,10 +36,12 @@ export async function handleRequest(request: Request, services: Services): Promi
         (await provider!(new Request(url, { headers: request.headers }), services)) ??
         json({ error: 'not found' }, 404);
       if (response.headers.get('Content-Type')?.includes('application/json')) {
-        response = new Response(
-          JSON.stringify(rewriteMedia(await response.json(), prefix || incoming.origin)),
-          response,
-        );
+        const body = await response.text();
+        const parsed: unknown = JSON.parse(body);
+        const rewritten = rewriteMedia(parsed, prefix || incoming.origin);
+        // Payloads without media URLs come back by reference, so they skip a
+        // full re-serialisation of the upstream body.
+        response = new Response(rewritten === parsed ? body : JSON.stringify(rewritten), response);
         response.headers.delete('Content-Length');
       }
     }
