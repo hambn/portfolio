@@ -33,16 +33,37 @@ async function getSpotifyToken(services: Services) {
 }
 
 async function spotifyGet(services: Services, path: string, accessToken: string | undefined) {
-  const res = await fetchWithTimeout(
-    services,
-    `https://api.spotify.com/v1${path}`,
-    {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    },
-    10000,
-  );
-  if (res.status === 204) return null;
-  return readJSON(res, spotifyData);
+  try {
+    const res = await fetchWithTimeout(
+      services,
+      `https://api.spotify.com/v1${path}`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      },
+      10000,
+    );
+    if (res.status === 204) return { data: null, status: res.status };
+
+    try {
+      const data = await readJSON(res, spotifyData);
+      return { data, status: res.status };
+    } catch (error) {
+      // Spotify occasionally answers a single endpoint with an empty or
+      // non-JSON body (for example while rate limiting). Keep the other
+      // library requests usable instead of failing the whole aggregate call.
+      return {
+        data: null,
+        status: res.status,
+        error: error instanceof Error ? error.message : 'invalid_response',
+      };
+    }
+  } catch (error) {
+    return {
+      data: null,
+      status: 0,
+      error: error instanceof Error ? error.message : 'request_failed',
+    };
+  }
 }
 
 export async function handle(request: Request, services: Services) {
@@ -85,21 +106,50 @@ export async function handle(request: Request, services: Services) {
     const token = await getSpotifyToken(services);
     if (token.error) return json(token, 401);
 
-    const [status, profile, topTracks, topArtists, recent, playlists] = await Promise.all([
-      spotifyGet(services, '/me/player/currently-playing', token.access_token),
-      spotifyGet(services, '/me', token.access_token),
-      spotifyGet(services, '/me/top/tracks?time_range=medium_term&limit=10', token.access_token),
-      spotifyGet(services, '/me/top/artists?time_range=medium_term&limit=10', token.access_token),
-      spotifyGet(services, '/me/player/recently-played?limit=10', token.access_token),
-      spotifyGet(services, '/me/playlists?limit=50', token.access_token),
-    ]);
+    const endpointResults = await Promise.all(
+      [
+        ['status', '/me/player/currently-playing'] as const,
+        ['profile', '/me'] as const,
+        ['topTracks', '/me/top/tracks?time_range=medium_term&limit=10'] as const,
+        ['topArtists', '/me/top/artists?time_range=medium_term&limit=10'] as const,
+        ['recent', '/me/player/recently-played?limit=10'] as const,
+        ['playlists', '/me/playlists?limit=50'] as const,
+      ].map(async ([name, path]) => ({
+        name,
+        result: await spotifyGet(services, path, token.access_token),
+      })),
+    );
+
+    const unauthorized = endpointResults.find(({ result }) => result.status === 401);
+    if (unauthorized) {
+      await services.state.delete('access_token');
+      return json({ error: 'spotify_unauthorized' }, 401);
+    }
+
+    for (const { name, result } of endpointResults) {
+      if (result.error || ![200, 204].includes(result.status)) {
+        console.warn('Spotify endpoint unavailable', name, result.status || 'network');
+      }
+    }
+
+    const values = Object.fromEntries(
+      endpointResults.map(({ name, result }) => [name, result.data]),
+    ) as Record<string, Awaited<ReturnType<typeof spotifyGet>>['data']>;
+    const status = values.status;
+    const profile = values.profile;
+    const topTracks = values.topTracks;
+    const topArtists = values.topArtists;
+    const recent = values.recent;
+    const playlists = values.playlists;
 
     // Fetch context playlist details if currently playing from one
     const contextId =
-      status?.context?.type === 'playlist' ? status.context.uri.split(':').pop() : null;
+      status?.context?.type === 'playlist' && typeof status.context.uri === 'string'
+        ? status.context.uri.split(':').pop()
+        : null;
 
     const contextRaw = contextId
-      ? await spotifyGet(services, `/playlists/${contextId}`, token.access_token)
+      ? (await spotifyGet(services, `/playlists/${contextId}`, token.access_token)).data
       : null;
 
     const contextPlaylist = contextRaw

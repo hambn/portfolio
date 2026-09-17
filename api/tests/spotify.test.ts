@@ -79,3 +79,51 @@ test('aggregate response rewrites artwork and persists rotated tokens', async ()
   await handleRequest(request, services);
   assert.equal(exchanges, 1);
 });
+
+test('aggregate response survives an unavailable optional Spotify endpoint', async () => {
+  const services = testServices();
+  services.config.SPOTIFY_CLIENT_ID = 'client';
+  services.config.SPOTIFY_REFRESH_TOKEN = 'refresh';
+  services.fetch = async (input) => {
+    const url = String(input);
+    if (url.endsWith('/api/token')) return Response.json({ access_token: 'access' });
+    if (url.includes('/me/top/tracks'))
+      return new Response('<html>temporarily unavailable</html>', {
+        status: 503,
+        headers: { 'Content-Type': 'text/html' },
+      });
+    if (url.endsWith('/me')) return Response.json({ id: 'owner' });
+    if (url.includes('currently-playing')) return new Response(null, { status: 204 });
+    return Response.json({ items: [] });
+  };
+
+  const response = await handleRequest(new Request('https://api.test/spotify'), services);
+  assert.equal(response.status, 200);
+  const data = await response.json();
+  assert.equal(data.profile.id, 'owner');
+  assert.equal(data.topTracks, null);
+  assert.deepEqual(data.playlists, []);
+});
+
+test('aggregate response clears an expired token when Spotify returns 401', async () => {
+  const deleted: string[] = [];
+  const services = testServices({
+    state: {
+      get: async (key) => (key === 'access_token' ? 'expired' : null),
+      put: async () => {},
+      delete: async (key) => {
+        deleted.push(key);
+      },
+    },
+  });
+  services.fetch = async (input) => {
+    const url = String(input);
+    if (url.endsWith('/me'))
+      return new Response(JSON.stringify({ error: 'expired' }), { status: 401 });
+    return Response.json({ items: [] });
+  };
+
+  const response = await handleRequest(new Request('https://api.test/spotify'), services);
+  assert.equal(response.status, 401);
+  assert.deepEqual(deleted, ['access_token']);
+});
