@@ -213,7 +213,9 @@ export function SteamCard({ handle, url, apiEndpoint }) {
     url ||
     (handle ? `https://steamcommunity.com/id/${handle}/` : 'https://steamcommunity.com');
   const [copied, copyLink] = useCopy(profileUrl);
-  const { loading, error } = usePolledJSON(apiEndpoint, 60000, (d) => setData(d));
+  const { loading, error } = usePolledJSON(collapsed ? null : apiEndpoint, 60000, (d) =>
+    setData(d),
+  );
   const isInGame = !!data?.currentGame;
   const statusStr = (data?.status || '').toLowerCase();
   const isOnline = statusStr === 'online' || isInGame;

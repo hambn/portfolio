@@ -33,9 +33,13 @@ function TelegramProfile({ username, apiEndpoint }) {
     globalThis.location?.origin || 'https://api.portfolio.hgh.dev',
   );
   endpoint.searchParams.set('username', username || '');
-  const { loading, error } = usePolledJSON(username ? endpoint.href : null, 3600000, (data) => {
-    if (data?.username === username) setProfile(data);
-  });
+  const { loading, error } = usePolledJSON(
+    username && !collapsed ? endpoint.href : null,
+    3600000,
+    (data) => {
+      if (data?.username === username) setProfile(data);
+    },
+  );
   const name = profile?.name || (username ? `@${username}` : 'Telegram');
   const photo = profile?.photo ? new URL(profile.photo, endpoint).href : null;
 

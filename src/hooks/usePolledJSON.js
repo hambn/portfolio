@@ -3,7 +3,11 @@ import { useEffect, useRef, useState } from 'react';
 /**
  * Fetch url as JSON immediately, then re-fetch every intervalMs (0 = once).
  * onData(data, isInitial) on each success; poll errors are silent, the
- * initial error lands in `error`. No-op when url is falsy.
+ * initial error lands in `error`. No-op when url is falsy — callers pass null
+ * for a collapsed card so a card nobody is looking at costs no requests.
+ *
+ * Requests are also suspended while the tab is hidden: a backgrounded tab does
+ * nothing until it comes back, then catches up with one immediate fetch.
  */
 export function usePolledJSON(url, intervalMs, onData) {
   const [loading, setLoading] = useState(false);
@@ -25,6 +29,8 @@ export function usePolledJSON(url, intervalMs, onData) {
     const load = () => {
       if (pending) return;
       clearTimeout(timer);
+      // Hidden tabs wait for visibilitychange instead of leaving a timer armed.
+      if (document.hidden) return;
       pending = true;
       const requestController = new AbortController();
       controller = requestController;
@@ -60,18 +66,21 @@ export function usePolledJSON(url, intervalMs, onData) {
         .finally(() => {
           clearTimeout(timeout);
           pending = false;
-          if (alive && intervalMs > 0) timer = setTimeout(load, intervalMs);
+          if (alive && intervalMs > 0 && !document.hidden) timer = setTimeout(load, intervalMs);
         });
     };
 
     load();
     const resume = () => {
-      if (document.visibilityState === 'visible') load();
+      if (document.hidden) {
+        clearTimeout(timer);
+        return;
+      }
+      // A one-shot fetch that already succeeded has nothing to catch up on.
+      if (intervalMs > 0 || firstRequest) load();
     };
-    if (intervalMs > 0) {
-      window.addEventListener('online', resume);
-      document.addEventListener('visibilitychange', resume);
-    }
+    window.addEventListener('online', resume);
+    document.addEventListener('visibilitychange', resume);
     return () => {
       alive = false;
       clearTimeout(timer);

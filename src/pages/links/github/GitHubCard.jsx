@@ -27,7 +27,7 @@ export function GitHubCard({ username, url }) {
   const href = url || `https://github.com/${username}`;
   const [copied, copyLink] = useCopy(href);
   const { loading } = usePolledJSON(
-    username ? apiUrl(`/github?username=${encodeURIComponent(username)}`) : null,
+    username && !collapsed ? apiUrl(`/github?username=${encodeURIComponent(username)}`) : null,
     0,
     (d) => setProfile(d),
   );

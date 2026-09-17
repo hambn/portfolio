@@ -146,7 +146,7 @@ export function DiscordCard({ userId, lanyardData, apiEndpoint }) {
     return () => window.clearInterval(id);
   }, [hasTimedActivity]);
 
-  const { loading } = usePolledJSON(apiEndpoint, 30000, (data) => {
+  const { loading } = usePolledJSON(collapsed ? null : apiEndpoint, 30000, (data) => {
     if (data?.username) setApiData(data);
   });
 

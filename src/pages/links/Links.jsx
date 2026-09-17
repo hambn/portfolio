@@ -6,6 +6,7 @@ import '../../components/card/cards.css';
 import './link-cards.css';
 import React, { useEffect, useState } from 'react';
 import { PortfolioData } from '../../lib/data.js';
+import { useCardCollapsed } from '../../hooks/useCollapsed.js';
 import ErrorState from '../../components/ErrorState.jsx';
 import { EmailCard } from './email/EmailCard.jsx';
 import { DiscordCard } from './discord/DiscordCard.jsx';
@@ -22,6 +23,8 @@ export default function Links() {
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [lanyardData, setLanyardData] = useState(null);
+  // The card owns the toggle; the socket below only needs to read it.
+  const discordCollapsed = useCardCollapsed('dc_card_collapsed');
 
   useEffect(() => {
     let alive = true;
@@ -38,10 +41,12 @@ export default function Links() {
     };
   }, [attempt]);
 
-  // Lanyard WebSocket for real-time presence (INIT_STATE arrives on subscribe)
+  // Lanyard WebSocket for real-time presence (INIT_STATE arrives on subscribe).
+  // Only while the Discord card is expanded AND the tab is in the foreground —
+  // a collapsed card or a backgrounded tab holds no connection at all.
   useEffect(() => {
     const userId = config?.discord?.userId;
-    if (!userId) return;
+    if (!userId || discordCollapsed) return;
 
     let ws;
     let heartbeat;
@@ -49,8 +54,7 @@ export default function Links() {
     let handshake;
     let cancelled = false;
 
-    function connect() {
-      if (cancelled) return;
+    function teardown() {
       clearTimeout(reconnect);
       clearTimeout(handshake);
       clearInterval(heartbeat);
@@ -59,8 +63,14 @@ export default function Links() {
         ws.onmessage = null;
         ws.onerror = null;
         ws.close();
+        ws = null;
       }
       setLanyardData(null);
+    }
+
+    function connect() {
+      if (cancelled || document.hidden) return;
+      teardown();
       const socket = new WebSocket(socketUrl());
       ws = socket;
       // A socket can remain CONNECTING after a network change.
@@ -98,7 +108,8 @@ export default function Links() {
     }
 
     function resume() {
-      if (document.visibilityState === 'visible') connect();
+      if (document.hidden) teardown();
+      else connect();
     }
 
     connect();
@@ -106,19 +117,11 @@ export default function Links() {
     document.addEventListener('visibilitychange', resume);
     return () => {
       cancelled = true;
-      clearInterval(heartbeat);
-      clearTimeout(handshake);
-      clearTimeout(reconnect);
       window.removeEventListener('online', resume);
       document.removeEventListener('visibilitychange', resume);
-      if (ws) {
-        ws.onclose = null;
-        ws.onmessage = null;
-        ws.onerror = null;
-        ws.close();
-      }
+      teardown();
     };
-  }, [config?.discord?.userId]);
+  }, [config?.discord?.userId, discordCollapsed]);
 
   const wrap = { maxWidth: '760px', margin: '0 auto', padding: '88px 24px 80px' };
 

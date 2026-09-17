@@ -30,7 +30,7 @@ export function GitLabCard({ username, url }) {
   const href = url || `https://gitlab.com/${username}`;
   const [copied, copyLink] = useCopy(href);
   const { loading } = usePolledJSON(
-    username ? apiUrl(`/gitlab?username=${encodeURIComponent(username)}`) : null,
+    username && !collapsed ? apiUrl(`/gitlab?username=${encodeURIComponent(username)}`) : null,
     0,
     (d) => setProfile(Array.isArray(d) ? d[0] : null),
   );

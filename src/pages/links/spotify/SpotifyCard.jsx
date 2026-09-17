@@ -256,9 +256,10 @@ export function SpotifySimpleCard({ userId }) {
   );
 }
 export function SpotifyCard({ userId, apiEndpoint }) {
-  const { data, progress, loading, error } = useSpotifyPlayback(apiEndpoint);
-  const [tab, setTab] = useState('recent');
   const [collapsed, toggleCollapse] = useCollapsed('sp_card_collapsed');
+  // A collapsed card polls nothing; the last response stays put for re-expand.
+  const { data, progress, loading, error } = useSpotifyPlayback(collapsed ? null : apiEndpoint);
+  const [tab, setTab] = useState('recent');
   const id = useId();
   const profile = data?.profile;
   const status = data?.status;
