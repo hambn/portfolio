@@ -1,10 +1,17 @@
 import { mkdir, readFile, writeFile, rename, unlink, readdir, stat } from 'node:fs/promises';
 import { createHash, randomUUID } from 'node:crypto';
 import { join } from 'node:path';
+import { z } from 'zod';
 import type { ResponseCache, Services, StateStore } from '../contracts.js';
 import { configuration } from '../config.js';
 
 const hash = (key: string) => createHash('sha256').update(key).digest('hex');
+const stateEntry = z.object({ value: z.string(), expires: z.number().nonnegative() });
+const cacheEntry = z.object({
+  expires: z.number().nonnegative(),
+  status: z.literal(200),
+  headers: z.array(z.tuple([z.string(), z.string()])),
+});
 async function atomicWrite(path: string, value: string | Uint8Array) {
   const temporary = `${path}.${randomUUID()}.tmp`;
   try {
@@ -21,11 +28,11 @@ export async function diskState(directory: string, now = Date.now): Promise<Stat
   return {
     async get(key) {
       try {
-        const entry: { value: string; expires: number } = JSON.parse(
-          await readFile(path(key), 'utf8'),
-        );
+        const parsed = stateEntry.safeParse(JSON.parse(await readFile(path(key), 'utf8')));
+        if (!parsed.success) return null;
+        const entry = parsed.data;
         if (entry.expires && entry.expires <= now()) return null;
-        return typeof entry.value === 'string' ? entry.value : null;
+        return entry.value;
       } catch (error) {
         if (error instanceof SyntaxError || (error as NodeJS.ErrnoException).code === 'ENOENT')
           return null;
@@ -54,19 +61,28 @@ export async function diskCache(
   await mkdir(directory, { recursive: true, mode: 0o700 });
   // Serialize writes and pruning. This directory belongs to one Node process.
   let writes = Promise.resolve();
+  // Scan once on startup, then retain oldest-write order and exact byte counts.
+  const files = await Promise.all(
+    (await readdir(directory)).map(async (name) => {
+      const path = join(directory, name);
+      const info = await stat(path);
+      return { path, size: info.size, time: info.mtimeMs };
+    }),
+  );
+  const entries = new Map(
+    files.sort((a, b) => a.time - b.time).map(({ path, size }) => [path, size]),
+  );
+  let total = files.reduce((sum, entry) => sum + entry.size, 0);
   async function prune() {
-    const entries = await Promise.all(
-      (await readdir(directory)).map(async (name) => {
-        const path = join(directory, name);
-        const info = await stat(path);
-        return { path, size: info.size, time: info.mtimeMs };
-      }),
-    );
-    let total = entries.reduce((sum, entry) => sum + entry.size, 0);
-    for (const entry of entries.sort((a, b) => a.time - b.time)) {
+    for (const [path, size] of entries) {
       if (total <= maxBytes) break;
-      await unlink(entry.path);
-      total -= entry.size;
+      try {
+        await unlink(path);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+      }
+      entries.delete(path);
+      total -= size;
     }
   }
   await prune();
@@ -76,11 +92,16 @@ export async function diskCache(
         const bytes = await readFile(join(directory, hash(key.url)));
         const separator = bytes.indexOf(10);
         if (separator < 0) return undefined;
-        const entry: { expires: number; status: number; headers: [string, string][] } = JSON.parse(
-          bytes.subarray(0, separator).toString(),
-        );
+        const parsed = cacheEntry.safeParse(JSON.parse(bytes.subarray(0, separator).toString()));
+        if (!parsed.success) return undefined;
+        const entry = parsed.data;
         if (entry.expires <= now()) return undefined;
-        const headers = new Headers(entry.headers);
+        let headers: Headers;
+        try {
+          headers = new Headers(entry.headers);
+        } catch {
+          return undefined;
+        }
         const ttl = Math.max(0, Math.floor((entry.expires - now()) / 1000));
         for (const header of [
           'Cache-Control',
@@ -110,7 +131,11 @@ export async function diskCache(
       const bytes = Buffer.concat([Buffer.from(metadata + '\n'), body]);
       if (bytes.length > maxBytes) return;
       const pending = writes.then(async () => {
-        await atomicWrite(join(directory, hash(key.url)), bytes);
+        const path = join(directory, hash(key.url));
+        await atomicWrite(path, bytes);
+        total += bytes.length - (entries.get(path) ?? 0);
+        entries.delete(path);
+        entries.set(path, bytes.length);
         await prune();
       });
       writes = pending.catch(() => {});

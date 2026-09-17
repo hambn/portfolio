@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { mkdtemp, rm, readdir, stat } from 'node:fs/promises';
+import { mkdtemp, rm, readdir, stat, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { once } from 'node:events';
@@ -131,4 +132,60 @@ test('Node presence relay forwards frames and pins the upstream subscription', a
     op: 2,
     d: { subscribe_to_id: '123' },
   });
+});
+
+test('malformed disk metadata is a miss and can be replaced', async (t) => {
+  const root = await mkdtemp(join(tmpdir(), 'portfolio-metadata-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const state = await diskState(join(root, 'state'), () => 1000);
+  const cache = await diskCache(join(root, 'cache'), 4096, () => 1000);
+  const key = new Request('https://api.test/corrupt');
+  const filename = createHash('sha256').update(key.url).digest('hex');
+  for (const metadata of [
+    null,
+    {},
+    { value: 'secret', expires: 'never' },
+    { value: 1, expires: 0 },
+  ]) {
+    await writeFile(join(root, 'state', filename), JSON.stringify(metadata));
+    assert.equal(await state.get(key.url), null);
+  }
+  for (const metadata of [
+    null,
+    {},
+    { expires: 'never', status: 200, headers: [] },
+    { expires: 10000, status: 204, headers: [] },
+    { expires: 10000, status: 200, headers: [['bad header', 'value']] },
+  ]) {
+    await writeFile(join(root, 'cache', filename), JSON.stringify(metadata) + '\nbody');
+    assert.equal(await cache.match(key), undefined);
+  }
+  await state.put(key.url, 'replacement');
+  assert.equal(await state.get(key.url), 'replacement');
+  await cache.put(key, new Response('replacement', { headers: { 'Cache-Control': 'max-age=60' } }));
+  assert.equal(await (await cache.match(key))!.text(), 'replacement');
+});
+
+test('cache accounts for replacements and serializes concurrent eviction', async (t) => {
+  const root = await mkdtemp(join(tmpdir(), 'portfolio-eviction-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const cache = await diskCache(root, 700);
+  const keys = ['a', 'b', 'c'].map((name) => new Request(`https://api.test/${name}`));
+  const response = (size: number) =>
+    new Response('x'.repeat(size), {
+      headers: { 'Cache-Control': 'max-age=60' },
+    });
+  await cache.put(keys[0], response(200));
+  await cache.put(keys[1], response(200));
+  await cache.put(keys[0], response(1));
+  assert.ok(await cache.match(keys[1]), 'shrinking a replacement must not overcount bytes');
+  await cache.put(keys[2], response(200));
+  assert.equal(await cache.match(keys[1]), undefined, 'replacement refreshes write order');
+  assert.ok(await cache.match(keys[0]));
+  await Promise.all(keys.map((key) => cache.put(key, response(200))));
+  const sizes = await Promise.all(
+    (await readdir(root)).map(async (name) => (await stat(join(root, name))).size),
+  );
+  assert.ok(sizes.reduce((sum, size) => sum + size, 0) <= 700);
+  assert.ok(await cache.match(keys[2]));
 });
