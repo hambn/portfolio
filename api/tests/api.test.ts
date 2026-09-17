@@ -167,6 +167,39 @@ test('Steam and Discord payloads retain their fields and serve local artwork', a
   assert.equal(discord.avatar, '/api/discord/avatar');
 });
 
+test('Steam keeps the profile when optional endpoints fail, and fails without a summary', async () => {
+  const summary = Response.json({
+    response: { players: [{ personaname: 'test', personastate: 1 }] },
+  });
+  const services = testServices({
+    fetch: async (input) => {
+      const url = String(input);
+      if (url.includes('GetPlayerSummaries')) return summary.clone();
+      if (url.includes('GetSteamLevel')) return new Response('nope', { status: 500 });
+      if (url.includes('GetRecentlyPlayedGames')) throw new Error('connection reset');
+      return Response.json({
+        response: { games: [{ appid: 1, name: 'Game', playtime_forever: 120 }] },
+      });
+    },
+  });
+  const response = await handleRequest(request('/steam'), services);
+  assert.equal(response.status, 200);
+  const steam = await response.json();
+  assert.equal(steam.displayName, 'test');
+  assert.equal(steam.level, 0);
+  assert.deepEqual(steam.recentActivity, []);
+  assert.equal(steam.favoriteGame.playtime_hours, 2);
+
+  // A missing player summary leaves nothing worth rendering, so it still fails.
+  const broken = testServices({
+    fetch: async (input) =>
+      String(input).includes('GetPlayerSummaries')
+        ? new Response('nope', { status: 503 })
+        : Response.json({ response: { games: [] } }),
+  });
+  assert.equal((await handleRequest(request('/steam'), broken)).status, 502);
+});
+
 test('presence relay pins subscriptions to the configured user', () => {
   assert.deepEqual(
     JSON.parse(presenceMessage('{"op":2,"d":{"subscribe_to_id":"other"}}', '123')!),
