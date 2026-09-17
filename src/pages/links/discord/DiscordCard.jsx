@@ -1,6 +1,7 @@
+import { mediaUrl } from '../../../lib/api.js';
 import '@fontsource-variable/dm-sans/wght.css';
 import './DiscordCard.css';
-// Uses https://api.portfolio.hgh.dev/discord + Lanyard WebSocket (passed as lanyardData)
+// Uses the API profile endpoint and its live presence relay.
 import React, { useEffect, useState } from 'react';
 import { useCollapsed } from '../../../hooks/useCollapsed.js';
 import { useCopy } from '../../../hooks/useCopy.js';
@@ -120,11 +121,12 @@ export function DiscordCard({ userId, lanyardData, apiEndpoint }) {
   const displayName =
     (flat ? raw.displayName || raw.username : user?.global_name || user?.username) || null;
   const handle = (flat ? raw.username : user?.username) || null;
-  const avatarUrl = flat
+  const avatarSource = flat
     ? raw.avatar || null
     : user?.avatar && user?.id
       ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.${user.avatar.startsWith('a_') ? 'gif' : 'png'}?size=128`
       : null;
+  const avatarUrl = mediaUrl(avatarSource);
   const activities = raw?.activities || [];
   const customStatus = activities.find((activity) => activity.type === 4);
   const liveActivities = activities.filter((activity) => activity.type !== 4);
@@ -151,10 +153,10 @@ export function DiscordCard({ userId, lanyardData, apiEndpoint }) {
   const getActivityImgSrc = (activity) => {
     if (!activity?.assets?.large_image) return null;
     const image = activity.assets.large_image;
-    if (image.startsWith('spotify:')) return `https://i.scdn.co/image/${image.slice(8)}`;
-    if (image.startsWith('mp:')) return `https://media.discordapp.net/${image.slice(3)}`;
+    if (image.startsWith('spotify:')) return mediaUrl(`https://i.scdn.co/image/${image.slice(8)}`);
+    if (image.startsWith('mp:')) return mediaUrl(`https://media.discordapp.net/${image.slice(3)}`);
     return activity.application_id
-      ? `https://cdn.discordapp.com/app-assets/${activity.application_id}/${image}.png`
+      ? mediaUrl(`https://cdn.discordapp.com/app-assets/${activity.application_id}/${image}.png`)
       : null;
   };
 

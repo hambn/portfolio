@@ -1,3 +1,4 @@
+import { mediaUrl } from '../../../lib/api.js';
 import React, { useId, useState } from 'react';
 import '@fontsource-variable/dm-sans';
 import './SpotifyCard.css';
@@ -64,9 +65,16 @@ function timeAgo(iso) {
   return `${Math.floor(minutes / 1440)}d ago`;
 }
 function Artwork({ images, className = '', name = '' }) {
-  const url = images?.[0]?.url;
-  return url ? (
-    <img className={`sp-art ${className}`} src={url} alt={name} loading="lazy" />
+  const url = mediaUrl(images?.[0]?.url);
+  const [failed, setFailed] = useState(null);
+  return url && url !== failed ? (
+    <img
+      className={`sp-art ${className}`}
+      src={url}
+      alt={name}
+      loading="lazy"
+      onError={() => setFailed(url)}
+    />
   ) : (
     <span className={`sp-art sp-art-placeholder ${className}`} aria-hidden="true">
       ♫

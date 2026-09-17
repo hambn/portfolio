@@ -1,3 +1,4 @@
+import { apiContent } from './api.js';
 /**
  * data.js — Portfolio content layer
  *
@@ -27,9 +28,11 @@ export const PortfolioData = (() => {
       ? {}
       : JSON.parse(document.getElementById('portfolio-data')?.textContent || '{}');
   const seed = (data) => {
-    snapshot = data;
+    snapshot = Object.fromEntries(
+      Object.entries(data).map(([key, value]) => [key, apiContent(key, value)]),
+    );
     for (const key of Object.keys(_cache)) delete _cache[key];
-    for (const [key, value] of Object.entries(data)) _cache[key] = Promise.resolve(value);
+    for (const [key, value] of Object.entries(snapshot)) _cache[key] = Promise.resolve(value);
   };
   seed(snapshot);
 
@@ -66,13 +69,19 @@ export const PortfolioData = (() => {
     seed,
     peek: (key) => snapshot[key] ?? null,
     /** { name, handle, title, bio, avatar } */
-    getProfile: () => cached('profile', () => getJSON('/home/profile.json')),
+    getProfile: () =>
+      cached('profile', () =>
+        getJSON('/home/profile.json').then((value) => apiContent('profile', value)),
+      ),
 
     /** { items[], skills[] } */
     getResume: () => cached('resume', () => getJSON('/home/resume.json')),
 
     /** { discord, spotify, github, steam, x, telegram, linkedin } */
-    getLinks: () => cached('links', () => getJSON('/links/links.json')),
+    getLinks: () =>
+      cached('links', () =>
+        getJSON('/links/links.json').then((value) => apiContent('links', value)),
+      ),
 
     /** [{ slug, path, title, date, description, tags, body }] sorted newest-first */
     getBlogIndex,

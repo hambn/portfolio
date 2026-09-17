@@ -1,3 +1,4 @@
+import { apiUrl } from '../../lib/api.js';
 // GitHub / GitLab contribution graph.
 // GitHub data comes from the public (no-auth) jogruber contributions API;
 // GitLab has no no-auth calendar API so it uses a deterministic synthetic grid.
@@ -63,7 +64,7 @@ export function ContribGraph({ username, source, levels, theme }) {
     };
 
     if (source === 'github') {
-      fetch(`https://github-contributions-api.jogruber.de/v4/${username}?y=last`)
+      fetch(apiUrl(`/github/contributions?username=${encodeURIComponent(username)}`))
         .then((r) => (r.ok ? r.json() : Promise.reject()))
         .then((d) => {
           if (cancelled) return;

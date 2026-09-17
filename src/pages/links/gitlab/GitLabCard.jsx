@@ -1,3 +1,4 @@
+import { apiUrl, mediaUrl } from '../../../lib/api.js';
 import './GitLabCard.css';
 import React, { useState } from 'react';
 import { useCollapsed } from '../../../hooks/useCollapsed.js';
@@ -29,7 +30,7 @@ export function GitLabCard({ username, url }) {
   const href = url || `https://gitlab.com/${username}`;
   const [copied, copyLink] = useCopy(href);
   const { loading } = usePolledJSON(
-    username ? `https://gitlab.com/api/v4/users?username=${username}` : null,
+    username ? apiUrl(`/gitlab?username=${encodeURIComponent(username)}`) : null,
     0,
     (d) => setProfile(Array.isArray(d) ? d[0] : null),
   );
@@ -106,7 +107,7 @@ export function GitLabCard({ username, url }) {
           {profile?.avatar_url ? (
             <a href={href} target="_blank" rel="noopener noreferrer" className="gl-style-9">
               <img
-                src={profile.avatar_url}
+                src={mediaUrl(profile.avatar_url)}
                 alt={username}
                 style={{
                   border: `2px solid ${GL.border}`,

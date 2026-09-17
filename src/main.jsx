@@ -1,3 +1,4 @@
+import { mediaUrl } from './lib/api.js';
 // SPA entry — app shell + history router.
 import React from 'react';
 import { createRoot, hydrateRoot } from 'react-dom/client';
@@ -11,9 +12,7 @@ import App from './App.jsx';
 import { pages, preloadPage } from './pages/index.js';
 import { currentRoute } from './lib/router.js';
 
-// Round the tab favicon client-side: GitHub's avatar CDN sends CORS headers,
-// so canvas can crop it circular (an SVG favicon can't reference cross-origin
-// images at all — this sidesteps that restriction) while staying a live URL.
+// Round the API-hosted avatar into a tab favicon after it loads.
 (function roundFavicon(url) {
   const img = new Image();
   img.crossOrigin = 'anonymous';
@@ -37,7 +36,7 @@ import { currentRoute } from './lib/router.js';
     link.href = canvas.toDataURL('image/png');
   };
   img.src = url;
-})('https://avatars.githubusercontent.com/hambn');
+})(mediaUrl('https://avatars.githubusercontent.com/hambn'));
 
 const initialRoute = currentRoute();
 const initial = (initialRoute || 'home').split('/')[0] || 'home';

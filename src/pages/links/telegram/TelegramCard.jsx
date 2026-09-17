@@ -1,3 +1,4 @@
+import { apiUrl } from '../../../lib/api.js';
 import '@fontsource-variable/roboto/wght.css';
 import './TelegramCard.css';
 import React, { useState } from 'react';
@@ -28,7 +29,7 @@ function TelegramProfile({ username, apiEndpoint }) {
   const href = username ? `https://t.me/${username}` : 'https://telegram.org';
   const [copied, copyLink] = useCopy(href);
   const endpoint = new URL(
-    apiEndpoint || 'https://api.portfolio.hgh.dev/telegram',
+    apiEndpoint || apiUrl('/telegram'),
     globalThis.location?.origin || 'https://api.portfolio.hgh.dev',
   );
   endpoint.searchParams.set('username', username || '');

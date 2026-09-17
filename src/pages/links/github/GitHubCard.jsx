@@ -1,3 +1,4 @@
+import { apiUrl, mediaUrl } from '../../../lib/api.js';
 import './GitHubCard.css';
 import React, { useState } from 'react';
 import { useCollapsed } from '../../../hooks/useCollapsed.js';
@@ -26,7 +27,7 @@ export function GitHubCard({ username, url }) {
   const href = url || `https://github.com/${username}`;
   const [copied, copyLink] = useCopy(href);
   const { loading } = usePolledJSON(
-    username ? `https://api.github.com/users/${username}` : null,
+    username ? apiUrl(`/github?username=${encodeURIComponent(username)}`) : null,
     0,
     (d) => setProfile(d),
   );
@@ -103,7 +104,7 @@ export function GitHubCard({ username, url }) {
           {profile?.avatar_url ? (
             <a href={href} target="_blank" rel="noopener noreferrer" className="gh-style-9">
               <img
-                src={profile.avatar_url}
+                src={mediaUrl(profile.avatar_url)}
                 alt={username}
                 style={{
                   border: `2px solid ${GH.border}`,

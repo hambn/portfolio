@@ -1,3 +1,4 @@
+import { apiUrl } from '../../lib/api.js';
 // Projects.jsx — GitHub public repos
 // GitHub username is read from contents/links/links.json (github.username)
 import React, { useEffect, useState } from 'react';
@@ -145,10 +146,9 @@ export default function Projects() {
         const config = await PortfolioData.getLinks();
         const username = config?.github?.username;
         if (!username) throw new Error('no github username in links.json');
-        const r = await fetch(
-          `https://api.github.com/users/${username}/repos?sort=updated&type=public&per_page=30`,
-          { signal: ctrl.signal },
-        );
+        const r = await fetch(apiUrl(`/github/repos?username=${encodeURIComponent(username)}`), {
+          signal: ctrl.signal,
+        });
         if (!r.ok) throw new Error(`GitHub API: ${r.statusText}`);
         const data = await r.json();
         if (ctrl.signal.aborted) return;

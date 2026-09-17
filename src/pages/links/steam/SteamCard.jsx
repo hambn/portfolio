@@ -1,3 +1,4 @@
+import { mediaUrl } from '../../../lib/api.js';
 import './SteamCard.css';
 // SteamCard.jsx — Steam card, API endpoint driven
 import React, { useState } from 'react';
@@ -57,10 +58,10 @@ function StGameRow({ game, showRecent }) {
     <a href={href} target="_blank" rel="noopener noreferrer" className="st-game-row st-style-2">
       {/* library_hero as subtle background */}
       {game.images?.hero && (
-        <img src={game.images.hero} alt="" aria-hidden="true" className="st-style-3" />
+        <img src={mediaUrl(game.images.hero)} alt="" aria-hidden="true" className="st-style-3" />
       )}
       {game.images?.header ? (
-        <img src={game.images.header} alt={game.name} className="st-style-5" />
+        <img src={mediaUrl(game.images.header)} alt={game.name} className="st-style-5" />
       ) : (
         <div
           style={{
@@ -159,7 +160,7 @@ function StFavoriteSection({ game }) {
         >
           <img
             className="st-hero-img st-style-16"
-            src={game.images.hero || game.images.header}
+            src={mediaUrl(game.images.hero || game.images.header)}
             alt={game.name}
           />
         </a>
@@ -167,7 +168,7 @@ function StFavoriteSection({ game }) {
       <div className="st-style-17">
         {game.images?.header && (
           <a href={href} target="_blank" rel="noopener noreferrer" className="st-style-18">
-            <img src={game.images.header} alt="" className="st-style-19" />
+            <img src={mediaUrl(game.images.header)} alt="" className="st-style-19" />
           </a>
         )}
         <div className="st-style-20">
@@ -345,7 +346,7 @@ export function SteamCard({ handle, url, apiEndpoint }) {
                 className="st-style-35"
               >
                 <img
-                  src={data.avatar.large}
+                  src={mediaUrl(data.avatar.large)}
                   alt={data.displayName}
                   style={{
                     border: `2px solid ${isOnline ? dotColor : ST.faint}`,
@@ -472,7 +473,12 @@ export function SteamCard({ handle, url, apiEndpoint }) {
               >
                 {/* library_hero full-bleed background */}
                 {cg.images?.hero && (
-                  <img src={cg.images.hero} alt="" aria-hidden="true" className="st-style-50" />
+                  <img
+                    src={mediaUrl(cg.images.hero)}
+                    alt=""
+                    aria-hidden="true"
+                    className="st-style-50"
+                  />
                 )}
                 {/* dark gradient overlay so text stays readable */}
                 <div className="st-style-51"></div>
@@ -493,7 +499,7 @@ export function SteamCard({ handle, url, apiEndpoint }) {
                       rel="noopener noreferrer"
                       className="st-style-54"
                     >
-                      <img src={cg.images.header} alt={cg.name} className="st-style-55" />
+                      <img src={mediaUrl(cg.images.header)} alt={cg.name} className="st-style-55" />
                     </a>
                   )}
                   <div>

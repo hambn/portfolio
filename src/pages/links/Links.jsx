@@ -1,3 +1,4 @@
+import { apiUrl, socketUrl } from '../../lib/api.js';
 // Links.jsx — social cards page.
 // Each card and its styles live in their own folder; config comes from
 // contents/links/links.json (no hardcoded IDs/handles here).
@@ -60,7 +61,7 @@ export default function Links() {
         ws.close();
       }
       setLanyardData(null);
-      const socket = new WebSocket('wss://api.lanyard.rest/socket');
+      const socket = new WebSocket(socketUrl());
       ws = socket;
       // A socket can remain CONNECTING after a network change.
       handshake = setTimeout(() => socket.close(), 15000);
@@ -160,7 +161,7 @@ export default function Links() {
           <DiscordCard
             userId={config.discord.userId}
             lanyardData={lanyardData}
-            apiEndpoint={config.discord.apiEndpoint || 'https://api.portfolio.hgh.dev/discord'}
+            apiEndpoint={config.discord.apiEndpoint || apiUrl('/discord')}
           />
         )}
 
@@ -169,7 +170,7 @@ export default function Links() {
             username={config.telegram.username || config.telegram.handle || config.telegram.url}
             handle={config.telegram.handle}
             url={config.telegram.url}
-            apiEndpoint={config.telegram.apiEndpoint || 'https://api.portfolio.hgh.dev/telegram'}
+            apiEndpoint={config.telegram.apiEndpoint || apiUrl('/telegram')}
           />
         )}
 

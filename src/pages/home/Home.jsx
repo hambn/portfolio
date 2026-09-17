@@ -1,3 +1,4 @@
+import { mediaUrl } from '../../lib/api.js';
 // Home.jsx — landing page
 // Data: contents/home/profile.json, contents/home/resume.json, contents/links/links.json
 import React, { useEffect, useState } from 'react';
@@ -213,7 +214,8 @@ export default function Home() {
         <img
           src={
             profile?.avatar ||
-            (profile?.handle && `https://avatars.githubusercontent.com/${profile.handle}`) ||
+            (profile?.handle &&
+              mediaUrl(`https://avatars.githubusercontent.com/${profile.handle}`)) ||
             undefined
           }
           alt={profile?.name || ''}

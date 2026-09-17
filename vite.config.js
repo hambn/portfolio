@@ -1,4 +1,5 @@
 import { defineConfig } from 'vite';
+process.env.VITE_API_BASE_URL ||= 'https://api.portfolio.hgh.dev';
 import { fileURLToPath } from 'node:url';
 import { readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
@@ -42,6 +43,7 @@ function blogIndexPlugin() {
 export default defineConfig({
   base: process.env.BASE_PATH || '/',
   plugins: [blogIndexPlugin()],
+  server: { proxy: { '/api': { target: 'http://localhost:8787', ws: true } } },
   build: {
     // Emit .vite/manifest.json so the prerenderer can add modulepreload links
     // for each route's lazy chunk (scripts/prerender.mjs reads then removes it).
