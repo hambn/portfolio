@@ -8,6 +8,10 @@ import { useCopy } from '../../../hooks/useCopy.js';
 import { HeaderButtons } from '../../../components/card/HeaderButtons.jsx';
 const X_ICON =
   'M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.259 5.631 5.905-5.631zm-1.161 17.52h1.833L7.084 4.126H5.117z';
+const LINK_ICON =
+  'M18.36 5.64c-1.95-1.96-5.11-1.96-7.07 0L9.88 7.05 8.46 5.64l1.42-1.42c2.73-2.73 7.16-2.73 9.9 0 2.73 2.74 2.73 7.17 0 9.9l-1.42 1.42-1.41-1.42 1.41-1.41c1.96-1.96 1.96-5.12 0-7.07zm-2.12 3.53l-7.07 7.07-1.41-1.41 7.07-7.07 1.41 1.41zm-12.02.71l1.42-1.42 1.41 1.42-1.41 1.41c-1.96 1.96-1.96 5.12 0 7.07 1.95 1.96 5.11 1.96 7.07 0l1.41-1.41 1.42 1.41-1.42 1.42c-2.73 2.73-7.16 2.73-9.9 0-2.73-2.74-2.73-7.17 0-9.9z';
+const CALENDAR_ICON =
+  'M7 4V3h2v1h6V3h2v1h1.5C19.89 4 21 5.12 21 6.5v12c0 1.38-1.11 2.5-2.5 2.5h-13C4.12 21 3 19.88 3 18.5v-12C3 5.12 4.12 4 5.5 4H7zm0 2H5.5c-.27 0-.5.22-.5.5v12c0 .28.23.5.5.5h13c.28 0 .5-.22.5-.5v-12c0-.28-.22-.5-.5-.5H17v1h-2V6H9v1H7V6zm0 4h10v2H7v-2z';
 export function XCard({ handle, username, url, apiEndpoint }) {
   const configuredUsername = xUsername(username || handle || url);
   return (
@@ -97,88 +101,90 @@ function XProfile({ username, apiEndpoint }) {
         className={`sc-body ${collapsed ? 'closed' : 'open'}`}
         inert={collapsed ? '' : undefined}
       >
-        {banner && banner !== failedBanner && (
-          <img className="x-banner" src={banner} alt="" onError={() => setFailedBanner(banner)} />
-        )}
-        <div className="x-style-7" aria-busy={loading && !profile}>
-          <div style={{ borderColor: 'var(--x-border)' }} className="x-style-8">
-            {avatar && avatar !== failedAvatar ? (
-              <img
-                className="x-avatar"
-                src={avatar}
-                alt=""
-                onError={() => setFailedAvatar(avatar)}
-              />
-            ) : (
-              <svg
-                viewBox="0 0 24 24"
-                fill="var(--x-text)"
-                width={26}
-                height={26}
-                className="x-style-9"
-              >
+        <div className="x-banner-wrap">
+          {banner && banner !== failedBanner ? (
+            <img className="x-banner" src={banner} alt="" onError={() => setFailedBanner(banner)} />
+          ) : (
+            <div className="x-banner x-banner-empty" />
+          )}
+        </div>
+        <div className="x-profile" aria-busy={loading && !profile}>
+          <div className="x-actions-row">
+            <a href={href} target="_blank" rel="noopener noreferrer" className="x-avatar-ring">
+              {avatar && avatar !== failedAvatar ? (
+                <img
+                  className="x-avatar"
+                  src={avatar}
+                  alt=""
+                  onError={() => setFailedAvatar(avatar)}
+                />
+              ) : (
+                <svg viewBox="0 0 24 24" fill="var(--x-text)" className="x-avatar-fallback">
+                  <path d={X_ICON} />
+                </svg>
+              )}
+            </a>
+            <a href={href} target="_blank" rel="noopener noreferrer" className="x-follow">
+              <svg viewBox="0 0 24 24" fill="currentColor" width={13} height={13}>
                 <path d={X_ICON} />
               </svg>
+              <span>Follow</span>
+            </a>
+          </div>
+          <div className="x-identity">
+            <div className="x-name" dir="auto">
+              {profile?.name || username || 'X'}
+            </div>
+            <div className="x-handle">@{username}</div>
+          </div>
+          {profile?.description && (
+            <p className="x-bio" dir="auto">
+              {profile.description}
+            </p>
+          )}
+          <div className="x-profile-meta">
+            {profile?.website && /^https?:\/\//.test(profile.website) && (
+              <span className="x-meta-item">
+                <svg viewBox="0 0 24 24" fill="currentColor" width={18} height={18}>
+                  <path d={LINK_ICON} />
+                </svg>
+                <a href={profile.website} target="_blank" rel="noopener noreferrer">
+                  {profile.websiteLabel || profile.website}
+                </a>
+              </span>
+            )}
+            {profile?.joined && (
+              <span className="x-meta-item">
+                <svg viewBox="0 0 24 24" fill="currentColor" width={18} height={18}>
+                  <path d={CALENDAR_ICON} />
+                </svg>
+                <span>Joined {profile.joined}</span>
+              </span>
             )}
           </div>
-          <div className="x-style-10">
-            <div className="x-style-11">
-              <span style={{ color: 'var(--x-text)' }} dir="auto">
-                {profile?.name || username || 'X'}
-              </span>
-            </div>
-            <div style={{ color: 'var(--x-muted)' }} className="x-style-12">
-              @{username}
-            </div>
+          <div className="x-profile-counts">
+            {profile?.following != null && (
+              <a href={`${href}/following`} target="_blank" rel="noopener noreferrer">
+                <strong>{profile.following}</strong> <span>Following</span>
+              </a>
+            )}
+            {profile?.followers != null && (
+              <a href={`${href}/verified_followers`} target="_blank" rel="noopener noreferrer">
+                <strong>{profile.followers}</strong> <span>Followers</span>
+              </a>
+            )}
+            {profile?.posts != null && (
+              <a href={href} target="_blank" rel="noopener noreferrer">
+                <strong>{profile.posts}</strong> <span>Posts</span>
+              </a>
+            )}
           </div>
-          <a href={href} target="_blank" rel="noopener noreferrer" className="x-style-13">
-            <svg
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              width={12}
-              height={12}
-              className="x-style-14"
-            >
-              <path d={X_ICON} />
-            </svg>
-            <span>Follow</span>
-          </a>
-        </div>
-        {profile?.description && (
-          <p className="x-bio" dir="auto">
-            {profile.description}
-          </p>
-        )}
-        <div className="x-profile-meta">
-          {profile?.website && /^https?:\/\//.test(profile.website) && (
-            <a href={profile.website} target="_blank" rel="noopener noreferrer">
-              {profile.websiteLabel || profile.website}
-            </a>
-          )}
-          {profile?.joined && <span>Joined {profile.joined}</span>}
-        </div>
-        <div className="x-profile-counts">
-          {profile?.following != null && (
-            <a href={`${href}/following`} target="_blank" rel="noopener noreferrer">
-              <strong>{profile.following}</strong> Following
-            </a>
-          )}
-          {profile?.followers != null && (
-            <a href={`${href}/verified_followers`} target="_blank" rel="noopener noreferrer">
-              <strong>{profile.followers}</strong> Followers
-            </a>
-          )}
-          {profile?.posts != null && (
-            <a href={href} target="_blank" rel="noopener noreferrer">
-              <strong>{profile.posts}</strong> Posts
-            </a>
+          {!profile && (loading || error) && (
+            <p className="x-status" role="status">
+              {loading ? 'Loading profile…' : 'Profile unavailable. You can still open X.'}
+            </p>
           )}
         </div>
-        {!profile && (loading || error) && (
-          <p className="x-status" role="status">
-            {loading ? 'Loading profile…' : 'Profile unavailable. You can still open X.'}
-          </p>
-        )}
       </div>
     </div>
   );
