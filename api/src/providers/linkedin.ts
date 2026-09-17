@@ -4,6 +4,28 @@ import { json, fetchAllowed, readBytes } from '../lib/http.js';
 import { withCache } from '../lib/cache.js';
 import { metaContent } from '../lib/html.js';
 
+const MAX_STALE_MS = 7 * 86400000;
+
+const snapshotSchema = z.object({
+  updatedAt: z.number(),
+  profile: z.object({
+    name: z.string().nullable(),
+    headline: z.string().nullable(),
+    avatar: z.string().nullable(),
+    url: z.string(),
+  }),
+});
+
+function readSnapshot(raw: string | null) {
+  if (!raw) return null;
+  try {
+    const parsed = snapshotSchema.safeParse(JSON.parse(raw));
+    return parsed.success ? parsed.data : null;
+  } catch {
+    return null;
+  }
+}
+
 function allowedLinkedIn(value: string): boolean {
   const url = new URL(value);
   return (
@@ -81,29 +103,16 @@ export async function handle(request: Request, services: Services) {
       };
       await services.state.put(stateKey, JSON.stringify({ profile, updatedAt: services.now() }));
       return json(profile, 200, 3600);
-    } catch {
-      const raw = await services.state.get(stateKey);
-      if (raw) {
-        try {
-          const snapshot = z
-            .object({
-              updatedAt: z.number(),
-              profile: z.object({
-                name: z.string().nullable(),
-                headline: z.string().nullable(),
-                avatar: z.string().nullable(),
-                url: z.string(),
-              }),
-            })
-            .parse(JSON.parse(raw));
-          if (services.now() - snapshot.updatedAt < 7 * 86400000) {
-            const response = json(snapshot.profile, 200, 300);
-            response.headers.set('X-Cache-Stale', 'true');
-            return response;
-          }
-        } catch {
-          /* A malformed snapshot cannot be used as a fallback. */
-        }
+    } catch (error) {
+      // Logged so an upstream block stays distinguishable from a code bug,
+      // both of which otherwise surface as the same graceful fallback.
+      console.warn('LinkedIn profile fetch failed', error instanceof Error ? error.message : error);
+      // A malformed snapshot cannot be used as a fallback.
+      const snapshot = readSnapshot(await services.state.get(stateKey));
+      if (snapshot && services.now() - snapshot.updatedAt < MAX_STALE_MS) {
+        const response = json(snapshot.profile, 200, 300);
+        response.headers.set('X-Cache-Stale', 'true');
+        return response;
       }
       return json({ error: 'linkedin_fetch_failed' }, 200, 300);
     }
