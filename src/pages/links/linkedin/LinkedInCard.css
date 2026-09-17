@@ -13,7 +13,8 @@
   --li-on-blue: #ffffff;
   --li-hover: rgba(0, 0, 0, 0.06);
   --li-skeleton: #dce6e8;
-  --li-avatar: 152px;
+  --li-avatar: 160px;
+  --li-ring: 4px;
   background: var(--li-bg);
   color: var(--li-text);
   border: 1px solid var(--li-border);
@@ -80,8 +81,9 @@
   overflow: hidden;
   /* LinkedIn hangs the avatar half-way over the banner inside a page-colored ring. */
   margin-top: calc(var(--li-avatar) / -2);
+  box-sizing: border-box;
+  border: var(--li-ring) solid var(--li-bg);
   background: var(--li-bg);
-  box-shadow: 0 0 0 4px var(--li-bg);
 }
 .li-avatar {
   display: block;
@@ -240,10 +242,11 @@
 }
 
 @container (max-width: 520px) {
-  .li-card {
-    --li-avatar: 104px;
-  }
+  /* .li-card is the query container itself, so it can't restyle here — put the
+   * narrow-layout tokens on the first descendant that needs them. */
   .li-identity {
+    --li-avatar: 110px;
+    --li-ring: 3px;
     padding: 0 16px 20px;
   }
   .li-section {
@@ -251,8 +254,14 @@
   }
   .li-intro {
     flex-direction: column;
+    align-items: stretch;
+  }
+  /* Stacked: the basis would otherwise size the block's height, not its width. */
+  .li-intro-main {
+    flex: 0 0 auto;
   }
   .li-organizations {
+    flex: 0 0 auto;
     max-width: none;
     text-align: left;
   }
