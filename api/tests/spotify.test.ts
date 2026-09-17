@@ -66,6 +66,8 @@ test('aggregate response rewrites artwork and persists rotated tokens', async ()
             images: [{ url: 'https://i.scdn.co/image/playlist' }],
           },
           { id: 'private', owner: { id: 'owner' }, public: false },
+          { id: 'no-artwork', owner: { id: 'owner' }, public: true, images: null },
+          { id: 'followed', owner: { id: 'someone-else' }, public: true },
         ],
       });
     if (url.includes('currently-playing')) return new Response(null, { status: 204 });
@@ -74,7 +76,11 @@ test('aggregate response rewrites artwork and persists rotated tokens', async ()
   const request = new Request('https://api.test/api/spotify');
   const data = await (await handleRequest(request, services)).json();
   assert.match(data.profile.images[0].url, /^\/api\/media\/spotify\//);
-  assert.equal(data.playlists.length, 1);
+  assert.deepEqual(
+    data.playlists.map((playlist: { id: string }) => playlist.id),
+    ['mine', 'no-artwork'],
+  );
+  assert.equal(data.playlists[1].images, null);
   assert.equal(await services.state.get('refresh_token'), 'rotated');
   await handleRequest(request, services);
   assert.equal(exchanges, 1);
@@ -103,6 +109,42 @@ test('aggregate response survives an unavailable optional Spotify endpoint', asy
   assert.equal(data.profile.id, 'owner');
   assert.equal(data.topTracks, null);
   assert.deepEqual(data.playlists, []);
+});
+
+test('current playlist accepts modern and legacy track counts and proxies artwork', async () => {
+  for (const countField of ['items', 'tracks']) {
+    const services = testServices();
+    await services.state.put('access_token', 'access');
+    services.fetch = async (input) => {
+      const url = new URL(String(input));
+      if (url.pathname.endsWith('/currently-playing'))
+        return Response.json({
+          ...playing,
+          context: { type: 'playlist', uri: 'spotify:playlist:current' },
+        });
+      if (url.pathname === '/v1/playlists/current') {
+        assert.equal(
+          url.searchParams.get('fields'),
+          'id,name,images,external_urls,tracks(total),items(total)',
+        );
+        return Response.json({
+          id: 'current',
+          name: 'Current playlist',
+          images: [{ url: 'https://i.scdn.co/image/current' }],
+          external_urls: { spotify: 'https://open.spotify.com/playlist/current' },
+          [countField]: { total: 359 },
+        });
+      }
+      return Response.json({ items: [] });
+    };
+    const response = await handleRequest(new Request('https://api.test/spotify'), services);
+    assert.equal(response.status, 200);
+    const { status } = await response.json();
+    assert.equal(status.contextPlaylist.name, 'Current playlist');
+    assert.equal(status.contextPlaylist.totalTracks, 359);
+    assert.equal(status.contextPlaylist.url, 'https://open.spotify.com/playlist/current');
+    assert.match(status.contextPlaylist.images[0].url, /^https:\/\/api.test\/media\/spotify\//);
+  }
 });
 
 test('aggregate response clears an expired token when Spotify returns 401', async () => {

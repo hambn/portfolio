@@ -1,6 +1,6 @@
 import type { Services } from '../contracts.js';
 import { json, fetchWithTimeout, readJSON, CORS } from '../lib/http.js';
-import { spotifyData, tokenData } from '../lib/schemas.js';
+import { spotifyData, spotifyPlaylistData, tokenData } from '../lib/schemas.js';
 
 async function getSpotifyToken(services: Services) {
   const cached = await services.state.get('access_token');
@@ -45,7 +45,10 @@ async function spotifyGet(services: Services, path: string, accessToken: string 
     if (res.status === 204) return { data: null, status: res.status };
 
     try {
-      const data = await readJSON(res, spotifyData);
+      const data = await readJSON(
+        res,
+        path.startsWith('/playlists/') ? spotifyPlaylistData : spotifyData,
+      );
       return { data, status: res.status };
     } catch (error) {
       // Spotify occasionally answers a single endpoint with an empty or
@@ -149,7 +152,13 @@ export async function handle(request: Request, services: Services) {
         : null;
 
     const contextRaw = contextId
-      ? (await spotifyGet(services, `/playlists/${contextId}`, token.access_token)).data
+      ? (
+          await spotifyGet(
+            services,
+            `/playlists/${encodeURIComponent(contextId)}?fields=id,name,images,external_urls,tracks(total),items(total)`,
+            token.access_token,
+          )
+        ).data
       : null;
 
     const contextPlaylist = contextRaw
