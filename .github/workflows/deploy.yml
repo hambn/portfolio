@@ -65,7 +65,9 @@ jobs:
             --arg client_id "$SPOTIFY_CLIENT_ID" \
             --arg refresh_token "$SPOTIFY_REFRESH_TOKEN" \
             --arg steam_key "$STEAM_API_KEY" \
-            '{SPOTIFY_CLIENT_ID: $client_id, SPOTIFY_REFRESH_TOKEN: $refresh_token, STEAM_API_KEY: $steam_key}' \
+            --arg mail_key "$MAIL_API_KEY" \
+            --arg mail_token_secret "$MAIL_TOKEN_SECRET" \
+            '{SPOTIFY_CLIENT_ID: $client_id, SPOTIFY_REFRESH_TOKEN: $refresh_token, STEAM_API_KEY: $steam_key, MAIL_API_KEY: $mail_key, MAIL_TOKEN_SECRET: $mail_token_secret}' \
             | npx wrangler secret bulk --config api/wrangler.gen.toml
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -73,3 +75,7 @@ jobs:
           SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
           SPOTIFY_REFRESH_TOKEN: ${{ secrets.SPOTIFY_REFRESH_TOKEN }}
           STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
+          MAIL_API_KEY: ${{ secrets.MAIL_API_KEY }}
+          # Signs the contact form's single-use tokens. Changing it only
+          # invalidates forms that are open at that moment.
+          MAIL_TOKEN_SECRET: ${{ secrets.MAIL_TOKEN_SECRET }}

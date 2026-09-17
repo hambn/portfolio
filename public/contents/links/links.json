@@ -1,6 +1,8 @@
 {
   "email": {
-    "address": "contact@hgh.dev"
+    "address": "contact@hgh.dev",
+    "from": "Portfolio <form@hgh.dev>",
+    "provider": "resend"
   },
   "discord": {
     "userId": "601127931921563669",

@@ -62,7 +62,7 @@ Static React portfolio, built with Vite, deployed to GitHub Pages at
 │
 ├─ api/                    Portable TypeScript backend; guide: .claude/api.md
 │  ├─ src/                 app, routes, identities, links (batch), providers,
-│  │                       media, lib, adapters, entrypoints
+│  │                       mail (contact form), media, lib, adapters, entrypoints
 │  ├─ tests/               network-free API and persistent-storage regressions
 │  ├─ tsconfig*.json       separate Node and Worker type checking
 │  ├─ worker-configuration.d.ts   generated Cloudflare bindings/runtime types

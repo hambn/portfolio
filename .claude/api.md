@@ -11,6 +11,9 @@ time, and background tasks. Keep platform globals in adapters and entrypoints.
 - `src/links.ts`: the batch `/links` route; calls the same provider handlers the
   single-card routes use, so caches, TTLs, and cooldowns are shared.
 - `src/providers/`: provider requests and response shaping.
+- `src/mail/`: the contact form. `provider.ts` is the swappable vendor interface,
+  `address.ts` validates a sender without any verification service, `quota.ts`
+  holds the form token and the send limits, `contact.ts` is the route.
 - `src/lib/`: bounded HTTP reads, HTML parsing, schemas, cache policy, presence protocol.
   `lib/ttl.ts` holds the named cache lifetimes; `lib/snapshot.ts` holds the shared
   persisted-snapshot serving (retry cooldown, 7-day stale limit, image download).
@@ -67,6 +70,8 @@ remove the Docker volume unless you intend to discard it.
 | `STEAM_API_KEY`, `STEAM_ID` | Steam credentials and account |
 | `DISCORD_ID` | Lanyard account and sole allowed socket subscription |
 | `LINKEDIN_URL` | HTTPS LinkedIn profile; route returns 503 if unset |
+| `MAIL_API_KEY` | Mail vendor API key; secret. Without it `/contact` returns 503 |
+| `MAIL_TOKEN_SECRET` | HMAC secret for form tokens; secret. Falls back to `MAIL_API_KEY` |
 | `CACHE_VERSION` | Response/media cache namespace, stable across Node restarts |
 | `PORT` | Node listen port, default 8787 |
 | `API_DATA_DIR` | Node persistent data directory |
@@ -74,8 +79,9 @@ remove the Docker volume unless you intend to discard it.
 | `API_PUBLIC_ORIGIN` | Optional external origin for direct Node access behind TLS |
 | `VITE_API_BASE_URL` | Frontend build setting; default production Worker, Docker default `/api` |
 
-Telegram, GitHub and GitLab identities come from
-`public/contents/links/links.json`. There is no `TELEGRAM_USERNAME` variable.
+Telegram, GitHub, GitLab and contact-form identities come from
+`public/contents/links/links.json`. There is no `TELEGRAM_USERNAME` variable,
+and no `MAIL_FROM`/`MAIL_TO`/`MAIL_PROVIDER` variable.
 Rebuild/redeploy after changing identities. Credentials stay in Worker secrets
 or container environment variables. The Node container has no Cloudflare dependency.
 
@@ -87,7 +93,8 @@ produce mixed-content URLs. Separate frontend/API hosting uses an absolute
 
 ## Routes and cache policy
 
-All HTTP routes accept GET, HEAD and OPTIONS. HEAD sends no body. Other methods
+All HTTP routes accept GET, HEAD and OPTIONS; `/contact` also accepts POST and
+is the only route that reads a request body. HEAD sends no body. Other methods
 return 405. Unknown routes return 404. Navigation links still point to providers;
 images, data requests, and the live presence socket go through the API.
 
@@ -95,6 +102,7 @@ images, data requests, and the live presence socket go through the API.
 | --- | --- |
 | `/health` | Uncached liveness |
 | `/links` | Uncached aggregate of every card; `include=`/`exclude=` filter by card key |
+| `/contact` | GET mints a single-use form token; POST sends one message |
 | `/spotify` | Uncached aggregate library and playback |
 | `/spotify?playback=1` | Uncached playback only; preserves rate-limit response and Retry-After |
 | `/steam` | 5 minutes |
@@ -121,6 +129,34 @@ cooldown reduces retries, but KV is eventually consistent and cannot guarantee
 one global fetch across data centers. Failed refreshes retain previous metadata;
 a failed avatar download retains the previous image. No stale playback is served.
 Other media is fetched on demand; cached delivery is not an offline archive.
+
+## Contact form
+
+The form's configuration is content, not environment: `links.json` carries
+`email.address` (the only inbox it will ever address), `email.from` (the
+vendor-verified sending identity) and `email.provider` (the vendor). Only the
+two credentials are variables. Rebuild/redeploy after editing those fields.
+
+No request field names a recipient, and the message body cannot reach a header —
+subjects are flattened and the visitor's address travels as Reply-To behind the
+verified `email.from` identity.
+
+A POST must carry a token from a preceding GET: HMAC-signed, single-use,
+usable between 3 seconds and 30 minutes after it is minted. A hidden honeypot
+field is answered as success and sends nothing. Beyond that: 2 messages per
+sender per hour, 4 per day, 60 per day and 1200 per month overall (`MAIL_LIMITS`
+in `src/mail/quota.ts`), all held under a 100/day, 3000/month vendor plan. The
+same message from the same sender is refused for ten minutes. Bodies are capped
+at 16 KiB. Counters only advance after the vendor accepts the message, so a
+failed send costs nobody their allowance.
+
+Sender validation runs without any verification service: an RFC-shaped syntax
+check, a throwaway-domain list, and a DNS-over-HTTPS MX/A lookup of the domain
+(cached a day). A resolver outage fails open; NXDOMAIN or a domain with no mail
+records is refused.
+
+Swapping vendor is one module: implement `MailProvider` in `src/mail/provider.ts`,
+register it, and name it in `email.provider`. Nothing else in the API changes.
 
 ## Spotify re-authentication
 

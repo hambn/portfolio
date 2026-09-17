@@ -118,6 +118,7 @@
   color: var(--em-faint);
 }
 .em-style-7 {
+  position: relative;
   padding: 8px 24px 20px;
   display: flex;
   flex-direction: column;
@@ -154,13 +155,51 @@
   white-space: nowrap;
 }
 
+/* Compose title strip — the "New Message" bar of a Gmail compose window. */
+.em-compose-bar {
+  padding: 10px 24px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--em-text);
+  background: var(--em-bgHead);
+  border-top: 1px solid var(--em-border);
+  border-bottom: 1px solid var(--em-div);
+}
+
 /* Use the existing divider as the field focus indicator. */
-.em-subject-row,
+.em-field-row,
 .em-message {
   transition: border-color 0.15s;
 }
-.em-subject-row:focus-within {
+.em-field-row:focus-within {
   border-bottom-color: var(--em-blue);
+}
+
+/* Off-screen rather than display:none — a bot that skips hidden inputs still
+   sees this one, and no sighted or screen-reader user ever reaches it. */
+.em-trap {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.em-status {
+  flex-basis: 100%;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+.em-status.is-error {
+  color: var(--em-red);
+}
+.em-status.is-sent {
+  color: var(--em-blue);
+}
+.em-style-14:disabled {
+  opacity: 0.6;
+  cursor: progress;
 }
 .em-message {
   margin: 16px 0;

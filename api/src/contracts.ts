@@ -17,6 +17,10 @@ export interface Config {
   STEAM_ID: string;
   DISCORD_ID: string;
   LINKEDIN_URL: string;
+  // Contact form credentials only. Who receives, who sends and which vendor
+  // carries it are content, and live in links.json.
+  MAIL_API_KEY: string;
+  MAIL_TOKEN_SECRET: string;
 }
 
 export interface Services {

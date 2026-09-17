@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "api:serve": "npm run api:build && node api/dist/server.mjs",
     "api:config": "envsubst < api/wrangler.toml > api/wrangler.gen.toml",
-    "api:deploy": "npm run api:config && wrangler deploy --config api/wrangler.gen.toml --var CACHE_VERSION:$(date +%s) STEAM_ID:$STEAM_ID DISCORD_ID:$DISCORD_ID LINKEDIN_URL:$LINKEDIN_URL",
+    "api:deploy": "npm run api:config && wrangler deploy --config api/wrangler.gen.toml --var \"CACHE_VERSION:$(date +%s)\" \"STEAM_ID:$STEAM_ID\" \"DISCORD_ID:$DISCORD_ID\" \"LINKEDIN_URL:$LINKEDIN_URL\"",
     "lint": "eslint src scripts api/src api/tests shared tests/browser *.js --max-warnings 0",
     "format": "prettier --write \"src/**/*.{js,jsx,css}\" \"scripts/**/*.mjs\" \"shared/*.{js,ts}\" \"api/{src,tests}/**/*.ts\" \"api/tsconfig*.json\" \"tests/browser/**/*.js\" \"*.js\" package.json .prettierrc.json",
     "format:check": "prettier --check \"src/**/*.{js,jsx,css}\" \"scripts/**/*.mjs\" \"shared/*.{js,ts}\" \"api/{src,tests}/**/*.ts\" \"api/tsconfig*.json\" \"tests/browser/**/*.js\" \"*.js\" package.json .prettierrc.json",
