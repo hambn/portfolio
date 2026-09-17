@@ -25,7 +25,8 @@
   },
   "x": {
     "handle": "hambn4",
-    "url": "https://x.com/hambn4"
+    "url": "https://x.com/hambn4",
+    "apiEndpoint": "https://api.portfolio.hgh.dev/x"
   },
   "telegram": {
     "handle": "ham_bn",

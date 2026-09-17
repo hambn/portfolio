@@ -18,6 +18,7 @@ const hosts: Record<string, string[]> = {
   discord: ['cdn.discordapp.com', 'media.discordapp.net'],
   linkedin: ['media.licdn.com'],
   telegram: ['telegram.org', 'telesco.pe'],
+  x: ['pbs.twimg.com'],
 };
 
 const imageKey = /^(images?|avatar|avatar_url|photo|banner|header|hero)$/;
@@ -74,7 +75,8 @@ export function rewriteMedia(value: unknown, base: string, imageField = false): 
   if (typeof value === 'string') {
     const path = mediaPath(value);
     if (path) return `${base}${path}`;
-    if (/^\/(telegram|discord)\/avatar(?:\?|$)/.test(value)) return `${base}${value}`;
+    if (/^\/(?:(telegram|discord)\/avatar|x\/(avatar|banner))(?:\?|$)/.test(value))
+      return `${base}${value}`;
     return imageField && /^https?:|^\/\//.test(value) ? null : value;
   }
   // Returning the original reference when nothing changed lets callers skip

@@ -5,6 +5,7 @@ import { handle as spotify } from './providers/spotify.js';
 import { handle as steam } from './providers/steam.js';
 import { handle as discord } from './providers/discord.js';
 import { handle as linkedin } from './providers/linkedin.js';
+import { handle as x } from './providers/x.js';
 import { handle as telegram } from './providers/telegram.js';
 import { handle as gitlab } from './providers/gitlab.js';
 import { handle as github } from './providers/github.js';
@@ -13,7 +14,7 @@ import { handle as media } from './media/handler.js';
 const providers: Record<
   string,
   (request: Request, services: Services) => Promise<Response | null>
-> = { spotify, steam, discord, linkedin, telegram, github, gitlab, media };
+> = { spotify, steam, discord, linkedin, telegram, x, github, gitlab, media };
 
 export async function handleRequest(request: Request, services: Services): Promise<Response> {
   const incoming = new URL(request.url);
