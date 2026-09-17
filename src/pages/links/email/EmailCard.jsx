@@ -58,8 +58,11 @@ export function EmailCard({ address }) {
             accent="var(--em-blue)"
             copied={copied}
             onCopy={copyAddr}
-            copyLabel="copy email"
+            copyLabel="copy address"
             copyTitle="Copy email address"
+            href={`mailto:${to}`}
+            openLabel="open in mail app"
+            openTitle="Open in your mail app"
             collapsed={collapsed}
             onToggle={toggleCollapse}
           />
