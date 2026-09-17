@@ -2,7 +2,8 @@ import { apiUrl } from '../../lib/api.js';
 // GitHub / GitLab contribution graph.
 // GitHub data comes from the public (no-auth) jogruber contributions API;
 // GitLab has no no-auth calendar API so it uses a deterministic synthetic grid.
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { useCardFeed } from '../../pages/links/LinksFeed.jsx';
 
 const GH_MONTHS = [
   'Jan',
@@ -22,6 +23,13 @@ const GH_MONTHS = [
 export function ContribGraph({ username, source, levels, theme }) {
   const [weeks, setWeeks] = useState(null);
   const [hover, setHover] = useState(null); // {wi,di,label}
+  // Seeded from the one-shot /links batch; freshness is judged inside the effect
+  // so a card expanded long after the batch settled still re-fetches.
+  const seed = useCardFeed('githubContributions');
+  const seedRef = useRef(seed);
+  seedRef.current = seed;
+  const synthetic = useRef(null);
+  const generation = seed.generation;
 
   const buildWeeks = (days) => {
     const wk = [];
@@ -64,6 +72,17 @@ export function ContribGraph({ username, source, levels, theme }) {
     };
 
     if (source === 'github') {
+      const fresh = seedRef.current;
+      if (fresh.status === 'pending') return undefined; // wait for the batch to settle
+      const seeded = fresh.status === 'ready' ? fresh.data?.contributions : null;
+      if (
+        Array.isArray(seeded) &&
+        seeded.length &&
+        Date.now() - fresh.receivedAt < (fresh.maxAgeMs || 0)
+      ) {
+        setWeeks(buildWeeks(seeded));
+        return undefined;
+      }
       fetch(apiUrl(`/github/contributions?username=${encodeURIComponent(username)}`))
         .then((r) => (r.ok ? r.json() : Promise.reject()))
         .then((d) => {
@@ -76,13 +95,16 @@ export function ContribGraph({ username, source, levels, theme }) {
           if (!cancelled) setWeeks(buildWeeks(synth()));
         });
     } else {
-      setWeeks(buildWeeks(synth()));
+      // Keep one synthetic grid per user so an unrelated feed update can't reshuffle it.
+      if (synthetic.current?.key !== `${source}:${username}`)
+        synthetic.current = { key: `${source}:${username}`, days: synth() };
+      setWeeks(buildWeeks(synthetic.current.days));
     }
 
     return () => {
       cancelled = true;
     };
-  }, [username, source]);
+  }, [username, source, generation]);
 
   if (!weeks) {
     return (

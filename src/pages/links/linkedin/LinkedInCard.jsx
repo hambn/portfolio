@@ -2,6 +2,7 @@ import './LinkedInCard.css';
 import React, { useState } from 'react';
 import { apiUrl } from '../../../lib/api.js';
 import { usePolledJSON } from '../../../hooks/usePolledJSON.js';
+import { useCardFeed } from '../LinksFeed.jsx';
 import { useCollapsed } from '../../../hooks/useCollapsed.js';
 import { useCopy } from '../../../hooks/useCopy.js';
 import { HeaderButtons } from '../../../components/card/HeaderButtons.jsx';
@@ -38,6 +39,7 @@ function LinkedInProfile({ username, apiEndpoint }) {
     (data) => {
       if (data?.username === username) setProfile(data);
     },
+    useCardFeed('linkedin'),
   );
   const avatar = profile?.avatar ? new URL(profile.avatar, endpoint).href : null;
   const banner = profile?.banner ? new URL(profile.banner, endpoint).href : null;

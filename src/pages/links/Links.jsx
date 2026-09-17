@@ -8,6 +8,7 @@ import React, { useEffect, useState } from 'react';
 import { PortfolioData } from '../../lib/data.js';
 import { useCardCollapsed } from '../../hooks/useCollapsed.js';
 import ErrorState from '../../components/ErrorState.jsx';
+import { LinksFeed } from './LinksFeed.jsx';
 import { EmailCard } from './email/EmailCard.jsx';
 import { DiscordCard } from './discord/DiscordCard.jsx';
 import { TelegramCard } from './telegram/TelegramCard.jsx';
@@ -157,61 +158,71 @@ export default function Links() {
       </div>
 
       {/* Order: Email, Discord, Telegram, X, GitHub, GitLab, LinkedIn, Spotify, Steam */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {config.email && <EmailCard address={config.email.address} />}
+      {/* One /links request seeds every card below; see LinksFeed.jsx. */}
+      <LinksFeed config={config}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {config.email && <EmailCard address={config.email.address} />}
 
-        {config.discord && (
-          <DiscordCard
-            userId={config.discord.userId}
-            lanyardData={lanyardData}
-            apiEndpoint={config.discord.apiEndpoint || apiUrl('/discord')}
-          />
-        )}
+          {config.discord && (
+            <DiscordCard
+              userId={config.discord.userId}
+              lanyardData={lanyardData}
+              apiEndpoint={config.discord.apiEndpoint || apiUrl('/discord')}
+            />
+          )}
 
-        {config.telegram && (
-          <TelegramCard
-            username={config.telegram.username || config.telegram.handle || config.telegram.url}
-            handle={config.telegram.handle}
-            url={config.telegram.url}
-            apiEndpoint={config.telegram.apiEndpoint || apiUrl('/telegram')}
-          />
-        )}
+          {config.telegram && (
+            <TelegramCard
+              username={config.telegram.username || config.telegram.handle || config.telegram.url}
+              handle={config.telegram.handle}
+              url={config.telegram.url}
+              apiEndpoint={config.telegram.apiEndpoint || apiUrl('/telegram')}
+            />
+          )}
 
-        {config.x && <XCard handle={config.x.handle} url={config.x.url} />}
+          {config.x && <XCard handle={config.x.handle} url={config.x.url} />}
 
-        {config.github && <GitHubCard username={config.github.username} url={config.github.url} />}
+          {config.github && (
+            <GitHubCard username={config.github.username} url={config.github.url} />
+          )}
 
-        {config.gitlab && <GitLabCard username={config.gitlab.username} url={config.gitlab.url} />}
+          {config.gitlab && (
+            <GitLabCard username={config.gitlab.username} url={config.gitlab.url} />
+          )}
 
-        {config.linkedin && (
-          <LinkedInCard
-            handle={config.linkedin.handle}
-            url={config.linkedin.url}
-            name={config.linkedin.name}
-            headline={config.linkedin.headline}
-            location={config.linkedin.location}
-            connections={config.linkedin.connections}
-            followers={config.linkedin.followers}
-            banner={config.linkedin.banner}
-            avatar={config.linkedin.avatar}
-          />
-        )}
+          {config.linkedin && (
+            <LinkedInCard
+              handle={config.linkedin.handle}
+              url={config.linkedin.url}
+              name={config.linkedin.name}
+              headline={config.linkedin.headline}
+              location={config.linkedin.location}
+              connections={config.linkedin.connections}
+              followers={config.linkedin.followers}
+              banner={config.linkedin.banner}
+              avatar={config.linkedin.avatar}
+            />
+          )}
 
-        {config.spotify?.userId &&
-          (config.spotify?.apiEndpoint ? (
-            <SpotifyCard userId={config.spotify.userId} apiEndpoint={config.spotify.apiEndpoint} />
-          ) : (
-            <SpotifySimpleCard userId={config.spotify.userId} />
-          ))}
+          {config.spotify?.userId &&
+            (config.spotify?.apiEndpoint ? (
+              <SpotifyCard
+                userId={config.spotify.userId}
+                apiEndpoint={config.spotify.apiEndpoint}
+              />
+            ) : (
+              <SpotifySimpleCard userId={config.spotify.userId} />
+            ))}
 
-        {config.steam && (
-          <SteamCard
-            handle={config.steam.handle}
-            url={config.steam.url}
-            apiEndpoint={config.steam.apiEndpoint}
-          />
-        )}
-      </div>
+          {config.steam && (
+            <SteamCard
+              handle={config.steam.handle}
+              url={config.steam.url}
+              apiEndpoint={config.steam.apiEndpoint}
+            />
+          )}
+        </div>
+      </LinksFeed>
     </main>
   );
 }

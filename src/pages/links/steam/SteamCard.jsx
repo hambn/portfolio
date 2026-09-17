@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import { useCollapsed } from '../../../hooks/useCollapsed.js';
 import { useCopy } from '../../../hooks/useCopy.js';
 import { usePolledJSON } from '../../../hooks/usePolledJSON.js';
+import { useCardFeed } from '../LinksFeed.jsx';
 import { HeaderButtons } from '../../../components/card/HeaderButtons.jsx';
 
 // ── One-time CSS ───────────────────────────────────────────────────────────────
@@ -213,8 +214,11 @@ export function SteamCard({ handle, url, apiEndpoint }) {
     url ||
     (handle ? `https://steamcommunity.com/id/${handle}/` : 'https://steamcommunity.com');
   const [copied, copyLink] = useCopy(profileUrl);
-  const { loading, error } = usePolledJSON(collapsed ? null : apiEndpoint, 60000, (d) =>
-    setData(d),
+  const { loading, error } = usePolledJSON(
+    collapsed ? null : apiEndpoint,
+    60000,
+    (d) => setData(d),
+    useCardFeed('steam'),
   );
   const isInGame = !!data?.currentGame;
   const statusStr = (data?.status || '').toLowerCase();

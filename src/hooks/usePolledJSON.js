@@ -8,16 +8,30 @@ import { useEffect, useRef, useState } from 'react';
  *
  * Requests are also suspended while the tab is hidden: a backgrounded tab does
  * nothing until it comes back, then catches up with one immediate fetch.
+ *
+ * `seed` (from useCardFeed) lets the one batch /links response stand in for the
+ * initial request. While it is 'pending' the hook waits rather than racing the
+ * batch; a 'ready' seed still inside its max-age is delivered without any
+ * request at all. A stale, missing or errored seed falls through to fetching.
  */
-export function usePolledJSON(url, intervalMs, onData) {
+export function usePolledJSON(url, intervalMs, onData, seed) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const cb = useRef(onData);
   cb.current = onData;
+  // Read at effect time, not render time: only `generation` re-runs the effect.
+  const seedRef = useRef(seed);
+  seedRef.current = seed;
+  const generation = seed?.generation ?? 0;
   useEffect(() => {
     if (!url) {
       setLoading(false);
       setError(null);
+      return undefined;
+    }
+    // The batch is still in flight; it may answer this card without a request.
+    if (seedRef.current?.status === 'pending') {
+      setLoading(true);
       return undefined;
     }
     let alive = true;
@@ -70,7 +84,19 @@ export function usePolledJSON(url, intervalMs, onData) {
         });
     };
 
-    load();
+    const fresh = seedRef.current;
+    const usable =
+      fresh?.status === 'ready' && Date.now() - fresh.receivedAt < (fresh.maxAgeMs || 0);
+    if (usable) {
+      cb.current(fresh.data, true);
+      firstRequest = false;
+      setLoading(false);
+      setError(null);
+      // Live cards still poll, just starting one interval out instead of now.
+      if (intervalMs > 0) timer = setTimeout(load, intervalMs);
+    } else {
+      load();
+    }
     const resume = () => {
       if (document.hidden) {
         clearTimeout(timer);
@@ -88,6 +114,6 @@ export function usePolledJSON(url, intervalMs, onData) {
       document.removeEventListener('visibilitychange', resume);
       controller?.abort();
     };
-  }, [url, intervalMs]);
+  }, [url, intervalMs, generation]);
   return { loading, error };
 }

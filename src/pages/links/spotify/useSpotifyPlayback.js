@@ -1,17 +1,26 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { playbackProgress } from './playbackClock.js';
 
 const POLL_MS = 10000;
 const LIBRARY_MS = 60000;
 
-export function useSpotifyPlayback(endpoint) {
+export function useSpotifyPlayback(endpoint, seed) {
   const [data, setData] = useState(null);
   const [progress, setProgress] = useState(0);
   const [loading, setLoading] = useState(Boolean(endpoint));
   const [error, setError] = useState(null);
+  // Seed from the one-shot /links batch: it carries the full library response,
+  // so the first poll can be the small playback-only request.
+  const seedRef = useRef(seed);
+  seedRef.current = seed;
+  const generation = seed?.generation ?? 0;
 
   useEffect(() => {
     if (!endpoint) return;
+    if (seedRef.current?.status === 'pending') {
+      setLoading(true);
+      return undefined;
+    }
     let disposed = false;
     let controller;
     let timer;
@@ -139,8 +148,24 @@ export function useSpotifyPlayback(endpoint) {
     document.addEventListener('visibilitychange', resume);
     window.addEventListener('focus', resume);
     window.addEventListener('online', resume);
-    setData(null);
-    setLoading(true);
+    const primed = seedRef.current;
+    const seeded =
+      primed?.status === 'ready' &&
+      Date.now() - primed.receivedAt < LIBRARY_MS &&
+      primed.data &&
+      Object.hasOwn(primed.data, 'status')
+        ? primed.data
+        : null;
+    if (seeded) {
+      library = seeded;
+      libraryAt = performance.now();
+      setData(seeded);
+      setLoading(false);
+      setError(null);
+    } else {
+      setData(null);
+      setLoading(true);
+    }
     void poll();
     return () => {
       disposed = true;
@@ -151,7 +176,7 @@ export function useSpotifyPlayback(endpoint) {
       window.removeEventListener('focus', resume);
       window.removeEventListener('online', resume);
     };
-  }, [endpoint]);
+  }, [endpoint, generation]);
 
   return { data, progress, loading, error };
 }

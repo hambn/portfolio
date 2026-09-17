@@ -2,6 +2,7 @@ import './XCard.css';
 import React, { useState } from 'react';
 import { apiUrl } from '../../../lib/api.js';
 import { usePolledJSON } from '../../../hooks/usePolledJSON.js';
+import { useCardFeed } from '../LinksFeed.jsx';
 import { xUsername } from '../../../../shared/x.js';
 import { useCollapsed } from '../../../hooks/useCollapsed.js';
 import { useCopy } from '../../../hooks/useCopy.js';
@@ -36,6 +37,7 @@ function XProfile({ username, apiEndpoint }) {
     (data) => {
       if (data?.username === username) setProfile(data);
     },
+    useCardFeed('x'),
   );
   const avatar = profile?.avatar ? new URL(profile.avatar, endpoint).href : null;
   const banner = profile?.banner ? new URL(profile.banner, endpoint).href : null;

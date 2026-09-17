@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import { useCollapsed } from '../../../hooks/useCollapsed.js';
 import { useCopy } from '../../../hooks/useCopy.js';
 import { usePolledJSON } from '../../../hooks/usePolledJSON.js';
+import { useCardFeed } from '../LinksFeed.jsx';
 import { HeaderButtons } from '../../../components/card/HeaderButtons.jsx';
 import { telegramUsername } from '../../../../shared/telegram.js';
 
@@ -39,6 +40,7 @@ function TelegramProfile({ username, apiEndpoint }) {
     (data) => {
       if (data?.username === username) setProfile(data);
     },
+    useCardFeed('telegram'),
   );
   const name = profile?.name || (username ? `@${username}` : 'Telegram');
   const photo = profile?.photo ? new URL(profile.photo, endpoint).href : null;

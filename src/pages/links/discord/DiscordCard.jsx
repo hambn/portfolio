@@ -6,6 +6,7 @@ import React, { useEffect, useState } from 'react';
 import { useCollapsed } from '../../../hooks/useCollapsed.js';
 import { useCopy } from '../../../hooks/useCopy.js';
 import { usePolledJSON } from '../../../hooks/usePolledJSON.js';
+import { useCardFeed } from '../LinksFeed.jsx';
 import { HeaderButtons } from '../../../components/card/HeaderButtons.jsx';
 
 const DC = {
@@ -146,9 +147,14 @@ export function DiscordCard({ userId, lanyardData, apiEndpoint }) {
     return () => window.clearInterval(id);
   }, [hasTimedActivity]);
 
-  const { loading } = usePolledJSON(collapsed ? null : apiEndpoint, 30000, (data) => {
-    if (data?.username) setApiData(data);
-  });
+  const { loading } = usePolledJSON(
+    collapsed ? null : apiEndpoint,
+    30000,
+    (data) => {
+      if (data?.username) setApiData(data);
+    },
+    useCardFeed('discord'),
+  );
 
   const getActivityImgSrc = (activity) => {
     if (!activity?.assets?.large_image) return null;
