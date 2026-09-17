@@ -46,11 +46,16 @@ function LinkedInProfile({ username, apiEndpoint }) {
   return (
     <section className="li-card link-card" aria-label="LinkedIn profile">
       <div className="li-header link-card-header">
-        <a className="link-card-brand" href={href} target="_blank" rel="noopener noreferrer">
+        <a
+          className="link-card-brand li-brand"
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true">
             <path d={LI_ICON} />
           </svg>
-          <span className="link-card-title">LinkedIn</span>
+          <span className="link-card-title li-wordmark">LinkedIn</span>
         </a>
         <div className="link-card-spacer" />
         <div className="link-card-actions">
@@ -80,24 +85,26 @@ function LinkedInProfile({ username, apiEndpoint }) {
           )}
         </div>
         <div className="li-identity" aria-busy={loading && !profile}>
-          {avatar && avatar !== failedAvatar ? (
-            <img
-              className="li-avatar"
-              src={avatar}
-              alt=""
-              width="88"
-              height="88"
-              onError={() => setFailedAvatar(avatar)}
-            />
-          ) : (
-            <div className="li-avatar li-avatar-fallback" aria-hidden="true">
-              <svg viewBox="0 0 24 24" width="36" height="36" fill="currentColor">
-                <path d={LI_ICON} />
-              </svg>
-            </div>
-          )}
+          <div className="li-avatar-ring">
+            {avatar && avatar !== failedAvatar ? (
+              <img
+                className="li-avatar"
+                src={avatar}
+                alt=""
+                width="152"
+                height="152"
+                onError={() => setFailedAvatar(avatar)}
+              />
+            ) : (
+              <div className="li-avatar li-avatar-fallback" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="56" height="56" fill="currentColor">
+                  <path d={LI_ICON} />
+                </svg>
+              </div>
+            )}
+          </div>
           <div className="li-intro">
-            <div>
+            <div className="li-intro-main">
               <h2 className="li-name" dir="auto">
                 {name}
               </h2>
@@ -111,10 +118,19 @@ function LinkedInProfile({ username, apiEndpoint }) {
                   {profile.location}
                 </p>
               )}
-              <div className="li-counts">
-                {profile?.followers != null && <span>{profile.followers} followers</span>}
-                {profile?.connections != null && <span>{profile.connections} connections</span>}
-              </div>
+              <p className="li-counts">
+                {[
+                  profile?.followers != null && `${profile.followers} followers`,
+                  profile?.connections != null && `${profile.connections} connections`,
+                ]
+                  .filter(Boolean)
+                  .map((count, index) => (
+                    <React.Fragment key={count}>
+                      {index > 0 && <span className="li-dot"> · </span>}
+                      <span className="li-count">{count}</span>
+                    </React.Fragment>
+                  ))}
+              </p>
             </div>
             {profile?.organizations?.length > 0 && (
               <ul className="li-organizations">
@@ -126,9 +142,14 @@ function LinkedInProfile({ username, apiEndpoint }) {
               </ul>
             )}
           </div>
-          <a className="li-profile-button" href={href} target="_blank" rel="noopener noreferrer">
-            View profile
-          </a>
+          <div className="li-buttons">
+            <a className="li-button" href={href} target="_blank" rel="noopener noreferrer">
+              View profile
+            </a>
+            <button className="li-button li-button-ghost" type="button" onClick={copyLink}>
+              {copied ? 'Link copied' : 'Copy link'}
+            </button>
+          </div>
           {!profile && (loading || error) && (
             <p className="li-status" role="status">
               {loading ? 'Loading profile…' : 'Profile unavailable. You can still open LinkedIn.'}
