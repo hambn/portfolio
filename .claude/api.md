@@ -1,74 +1,115 @@
 # API (`api/`)
 
-Single backend proxying platform APIs for the portfolio link cards. One file of
-logic (`index.js`), runs **two ways from the same code**:
+The TypeScript application in `src/app.ts` runs on Cloudflare Workers and Node 24.
+Provider modules receive typed services for configuration, state, cache, fetch,
+time, and background tasks. Keep platform globals in adapters and entrypoints.
 
-- **Cloudflare Worker** (current) — `npm run api:deploy` (`wrangler deploy --config api/wrangler.toml`).
-- **Self-host on Node** — `npm run api:serve` → `http://localhost:8787`.
-  `server.js` shims the three Cloudflare globals `index.js` needs (`caches.default`,
-  `env.SPOTIFY_KV`, `env`) so `index.js` stays byte-identical between the two.
+- `src/providers/`: provider requests and response shaping.
+- `src/lib/`: bounded HTTP reads, HTML parsing, schemas, cache policy, presence protocol.
+- `src/media/`: allowlisted image sources, asset URLs, and cached image responses.
+- `src/adapters/`: Cloudflare KV/Cache API and persistent Node disk storage; WebSocket relays.
+- `src/entrypoints/`: Worker handlers and Node HTTP startup/shutdown.
+- `src/scheduled.ts`: Telegram refresh and Node overlap prevention.
+- `tests/`: network-free provider, storage, and HTTP regressions.
+- `worker-configuration.d.ts`: Wrangler-generated bindings and runtime types.
+- `tools/spotify-auth.html`: Spotify PKCE helper.
 
-- **URL:** `https://api.portfolio.hgh.dev` (CF route)
-- **Files:** `index.js` (worker logic — keep CF-vanilla, no npm deps), `server.js`
-  (Node adapter), `wrangler.toml`, `tools/spotify-auth.html` (one-off OAuth helper).
+## Commands
 
-## Rules
+`npm run api:serve` builds and starts Node on port 8787. `npm run api:deploy`
+generates deployment configuration and deploys the Worker. `npm run api:types`
+regenerates Cloudflare types after binding changes. `npm run api:check` runs
+both type checks, API tests, the Node build, and a Worker dry run.
+`npm run check` also lints/formats API code and builds the frontend.
+`npm run test:browser` builds a same-origin frontend and checks that rendered
+provider content and the Discord socket use the configured API host.
+`npm run test:container` builds the Docker image and verifies cached profile/image
+delivery before and after a restart with networking disabled.
 
-- `index.js` stays vanilla Worker JS — no npm packages, no build step. Node-only
-  glue lives in `server.js`.
-- KV (`SPOTIFY_KV`) only for persisting rotating tokens — no other KV usage.
-- Use the Cache API (`caches.default`) for anything that can be stale. Cache
-  keys are canonicalized to `origin + pathname` — query strings never create
-  duplicate entries.
-- No IDs/tokens hardcoded in `index.js` — everything reads `env.*`. Public config
-  is injected at deploy via `--var` (CF, from GitHub secrets / shell env) or
-  `process.env` (self-host); credentials live as **Worker secrets**
-  (`wrangler secret bulk`, pushed by the CI deploy job), never in `--var`.
-- Every handler is method-limited (`GET`/`HEAD`; `OPTIONS` for CORS) and every
-  upstream fetch has a hard 6–10s deadline.
-- Real-time (currently playing, online status): no cache. Profile/stats: 1h.
-  Recent activity: 5m.
-- Return raw upstream responses — the frontend reshapes.
+No public endpoint accepts an arbitrary upstream destination. Media identifiers
+encode HTTPS URLs, but each request and redirect must pass the provider host
+allowlist. Only raster images are served; downloads are limited to 4 MiB and
+10 seconds. Telegram avatars retain their 1 MiB limit. Unknown sources display
+an unavailable image instead of causing a browser request to the provider.
 
-## Env (all injected, none committed)
+## Deployment and configuration
 
-CF: public vars passed by `api:deploy` via `wrangler --var` from shell env /
-GitHub Actions secrets; credentials uploaded as Worker secrets with
-`wrangler secret bulk` (CI does both). Self-host: `process.env`
-(`SPOTIFY_CLIENT_ID=… STEAM_ID=… npm run api:serve`).
+Cloudflare uses `SPOTIFY_KV`, preserving existing token and Telegram keys.
+Wrangler builds TypeScript into JavaScript; type checking is a separate command.
+Free Workers are supported without R2 or another paid service. Traffic, media
+requests, CPU, and KV operations remain subject to Cloudflare quotas. The Cache
+API is an evictable per-data-center cache, not permanent storage.
 
-| Name | Kind | Used for |
-|---|---|---|
-| `SPOTIFY_KV_ID` | var | KV namespace id — CF only, `envsubst`'d into `wrangler.toml` at deploy (self-host uses an in-memory shim, ignores it) |
-| `SPOTIFY_CLIENT_ID` | secret | Spotify PKCE token exchange |
-| `SPOTIFY_REFRESH_TOKEN` | secret | Spotify auth fallback (KV takes over after first exchange) |
-| `STEAM_API_KEY` | secret | Steam Web API (get at https://steamcommunity.com/dev/apikey) |
-| `STEAM_ID` | var | 64-bit Steam ID (https://steamid.io) |
-| `DISCORD_ID` | var | Discord user ID (Lanyard lookup) |
-| `LINKEDIN_URL` | var | Public LinkedIn profile URL to scrape (e.g. `https://linkedin.com/in/hambn`); must be https + `*.linkedin.com` or `/linkedin` returns 503 |
-| `TELEGRAM_USERNAME` | var | Public Telegram username used by `/telegram` when no query or path username is supplied (defaults to `ham_bn`) |
-| `CACHE_VERSION` | var | cache-bust token (auto-set per deploy) |
+Node uses `.api-data/` by default. Docker mounts `/data` using the `api-data`
+named volume. State and cache occupy separate directories. State includes
+rotating Spotify tokens and profile snapshots; eviction never removes tokens.
+Cache writes are atomic and serialized, and oldest entries are pruned to the
+configured byte budget. Expired entries are never served. Restarting with the
+same data directory retains valid cache entries and state.
 
-## Routes
+Run one API process per data directory. Multiple replicas need shared storage
+and scheduling coordination. Back up the state directory as secret data. Do not
+remove the Docker volume unless you intend to discard it.
 
-| Route | Cache | Source |
-|---|---|---|
-| `GET /spotify` | none | aggregate: status + profile + top + recent + playlists |
-| `GET /steam` | 5m | Steam Web API — status, level, current/favorite game, recent |
-| `GET /discord` | 60s | Lanyard (`api.lanyard.rest`) — status, activities, spotify |
-| `GET /discord/avatar` | 1h | proxied Discord avatar image |
-| `GET /linkedin` | 1h | scraped OG meta tags from `LINKEDIN_URL` — name, headline, avatar, url (503 if unset) |
-| `GET /telegram[?username=<username>]` | 1h | scraped public `t.me` HTML — name, username, photo, description, contact; defaults to `TELEGRAM_USERNAME` |
-| `GET /telegram/avatar[?username=<username>]` | 1h | Telegram profile photo proxied and cached by the Worker/CDN |
-| `GET /health` | none | `{ ok: true }` liveness check |
+| Variable | Purpose |
+| --- | --- |
+| `SPOTIFY_KV_ID` | Cloudflare KV namespace ID, substituted into generated TOML |
+| `SPOTIFY_CLIENT_ID` | Spotify PKCE client ID |
+| `SPOTIFY_REFRESH_TOKEN` | Initial/fallback token; stored rotated token takes precedence |
+| `STEAM_API_KEY`, `STEAM_ID` | Steam credentials and account |
+| `DISCORD_ID` | Lanyard account and sole allowed socket subscription |
+| `LINKEDIN_URL` | HTTPS LinkedIn profile; route returns 503 if unset |
+| `CACHE_VERSION` | Response/media cache namespace, stable across Node restarts |
+| `PORT` | Node listen port, default 8787 |
+| `API_DATA_DIR` | Node persistent data directory |
+| `API_CACHE_MAX_BYTES` | Node response/media cache budget, default 268435456 |
+| `API_PUBLIC_ORIGIN` | Optional external origin for direct Node access behind TLS |
+| `VITE_API_BASE_URL` | Frontend build setting; default production Worker, Docker default `/api` |
 
-Anything else 404s; non-GET/HEAD 405s.
+Telegram, GitHub and GitLab identities come from
+`public/contents/links/links.json`. There is no `TELEGRAM_USERNAME` variable.
+Rebuild/redeploy after changing identities. Credentials stay in Worker secrets
+or container environment variables. The Node container has no Cloudflare dependency.
 
-## Re-auth (Spotify)
+Nginx forwards `/api/` to Node, including WebSocket upgrades, without replacing
+API cache headers. Both runtimes accept existing unprefixed routes and `/api/`
+routes. Prefixed responses use relative media URLs, so TLS termination does not
+produce mixed-content URLs. Separate frontend/API hosting uses an absolute
+`VITE_API_BASE_URL` and, for Node behind TLS, `API_PUBLIC_ORIGIN`.
 
-When Spotify returns `invalid_grant`, mint a new refresh token:
-1. Open `api/tools/spotify-auth.html`, run the PKCE flow with all required scopes
-   (`user-read-currently-playing`, `user-read-private`, `user-top-read`,
-   `user-read-recently-played`).
-2. Update the `SPOTIFY_REFRESH_TOKEN` GitHub secret (or your shell env).
-3. `npm run api:deploy`.
+## Routes and cache policy
+
+All HTTP routes accept GET, HEAD and OPTIONS. HEAD sends no body. Other methods
+return 405. Unknown routes return 404. Navigation links still point to providers;
+images, data requests, and the live presence socket go through the API.
+
+| Route | Cache / behavior |
+| --- | --- |
+| `/health` | Uncached liveness |
+| `/spotify` | Uncached aggregate library and playback |
+| `/spotify?playback=1` | Uncached playback only; preserves rate-limit response and Retry-After |
+| `/steam` | 5 minutes |
+| `/discord` | 60 seconds |
+| `/discord/avatar` | 1 hour |
+| `/discord/socket` | WebSocket relay, subscription pinned to configured Discord ID |
+| `/linkedin` | 1 hour; last good snapshot for up to 7 days on upstream failure |
+| `/telegram` | Uncached JSON from hourly persisted snapshot; stale limit 7 days |
+| `/telegram/avatar` | 1 hour, persisted snapshot image |
+| `/github`, `/github/repos`, `/github/contributions` | 1 hour, configured GitHub account only |
+| `/gitlab` | 1 hour, configured GitLab account only |
+| `/media/<provider>/<asset>` | 24 hours, allowlisted raster image proxy |
+
+Cloudflare Cron refreshes Telegram hourly. Node refreshes on startup and hourly
+without blocking HTTP startup; overlapping Node refresh jobs share one promise.
+Cold Telegram requests can bootstrap the snapshot. A one-minute persisted retry
+cooldown reduces retries, but KV is eventually consistent and cannot guarantee
+one global fetch across data centers. Failed refreshes retain previous metadata;
+a failed avatar download retains the previous image. No stale playback is served.
+Other media is fetched on demand; cached delivery is not an offline archive.
+
+## Spotify re-authentication
+
+Open `api/tools/spotify-auth.html` and run PKCE with the required scopes. Update
+`SPOTIFY_REFRESH_TOKEN` in deployment secrets. If a rotated token already exists
+in persistent state, remove the `refresh_token` state entry as part of an explicit
+credential reset; changing the fallback alone does not replace the stored token.

@@ -1,3 +1,9 @@
 node_modules
 dist
 .git
+
+.api-data
+api/dist
+.wrangler
+.env
+deployment/.env

@@ -19,9 +19,9 @@ npm run preview    # serve the production build locally
 Use Node.js 22 or newer and `npm ci` to install the locked dependencies.
 
 ```bash
-npm run format        # format frontend code, styles, and build scripts
-npm run lint          # check JavaScript, JSX, and React hook dependencies
-npm run check         # lint, verify formatting, and build the site
+npm run format        # format frontend, API, styles, and build scripts
+npm run lint          # check JavaScript, TypeScript, JSX, and React hooks
+npm run check         # lint, type-check/test/build the API, verify formatting, build the site
 ```
 
 Prettier uses two-space indentation, single quotes, and a 100-column print width.
@@ -30,8 +30,8 @@ React rules preserve the classic JSX transform and explicit React imports.
 ESLint stays on version 9 for compatibility with eslint-plugin-react's peer
 dependency range.
 
-These checks cover `src/`, `scripts/`, and root JavaScript configuration.
-API code and editable content are outside this formatting and linting scope.
+These checks cover `src/`, `api/src/`, `api/tests/`, `shared/`, `scripts/`, and root
+JavaScript configuration. Editable content stays outside the formatting scope.
 Pull requests run the checks; the Pages build runs them before deployment.
 
 ## deploy
@@ -62,8 +62,10 @@ BASE_PATH=/portfolio/ SITE_URL=https://hambn.github.io/portfolio npm run build
 
 ## API (link cards)
 
-The Spotify / Discord / Steam / Telegram link cards read live data from a small backend in
-`api/` (one file, `index.js`). The **same code** runs two ways:
+The TypeScript backend in `api/src/` serves provider data and cached images for
+the portfolio. Shared provider code runs through Cloudflare and Node adapters.
+The browser loads provider content through the API host, including GitHub/GitLab
+profiles and Discord live presence. External navigation links remain external.
 
 ### Cloudflare Worker (current — free)
 
@@ -74,7 +76,7 @@ Served at `https://api.portfolio.hgh.dev`. Nothing sensitive is committed —
 once as **Worker secrets** with `wrangler secret bulk` (the CI job does this on
 every deploy).
 
-**KV namespace** (`SPOTIFY_KV`, stores rotating Spotify tokens) — create once,
+**KV namespace** (`SPOTIFY_KV`, stores rotating tokens and profile snapshots) — create once,
 its id goes in the `SPOTIFY_KV_ID` secret/env (injected into `wrangler.toml` at
 deploy via `envsubst`, never committed):
 
@@ -144,15 +146,15 @@ The Worker cron (`0 * * * *`) fetches the public Telegram HTML and photo once pe
 hour, including hours with no visits. A single snapshot in the existing
 `SPOTIFY_KV` namespace stores the name, username, description, public metadata,
 photo bytes, and update time. Requests read the snapshot. If a new deployment
-has no snapshot yet, the first request performs one bootstrap refresh; concurrent
-cold requests share that refresh and retries are throttled for one minute.
+has no snapshot yet, a request can bootstrap it. A persisted one-minute cooldown
+reduces retries; KV eventual consistency cannot guarantee one global refresh.
 Failed refreshes keep the previous data. KV propagation can briefly delay
 updates.
 
-The Node adapter refreshes at startup and every hour while running. Its cache is
-in memory, so a restart performs an extra initial fetch. Run one API instance if
-you want 24 scheduled profile fetches per day. Each refresh also downloads the
-photo when available. Run `npm run test:telegram` for scheduler, cache, parsing,
+The Node adapter refreshes at startup and hourly, with overlapping scheduled jobs
+coalesced. Tokens, snapshots, and cached images persist on disk across restarts.
+Both runtimes keep the previous image after a temporary download failure and
+serve profile snapshots for up to seven days after a failed refresh. Run `npm run test:telegram` for scheduler, cache, parsing,
 and failure regression checks.
 
 The card's wallpaper asset comes from
@@ -163,8 +165,10 @@ Full reference + Spotify re-auth flow: [`.claude/api.md`](.claude/api.md).
 
 ### Self-host on Node
 
-`api/server.js` shims the Cloudflare globals (`caches`, KV, `env`) so the
-unchanged `index.js` runs on plain Node — no dependencies:
+`npm run api:serve` compiles the TypeScript entrypoint and runs it on Node 24.
+State and cache persist in `.api-data/`, or the directory set by `API_DATA_DIR`.
+The response/media cache defaults to 256 MiB; tokens are stored separately.
+Use one API process per data directory.
 
 ```bash
 SPOTIFY_CLIENT_ID=… STEAM_API_KEY=… DISCORD_ID=… STEAM_ID=… SPOTIFY_REFRESH_TOKEN=… npm run api:serve   # → http://localhost:8787
@@ -180,8 +184,10 @@ Environment variables:
 | `STEAM_ID` | config | yes |
 | `DISCORD_ID` | config | yes |
 | `LINKEDIN_URL` | config | no (`/linkedin` returns 503 without it) |
-| `TELEGRAM_USERNAME` | config | no (defaults to `ham_bn`) |
-| `CACHE_VERSION` | config | no (default: `0`) |
+| `CACHE_VERSION` | config | no (Node default: `1`, stable across restarts) |
+| `API_DATA_DIR` | config | no (default: `.api-data`) |
+| `API_CACHE_MAX_BYTES` | config | no (default: `268435456`) |
+| `API_PUBLIC_ORIGIN` | config | external origin for direct Node access behind TLS |
 
 ## self-host (Docker)
 
@@ -211,7 +217,23 @@ BASE_PATH=/ SITE_URL=https://my.domain \
   docker compose -f deployment/docker-compose.yml up -d --build
 ```
 
-Put TLS (Caddy / Traefik / Cloudflare) in front — nginx serves plain `:80`.
+Nginx forwards `/api/` and the Discord WebSocket to the API container. The frontend
+Docker build defaults to `VITE_API_BASE_URL=/api`; standalone frontend builds default
+to the production Worker. Override `VITE_API_BASE_URL` at build time for another API.
+For local development, run `npm run api:serve` and `VITE_API_BASE_URL=/api npm run dev`.
+
+The named `api-data` volume stores tokens, snapshots and cached images. Keep it
+across container replacements. Back up its state directory as secret data. Cache
+eviction cannot remove tokens. Multi-replica deployment needs shared storage and
+scheduler coordination.
+
+Put TLS in front of Nginx, which serves plain port 80. Neither runtime redirects
+media downloads to provider hosts. Images are cached on demand, with a 4 MiB limit;
+unavailable or unsupported images use the existing UI fallback.
+
+Run `npm run api:check` for both runtime builds and network-free API tests.
+Run `npm run test:browser` for the browser content-origin regression. Cloudflare
+Free remains subject to request, CPU and KV quotas; media traffic counts too.
 
 ## editing content
 
@@ -276,13 +298,14 @@ scripts/            Node build tooling (NOT bundled — root by convention)
   prerender.mjs     static HTML/meta/JSON-LD/sitemap/feed generator (post-build)
 public/contents/    all editable content
 api/                Backend for the link cards. See .claude/api.md
-  index.js          Worker logic (CF-vanilla, runs on CF + Node)
-  server.js         Node adapter (shims caches/KV) for self-host
+  src/              shared TypeScript app, providers, media, adapters, entrypoints
+  tests/            provider, storage, and runtime regression tests
+  tsconfig*.json    separate Node and Worker type checking
   wrangler.toml     Cloudflare config
   tools/            spotify-auth.html — one-off PKCE helper
 deployment/         self-host the stack (run from repo root)
   Dockerfile.web    site build → nginx
-  Dockerfile.api    Node → api/server.js
+  Dockerfile.api    Node 24 → compiled api/dist/server.mjs
   nginx.conf        SPA fallback
   docker-compose.yml  web :8080 + api :8787
 ```

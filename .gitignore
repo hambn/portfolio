@@ -21,3 +21,9 @@ api/wrangler.gen.toml
 
 # os cruft
 .DS_Store
+
+# API runtime state and test output
+.api-data/
+api/dist/
+playwright-report/
+test-results/

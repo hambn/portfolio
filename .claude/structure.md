@@ -58,18 +58,18 @@ Static React portfolio, built with Vite, deployed to GitHub Pages at
 │     ├─ links/            links.json (every card is config-driven)
 │     └─ blogs/            *.md posts (drop a file to publish; no title = draft)
 │
-├─ api/                    Backend (api.portfolio.hgh.dev) — proxies Spotify/
-│  ├─ index.js             Discord/Steam for the link cards. Worker logic;
-│  │                       keep CF-vanilla. Deploy: `npm run api:deploy`.
-│  ├─ server.js            Node adapter (shims caches/KV) → `npm run api:serve`
-│  │                       self-hosts the same index.js. No CI.
-│  ├─ wrangler.toml        Guide: .claude/api.md
+├─ api/                    Portable TypeScript backend; guide: .claude/api.md
+│  ├─ src/                 app, providers, media, lib, adapters, entrypoints
+│  ├─ tests/               network-free API and persistent-storage regressions
+│  ├─ tsconfig*.json       separate Node and Worker type checking
+│  ├─ worker-configuration.d.ts   generated Cloudflare bindings/runtime types
+│  ├─ wrangler.toml        deployment template, hourly Telegram cron
 │  └─ tools/spotify-auth.html   one-off PKCE helper
 │
 ├─ deployment/             self-host the stack (run compose from repo root)
 │  ├─ Dockerfile.web       site build → nginx
-│  ├─ Dockerfile.api       Node → api/server.js
-│  ├─ nginx.conf           SPA fallback + gzip, cache + security headers
+│  ├─ Dockerfile.api       Node 24 → api/dist/server.mjs
+│  ├─ nginx.conf           static files + /api/ HTTP/WebSocket forwarding
 │  └─ docker-compose.yml   web :8080 + api :8787
 │
 ├─ .dockerignore           kept at root — Docker needs it at the build context

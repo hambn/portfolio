@@ -7,7 +7,10 @@ services:
       dockerfile: deployment/Dockerfile.web
       args:
         BASE_PATH: ${BASE_PATH:-/}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
         SITE_URL: ${SITE_URL:-https://hgh.dev}
+    depends_on:
+      - api
     ports:
       - "8080:80"
     restart: unless-stopped
@@ -26,5 +29,13 @@ services:
       STEAM_ID: ${STEAM_ID:-}
       DISCORD_ID: ${DISCORD_ID:-}
       LINKEDIN_URL: ${LINKEDIN_URL:-}
+      API_DATA_DIR: /data
+      API_CACHE_MAX_BYTES: ${API_CACHE_MAX_BYTES:-268435456}
+      API_PUBLIC_ORIGIN: ${API_PUBLIC_ORIGIN:-}
       CACHE_VERSION: ${CACHE_VERSION:-1}
     restart: unless-stopped
+    volumes:
+      - api-data:/data
+
+volumes:
+  api-data:

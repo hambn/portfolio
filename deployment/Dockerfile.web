@@ -1,5 +1,5 @@
 # Static site → nginx. Build context is the repo root.
-FROM node:20-alpine AS build
+FROM node:24-alpine AS build
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
@@ -7,7 +7,8 @@ COPY . .
 # Deploy target — override at build for a different route/domain.
 ARG BASE_PATH=/
 ARG SITE_URL=https://hgh.dev
-ENV BASE_PATH=$BASE_PATH SITE_URL=$SITE_URL
+ARG VITE_API_BASE_URL=/api
+ENV BASE_PATH=$BASE_PATH SITE_URL=$SITE_URL VITE_API_BASE_URL=$VITE_API_BASE_URL
 RUN npm run build
 
 FROM nginx:alpine

@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
-import worker from '../api/index.js';
-import { configuredTelegramUsername as username } from '../api/telegram.js';
-import { telegramUsername } from '../shared/telegram.js';
+import { handleRequest } from '../src/app.js';
+import { refresh } from '../src/scheduled.js';
+import { testServices } from './helpers.js';
+import { configuredTelegramUsername as username } from '../src/providers/telegram.js';
+import { telegramUsername } from '../../shared/telegram.js';
 
 const html = `<meta property="og:description" content="Generic contact text">
 <div class="tgme_page_title"><span dir="auto">Hamed &amp; Friends</span></div>
@@ -13,7 +15,7 @@ const html = `<meta property="og:description" content="Generic contact text">
 
 test('username validation and URL configuration', async () => {
   const links = JSON.parse(
-    await readFile(new URL('../public/contents/links/links.json', import.meta.url)),
+    await readFile(new URL('../../public/contents/links/links.json', import.meta.url), 'utf8'),
   );
   assert.equal(username, telegramUsername(links.telegram.url));
   assert.equal(telegramUsername('https://t.me/Other_User'), 'other_user');
@@ -23,16 +25,20 @@ test('username validation and URL configuration', async () => {
 });
 
 test('cold requests bootstrap once; scheduled snapshots cache HTML and image; failed refresh retains data', async (t) => {
-  const values = new Map();
-  const env = {
-    SPOTIFY_KV: {
-      get: async (key) => values.get(key),
-      put: async (key, value) => values.set(key, value),
+  const values = new Map<string, string>();
+  const services = testServices({
+    fetch: (...args) => fetch(...args),
+    state: {
+      delete: async () => {},
+      get: async (key) => values.get(key) ?? null,
+      put: async (key, value) => {
+        values.set(key, value);
+      },
     },
-  };
+  });
   let requests = 0;
   let failing = false;
-  t.mock.method(globalThis, 'fetch', async (url) => {
+  t.mock.method(globalThis, 'fetch', async (url: string | URL | Request) => {
     requests++;
     if (failing) return new Response('unavailable', { status: 503 });
     return String(url).startsWith('https://t.me/')
@@ -40,7 +46,7 @@ test('cold requests bootstrap once; scheduled snapshots cache HTML and image; fa
       : new Response(new Uint8Array([1, 2, 3]), { headers: { 'Content-Type': 'image/jpeg' } });
   });
   const request = (path = '/telegram', method = 'GET') =>
-    worker.fetch(new Request(`https://api.test${path}`, { method }), env);
+    handleRequest(new Request(`https://api.test${path}`, { method }), services);
   const coldResponse = await request();
   assert.equal(coldResponse.status, 200);
   assert.equal(requests, 2);
@@ -61,10 +67,10 @@ test('cold requests bootstrap once; scheduled snapshots cache HTML and image; fa
   assert.equal((await request('/telegram?username=other_user')).status, 400);
   assert.equal((await request('/telegram/arbitrary')).status, 404);
   assert.equal(requests, 2);
-  await worker.scheduled({}, env);
+  await refresh(services);
   assert.equal(requests, 4);
   failing = true;
-  await assert.rejects(worker.scheduled({}, env));
+  await assert.rejects(refresh(services));
   assert.equal((await request()).status, 200);
   assert.equal(requests, 5);
 });
@@ -72,40 +78,66 @@ test('cold requests bootstrap once; scheduled snapshots cache HTML and image; fa
 test('invalid HTML never replaces the cache; profile metadata survives avatar failures', async (t) => {
   let writes = 0;
   let upstream = '<html>Not a profile</html>';
-  const values = new Map();
-  const env = {
-    SPOTIFY_KV: {
-      get: async (key) => values.get(key),
+  const values = new Map<string, string>();
+  const services = testServices({
+    fetch: (...args) => fetch(...args),
+    state: {
+      delete: async () => {},
+      get: async (key) => values.get(key) ?? null,
       put: async (key, value) => {
         writes++;
         values.set(key, value);
       },
     },
-  };
+  });
   t.mock.method(globalThis, 'fetch', async () => new Response(upstream));
-  await assert.rejects(worker.scheduled({}, env));
+  await assert.rejects(refresh(services));
   assert.equal(writes, 0);
   upstream = 'x'.repeat(256 * 1024 + 1);
-  await assert.rejects(worker.scheduled({}, env));
+  await assert.rejects(refresh(services));
   assert.equal(writes, 0);
-  t.mock.method(globalThis, 'fetch', async (url) =>
+  t.mock.method(globalThis, 'fetch', async (url: string | URL | Request) =>
     String(url).startsWith('https://t.me/')
       ? new Response(html)
       : new Response(new Uint8Array(1024 * 1024 + 1), {
           headers: { 'Content-Type': 'image/jpeg' },
         }),
   );
-  await worker.scheduled({}, env);
+  await refresh(services);
   assert.equal(writes, 1);
-  const snapshot = JSON.parse(values.get('telegram:profile:v1:ham_bn'));
+  const snapshot = JSON.parse(values.get('telegram:profile:v1:ham_bn') || '{}');
   assert.equal(snapshot.profile.name, 'Hamed & Friends');
   assert.equal(snapshot.image, null);
-  t.mock.method(globalThis, 'fetch', async (url) =>
+  t.mock.method(globalThis, 'fetch', async (url: string | URL | Request) =>
     String(url).startsWith('https://t.me/')
       ? new Response(html)
       : new Response('<svg></svg>', { headers: { 'Content-Type': 'image/svg+xml' } }),
   );
-  await worker.scheduled({}, env);
+  await refresh(services);
   assert.equal(writes, 2);
-  assert.equal(JSON.parse(values.get('telegram:profile:v1:ham_bn')).image, null);
+  assert.equal(JSON.parse(values.get('telegram:profile:v1:ham_bn') || '{}').image, null);
+});
+
+test('avatar download failure preserves the previous image; stale snapshots expire', async () => {
+  let now = Date.now();
+  let brokenImage = false;
+  const services = testServices({
+    now: () => now,
+    fetch: async (url) => {
+      if (String(url).startsWith('https://t.me/')) return new Response(html);
+      return brokenImage
+        ? new Response(null, { status: 503 })
+        : new Response(new Uint8Array([9, 8, 7]), { headers: { 'Content-Type': 'image/png' } });
+    },
+  });
+  await refresh(services);
+  brokenImage = true;
+  await refresh(services);
+  const request = new Request('https://api.test/telegram/avatar');
+  assert.deepEqual(
+    new Uint8Array(await (await handleRequest(request, services)).arrayBuffer()),
+    new Uint8Array([9, 8, 7]),
+  );
+  now += 8 * 86400000;
+  assert.equal((await handleRequest(request, services)).status, 503);
 });

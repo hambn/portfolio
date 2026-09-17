@@ -1,10 +1,19 @@
-# Self-hosted API — runs the unmodified Worker via the Node adapter (server.js).
-# Zero npm deps; root package.json is copied only for its "type": "module".
-FROM node:20-alpine
+FROM node:24-alpine AS build
 WORKDIR /app
-COPY package.json ./
+COPY package*.json ./
+RUN npm ci
 COPY api ./api
 COPY shared ./shared
+COPY scripts/build-api.mjs ./scripts/build-api.mjs
 COPY public/contents/links/links.json ./public/contents/links/links.json
+RUN npm run api:build
+
+FROM node:24-alpine
+WORKDIR /app
+ENV NODE_ENV=production API_DATA_DIR=/data
+COPY --from=build /app/api/dist ./api/dist
+RUN mkdir /data && chown node:node /data
+USER node
+VOLUME /data
 EXPOSE 8787
-CMD ["node", "api/server.js"]
+CMD ["node", "api/dist/server.mjs"]

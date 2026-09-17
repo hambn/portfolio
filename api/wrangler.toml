@@ -1,5 +1,5 @@
 name = "portfolio"
-main = "index.js"
+main = "src/entrypoints/worker.ts"
 compatibility_date = "2026-06-23"
 
 # No secrets/IDs are committed here. Public config is injected at deploy via
