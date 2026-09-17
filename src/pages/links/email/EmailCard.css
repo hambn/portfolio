@@ -181,3 +181,9 @@
     font-size: 16px;
   }
 }
+
+/* Wordmark — Gmail sets its product name in regular Google Sans, not bold. */
+.em-style-1 .em-style-5 {
+  font-weight: 400;
+  letter-spacing: -0.2px;
+}

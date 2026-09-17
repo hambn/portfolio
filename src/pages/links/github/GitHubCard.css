@@ -177,3 +177,9 @@
 .gh-style-15 {
   white-space: normal;
 }
+
+/* Wordmark — GitHub's own UI sets the "GitHub" lockup at semibold, not black. */
+.gh-style-1 .gh-style-5 {
+  font-weight: 600;
+  letter-spacing: -0.25px;
+}

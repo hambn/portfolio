@@ -146,3 +146,10 @@
     gap: 14px;
   }
 }
+
+/* Wordmark — Chirp bold with normal tracking; the negative tracking squashed
+ * the single glyph against the logo. */
+.x-style-1 .x-style-5 {
+  font-weight: 700;
+  letter-spacing: 0;
+}

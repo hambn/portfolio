@@ -205,10 +205,11 @@ export function DiscordCard({ userId, lanyardData, apiEndpoint }) {
             accent={DC.blurpleLt}
             copied={copied}
             onCopy={copyLink}
-            copyTitle="Copy profile link"
+            copyLabel="copy profile link"
+            copyTitle="Copy Discord profile link"
             href={profileUrl}
-            openLabel="open profile"
-            openTitle="Open Discord profile"
+            openLabel="open in discord"
+            openTitle="Open in Discord"
             collapsed={collapsed}
             onToggle={toggleCollapse}
           />

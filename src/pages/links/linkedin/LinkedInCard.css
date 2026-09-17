@@ -108,3 +108,13 @@
   border-color: #70b5f9 !important;
   color: #fff !important;
 }
+
+/* Wordmark — LinkedIn's lockup is bold and tightly tracked. */
+.li-style-1 .li-style-5 {
+  font-weight: 700;
+  letter-spacing: -0.6px;
+}
+/* Match the other cards: the collapse chevron gets a hover plate too. */
+.li-hdr-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}

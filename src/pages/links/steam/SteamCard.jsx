@@ -319,11 +319,11 @@ export function SteamCard({ handle, url, apiEndpoint }) {
             accent={ST.blue}
             copied={copied}
             onCopy={copyLink}
-            copyLabel="Copy link"
-            copyTitle="Copy profile link"
+            copyLabel="copy profile link"
+            copyTitle="Copy Steam profile link"
             href={profileUrl}
-            openLabel="View profile"
-            openTitle="View Steam profile"
+            openLabel="open in steam"
+            openTitle="Open in Steam"
             collapsed={collapsed}
             onToggle={toggleCollapse}
           />

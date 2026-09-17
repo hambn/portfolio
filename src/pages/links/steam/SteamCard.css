@@ -9,9 +9,11 @@
   font-family: inherit;
   font-size: 11px;
 }
+/* Wordmark — Steam's own header sets "Steam" in mixed case; the tracked-out
+ * uppercase version read as a different brand entirely. */
 .st-style-27 .st-style-30 {
-  letter-spacing: 1.2px;
-  text-transform: uppercase;
+  letter-spacing: -0.3px;
+  text-transform: none;
   font-weight: 700;
 }
 .st-style-27 a:focus-visible,
@@ -487,4 +489,9 @@
   .st-style-27 .sc-body {
     transition: none;
   }
+}
+
+/* Match the other cards: the collapse chevron gets a hover plate too. */
+.st-hdr-btn:hover {
+  background: rgba(103, 193, 245, 0.12);
 }

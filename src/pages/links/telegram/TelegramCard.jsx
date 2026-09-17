@@ -60,8 +60,11 @@ function TelegramProfile({ username, apiEndpoint }) {
             accent="var(--tg-accent)"
             copied={copied}
             onCopy={copyLink}
+            copyLabel="copy profile link"
+            copyTitle="Copy Telegram profile link"
             href={href}
-            openTitle="Open Telegram"
+            openLabel="open in telegram"
+            openTitle="Open in Telegram"
             collapsed={collapsed}
             onToggle={toggleCollapse}
           />

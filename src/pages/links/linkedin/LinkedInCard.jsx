@@ -75,7 +75,7 @@ export function LinkedInCard({
           </div>
           <span
             style={{
-              color: LI.blueLt,
+              color: LI.text,
             }}
             className="li-style-5 link-card-title"
           >
@@ -92,9 +92,10 @@ export function LinkedInCard({
             accent={LI.blueLt}
             copied={copied}
             onCopy={copyLink}
-            copyTitle="Copy profile link"
+            copyLabel="copy profile link"
+            copyTitle="Copy LinkedIn profile link"
             href={profileHref}
-            openLabel="open profile"
+            openLabel="open on linkedin"
             openTitle="Open on LinkedIn"
             collapsed={collapsed}
             onToggle={toggleCollapse}

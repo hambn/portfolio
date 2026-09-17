@@ -86,7 +86,10 @@ export function GitLabCard({ username, url }) {
             accent={GL.accent}
             copied={copied}
             onCopy={copyLink}
+            copyLabel="copy profile link"
+            copyTitle="Copy GitLab profile link"
             href={href}
+            openLabel="open on gitlab"
             openTitle="Open on GitLab"
             collapsed={collapsed}
             onToggle={toggleCollapse}

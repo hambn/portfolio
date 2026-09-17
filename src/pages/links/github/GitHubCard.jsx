@@ -83,7 +83,10 @@ export function GitHubCard({ username, url }) {
             accent={GH.blue}
             copied={copied}
             onCopy={copyLink}
+            copyLabel="copy profile link"
+            copyTitle="Copy GitHub profile link"
             href={href}
+            openLabel="open on github"
             openTitle="Open on GitHub"
             collapsed={collapsed}
             onToggle={toggleCollapse}

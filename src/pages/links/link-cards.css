@@ -55,11 +55,13 @@
   justify-content: center;
   flex-shrink: 0;
 }
-/* Title size/weight mirror Spotify; font-family + color stay brand-specific. */
+/* Only the optical size is shared. Weight, tracking and case belong to the
+ * brand: forcing 800/-1px on every wordmark made GitHub and X read far heavier
+ * than their real lockups. Each card's stylesheet sets its own. */
 .link-card-title {
   font-size: 20px;
-  font-weight: 800;
-  letter-spacing: -1px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
 }
 .link-card-spacer {
   flex: 1;
