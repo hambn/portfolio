@@ -43,7 +43,9 @@ function blogIndexPlugin() {
 export default defineConfig({
   base: process.env.BASE_PATH || '/',
   plugins: [blogIndexPlugin()],
-  server: { proxy: { '/api': { target: 'http://localhost:8787', ws: true } } },
+  // '^/api/(?!src/)' so the proxy skips the frontend's own source imports
+  // (e.g. /api/src/media/sources.ts), which Vite must serve itself.
+  server: { proxy: { '^/api/(?!src/)': { target: 'http://localhost:8787', ws: true } } },
   build: {
     // Emit .vite/manifest.json so the prerenderer can add modulepreload links
     // for each route's lazy chunk (scripts/prerender.mjs reads then removes it).
