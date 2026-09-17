@@ -10,7 +10,9 @@ const hidden = (node: Element) =>
   node.attrs.some((a) => a.name === 'hidden') ||
   attr(node, 'aria-hidden') === 'true' ||
   /display\s*:\s*none|visibility\s*:\s*hidden/.test(attr(node, 'style')) ||
-  /(?:^|\s)(?:hidden|blurred)(?:\s|$)/.test(attr(node, 'class'));
+  /(?:^|\s)(?:hidden|blurred)(?:\s|$)/.test(attr(node, 'class')) ||
+  hasClass(node, 'sign-in-modal') ||
+  hasClass(node, 'contextual-sign-in-modal');
 function elements(root: Node, visibleOnly = true): Element[] {
   const found: Element[] = [];
   const pending = [root];
@@ -69,7 +71,7 @@ const personSchema = z.looseObject({
   '@type': z.union([z.string(), z.array(z.string())]),
   url: z.string().optional(),
   name: z.string().optional(),
-  jobTitle: z.string().optional(),
+  jobTitle: z.union([z.string(), z.array(z.string())]).optional(),
   image: z
     .union([
       z.string(),
@@ -168,7 +170,8 @@ export function parseLinkedInProfile(html: string, username: string) {
           const name =
             text(nodes.find((child) => /^h[34]$/.test(child.tagName))) ||
             classText(nodes, 'personal-project__title');
-          const proficiency = text(nodes.find((child) => child.tagName === 'p')) || null;
+          const proficiency =
+            text(nodes.find((child) => child.tagName === 'h4' || child.tagName === 'p')) || null;
           return name ? [{ name, proficiency }] : [];
         })
     : [];
@@ -189,8 +192,16 @@ export function parseLinkedInProfile(html: string, username: string) {
     return node ? attr(node, 'data-delayed-url') || attr(node, 'src') || null : null;
   };
   const address = person?.address;
+  const subheader = topNodes.find((node) => hasClass(node, 'profile-info-subheader'));
   const location =
-    classText(topNodes, 'top-card__subline-item') ||
+    (subheader ? text(elements(subheader).find((node) => node.tagName === 'span')) : null) ||
+    text(
+      topNodes.find(
+        (node) =>
+          hasClass(node, 'top-card__subline-item') &&
+          !['currentPositionsDetails', 'educationsDetails'].includes(attr(node, 'data-section')),
+      ),
+    ) ||
     (typeof address === 'string'
       ? address
       : address
@@ -201,7 +212,11 @@ export function parseLinkedInProfile(html: string, username: string) {
   const organizations = [
     ...new Set(
       topNodes
-        .filter((node) => hasClass(node, 'top-card-link__description'))
+        .filter(
+          (node) =>
+            hasClass(node, 'top-card-link__description') ||
+            ['currentPositionsDetails', 'educationsDetails'].includes(attr(node, 'data-section')),
+        )
         .map((node) => text(node))
         .filter(Boolean),
     ),
@@ -210,7 +225,11 @@ export function parseLinkedInProfile(html: string, username: string) {
     username,
     url: `https://www.linkedin.com/in/${username}/`,
     name,
-    headline: classText(topNodes, 'top-card-layout__headline') || person?.jobTitle || null,
+    headline:
+      classText(topNodes, 'top-card-layout__headline') ||
+      (typeof person?.jobTitle === 'string' && !person.jobTitle.includes('*')
+        ? person.jobTitle
+        : null),
     location: location || null,
     followers: count('followers'),
     connections: count('connections'),

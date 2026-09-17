@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { nodeServices } from '../api/src/adapters/node.ts';
 import { handleRequest } from '../api/src/app.ts';
+import { refreshLinkedIn } from '../api/src/providers/linkedin.ts';
 import { mediaPath } from '../api/src/media/sources.ts';
 
 const run = promisify(execFile);
@@ -27,6 +28,15 @@ try {
     }),
   );
   await handleRequest(new Request(`http://localhost:8787${path}`), services);
+  const linkedInHtml = await readFile(
+    new URL('../api/tests/fixtures/linkedin-public.html', import.meta.url),
+    'utf8',
+  );
+  services.fetch = async (input) =>
+    String(input).startsWith('https://www.linkedin.com/in/')
+      ? new Response(linkedInHtml)
+      : new Response('linkedin-image', { headers: { 'Content-Type': 'image/jpeg' } });
+  await refreshLinkedIn(services);
   await run('docker', [
     'run',
     '-d',
@@ -48,7 +58,12 @@ try {
     }
     assert.equal(await (await fetch(${JSON.stringify(`http://localhost:8787${path}`)})).text(), 'persisted-image');
     assert.equal((await (await fetch('http://localhost:8787/telegram')).json()).name, 'Persisted profile');
-    console.log('Container served persisted profile and image without network access');
+    const linkedin = await (await fetch('http://localhost:8787/linkedin')).json();
+    assert.equal(linkedin.name, 'hamed ghasempour');
+    assert.equal(new URL(linkedin.avatar).hostname, 'localhost');
+    assert.equal(await (await fetch(linkedin.avatar)).text(), 'linkedin-image');
+    assert.equal(await (await fetch(linkedin.banner)).text(), 'linkedin-image');
+    console.log('Container served persisted Telegram, LinkedIn, and images without network access');
   `;
   process.stdout.write(
     (await run('docker', ['exec', name, 'node', '--input-type=module', '-e', check])).stdout,

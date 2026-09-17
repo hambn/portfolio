@@ -163,3 +163,107 @@ test('guest cookies are retried once and LinkedIn refresh is independent of othe
   assert.equal(calls, 2);
   assert.ok(await services.state.get(`linkedin:profile:v1:${username}`));
 });
+
+test('upstream blocks stay visible during cooldown and successful refresh clears the failure', async () => {
+  let calls = 0;
+  const services = testServices({
+    fetch: async () => {
+      calls++;
+      return new Response(null, { status: 403 });
+    },
+  });
+  const request = () => handleRequest(new Request('https://api.test/linkedin'), services);
+  for (let i = 0; i < 2; i++) {
+    const response = await request();
+    assert.equal(response.status, 503);
+    assert.deepEqual(await response.json(), {
+      error: 'linkedin_upstream_blocked',
+      upstreamStatus: 403,
+    });
+  }
+  assert.equal(calls, 1);
+  services.fetch = async (url) =>
+    String(url).startsWith('https://www.linkedin.com/in/')
+      ? new Response(html)
+      : new Response(null, { status: 404 });
+  await refreshLinkedIn(services);
+  assert.equal(await services.state.get(`linkedin:failure:${username}`), null);
+  assert.equal((await request()).status, 200);
+});
+
+test('captured public HTML handles regional canonical URLs and current profile markup', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const html = await readFile(new URL('./fixtures/linkedin-public.html', import.meta.url), 'utf8');
+  const profile = parseLinkedInProfile(html, 'hambn');
+  assert.equal(profile?.name, 'hamed ghasempour');
+  assert.equal(profile?.location, 'Tehran, Tehran Province, Iran');
+  assert.equal(profile?.about, 'i like the number 1,094,795,585');
+  assert.equal(profile?.followers, '655');
+  assert.equal(profile?.connections, '500+');
+  assert.deepEqual(profile?.organizations, [
+    'تجارت الکترونیک هوشمند تابان',
+    'Technical and Vocational University',
+  ]);
+  assert.deepEqual(profile?.languages, [
+    { name: 'English', proficiency: 'Elementary proficiency' },
+    { name: 'Turkish', proficiency: 'Limited working proficiency' },
+    { name: 'Persian', proficiency: 'Native or bilingual proficiency' },
+  ]);
+  assert.ok(profile?.avatar?.startsWith('https://media.licdn.com/'));
+  assert.ok(profile?.banner?.startsWith('https://media.licdn.com/'));
+  assert.equal(linkedinUsername('https://ir.linkedin.com/in/hambn'), 'hambn');
+  assert.equal(linkedinUsername('https://ir.linkedin.com.evil/in/hambn'), null);
+});
+
+test('public guest navigation follows redirects and keeps guest cookies off image requests', async () => {
+  let profileRequests = 0;
+  let imageRequests = 0;
+  const services = testServices({
+    fetch: async (input, init) => {
+      const url = String(input);
+      const headers = new Headers(init?.headers);
+      if (url.startsWith('https://www.linkedin.com/in/')) {
+        profileRequests++;
+        assert.match(headers.get('user-agent') || '', /Android 15; Pixel 9/);
+        assert.equal(headers.get('referer'), 'https://www.google.com/');
+        assert.equal(headers.get('cookie'), 'lang=v; bcookie="v;');
+        assert.equal(headers.get('sec-ch-ua-mobile'), '?1');
+        if (profileRequests === 1)
+          return new Response(null, {
+            status: 301,
+            headers: { Location: `https://www.linkedin.com/in/${username}` },
+          });
+        return new Response(html);
+      }
+      imageRequests++;
+      assert.equal(headers.get('cookie'), null);
+      assert.equal(headers.get('sec-fetch-mode'), null);
+      return new Response(new Uint8Array([1]), { headers: { 'Content-Type': 'image/jpeg' } });
+    },
+  });
+  const snapshot = await refreshLinkedIn(services);
+  assert.equal(profileRequests, 2);
+  assert.equal(imageRequests, 2);
+  assert.ok(snapshot?.images.avatar);
+  assert.ok(snapshot?.images.banner);
+});
+
+test('runtime profile URL overrides bundled links and isolates cached profiles', async () => {
+  const services = testServices({
+    fetch: async (input) => {
+      if (String(input) === 'https://www.linkedin.com/in/other-profile/')
+        return new Response(html.replaceAll(username!, 'other-profile'));
+      return new Response(null, { status: 404 });
+    },
+  });
+  services.config.LINKEDIN_URL = 'https://ir.linkedin.com/in/other-profile/';
+  await refreshLinkedIn(services);
+  const request = (path = '/linkedin') =>
+    handleRequest(new Request(`https://api.test${path}`), services);
+  assert.equal((await (await request()).json()).username, 'other-profile');
+  assert.equal((await request(`/linkedin?username=${username}`)).status, 400);
+  assert.ok(await services.state.get('linkedin:profile:v1:other-profile'));
+  assert.equal(await services.state.get(`linkedin:profile:v1:${username}`), null);
+  services.config.LINKEDIN_URL = 'https://internal.example/private';
+  assert.equal((await request()).status, 503);
+});

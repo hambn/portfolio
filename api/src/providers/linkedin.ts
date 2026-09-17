@@ -6,14 +6,39 @@ import { linkedinProfileSchema, parseLinkedInProfile } from './linkedin-html.js'
 import { allowedMedia } from '../media/sources.js';
 import { z } from 'zod';
 
+// Public guest navigation headers, reproduced from a working logged-out request.
+// The cookie values are guest placeholders, not account credentials.
 const HEADERS = {
-  'User-Agent': 'Mozilla/5.0',
-  'Accept-Language': 'en-US,en;q=0.9',
-  Accept: 'text/html',
+  Cookie: 'lang=v; bcookie="v;',
+  accept:
+    'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+  'accept-language': 'en-US,en;q=0.9',
+  'cache-control': 'max-age=0',
+  priority: 'u=0, i',
+  referer: 'https://www.google.com/',
+  'sec-ch-prefers-color-scheme': 'dark',
+  'sec-ch-ua': '"Google Chrome";v="149", "Chromium";v="149", "Not)A;Brand";v="24"',
+  'sec-ch-ua-mobile': '?1',
+  'sec-ch-ua-platform': '"Android"',
+  'sec-fetch-dest': 'document',
+  'sec-fetch-mode': 'navigate',
+  'sec-fetch-site': 'same-origin',
+  'sec-fetch-user': '?1',
+  'upgrade-insecure-requests': '1',
+  'user-agent':
+    'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Mobile Safari/537.36',
+};
+const IMAGE_HEADERS = {
+  'User-Agent': HEADERS['user-agent'],
+  Accept: 'image/avif,image/webp,image/*',
 };
 export const configuredLinkedInUsername = linkedinUsername(
   links.linkedin.handle || links.linkedin.url,
 );
+export const linkedInUsernameFor = (services: Services) =>
+  services.config.LINKEDIN_URL
+    ? linkedinUsername(services.config.LINKEDIN_URL)
+    : configuredLinkedInUsername;
 const cacheKey = (username: string) => `linkedin:profile:v1:${username}`;
 const imageSchema = z.object({ contentType: z.string(), data: z.string() }).nullable();
 const snapshotSchema = z.object({
@@ -22,6 +47,21 @@ const snapshotSchema = z.object({
   updatedAt: z.string().datetime(),
 });
 type Snapshot = z.infer<typeof snapshotSchema>;
+const failureKey = (services: Services) => `linkedin:failure:${linkedInUsernameFor(services)}`;
+const failureSchema = z.object({
+  error: z.enum([
+    'linkedin_upstream_blocked',
+    'linkedin_fetch_failed',
+    'linkedin_profile_unavailable',
+  ]),
+  upstreamStatus: z.number().int().optional(),
+});
+type Failure = z.infer<typeof failureSchema>;
+class LinkedInFetchError extends Error {
+  constructor(readonly failure: Failure) {
+    super(failure.error);
+  }
+}
 const MAX_STALE_MS = 7 * 86400000;
 const allowedProfile = (source: string) => {
   const url = new URL(source);
@@ -35,21 +75,37 @@ const allowedProfile = (source: string) => {
 };
 
 export async function readLinkedInSnapshot(services: Services): Promise<Snapshot | null> {
-  if (!configuredLinkedInUsername) return null;
-  const raw = await services.state.get(cacheKey(configuredLinkedInUsername));
+  const username = linkedInUsernameFor(services);
+  if (!username) return null;
+  const raw = await services.state.get(cacheKey(username));
   try {
     const result = snapshotSchema.safeParse(JSON.parse(raw || 'null'));
-    return result.success && result.data.profile.username === configuredLinkedInUsername
-      ? result.data
-      : null;
+    return result.success && result.data.profile.username === username ? result.data : null;
   } catch {
     return null;
   }
 }
 
 export async function refreshLinkedIn(services: Services): Promise<Snapshot | undefined> {
-  if (!configuredLinkedInUsername) return;
-  const profileUrl = `https://www.linkedin.com/in/${configuredLinkedInUsername}/`;
+  try {
+    const snapshot = await fetchAndCacheLinkedIn(services);
+    if (snapshot) await services.state.delete(failureKey(services));
+    return snapshot;
+  } catch (error) {
+    const failure: Failure =
+      error instanceof LinkedInFetchError ? error.failure : { error: 'linkedin_fetch_failed' };
+    console.warn('LinkedIn refresh failed', failure);
+    await services.state.put(failureKey(services), JSON.stringify(failure), {
+      expirationTtl: 3600,
+    });
+    throw error;
+  }
+}
+
+async function fetchAndCacheLinkedIn(services: Services): Promise<Snapshot | undefined> {
+  const username = linkedInUsernameFor(services);
+  if (!username) return;
+  const profileUrl = `https://www.linkedin.com/in/${username}/`;
   let response = await fetchAllowed(services, profileUrl, allowedProfile, { headers: HEADERS });
   // A public guest response can issue cookies before serving the profile.
   const cookie = response.headers
@@ -64,12 +120,16 @@ export async function refreshLinkedIn(services: Services): Promise<Snapshot | un
   }
   if (!response.ok) {
     await response.body?.cancel();
-    throw new Error('LinkedIn profile fetch failed');
+    throw new LinkedInFetchError({
+      error: [403, 429, 999].includes(response.status)
+        ? 'linkedin_upstream_blocked'
+        : 'linkedin_fetch_failed',
+      upstreamStatus: response.status,
+    });
   }
   const bytes = await readBytes(response, 2 * 1024 * 1024);
-  const profile =
-    bytes && parseLinkedInProfile(new TextDecoder().decode(bytes), configuredLinkedInUsername);
-  if (!profile) throw new Error('LinkedIn profile HTML unavailable');
+  const profile = bytes && parseLinkedInProfile(new TextDecoder().decode(bytes), username);
+  if (!profile) throw new LinkedInFetchError({ error: 'linkedin_profile_unavailable' });
   const previous = await readLinkedInSnapshot(services);
   const images: Snapshot['images'] = { avatar: null, banner: null };
   for (const kind of ['avatar', 'banner'] as const) {
@@ -81,7 +141,7 @@ export async function refreshLinkedIn(services: Services): Promise<Snapshot | un
         source,
         (url) => allowedMedia('linkedin', url),
         {
-          headers: HEADERS,
+          headers: IMAGE_HEADERS,
         },
       );
       const contentType = imageResponse.headers.get('Content-Type')?.split(';')[0] || '';
@@ -100,7 +160,7 @@ export async function refreshLinkedIn(services: Services): Promise<Snapshot | un
     }
   }
   const snapshot = { profile, images, updatedAt: new Date(services.now()).toISOString() };
-  await services.state.put(cacheKey(configuredLinkedInUsername), JSON.stringify(snapshot));
+  await services.state.put(cacheKey(username), JSON.stringify(snapshot));
   return snapshot;
 }
 
@@ -108,13 +168,14 @@ export async function handle(request: Request, services: Services): Promise<Resp
   const url = new URL(request.url);
   const match = url.pathname.match(/^\/linkedin(?:\/(avatar|banner))?\/?$/);
   if (!match) return json({ error: 'not_found' }, 404);
-  if (!configuredLinkedInUsername) return json({ error: 'linkedin_not_configured' }, 503);
+  const username = linkedInUsernameFor(services);
+  if (!username) return json({ error: 'linkedin_not_configured' }, 503);
   const requested = url.searchParams.get('username');
-  if (requested && linkedinUsername(requested) !== configuredLinkedInUsername)
+  if (requested && linkedinUsername(requested) !== username)
     return json({ error: 'linkedin_username_not_configured' }, 400);
   let snapshot = await readLinkedInSnapshot(services);
   if (!snapshot) {
-    const cooldown = `linkedin:retry:${configuredLinkedInUsername}`;
+    const cooldown = `linkedin:retry:${username}`;
     if (!(await services.state.get(cooldown))) {
       await services.state.put(cooldown, '1', { expirationTtl: 60 });
       try {
@@ -125,7 +186,16 @@ export async function handle(request: Request, services: Services): Promise<Resp
     }
   }
   if (!snapshot || services.now() - Date.parse(snapshot.updatedAt) > MAX_STALE_MS) {
-    const response = json({ error: 'linkedin_cache_pending' }, 503);
+    let failure: Failure | undefined;
+    try {
+      const parsed = failureSchema.safeParse(
+        JSON.parse((await services.state.get(failureKey(services))) || 'null'),
+      );
+      if (parsed.success) failure = parsed.data;
+    } catch {
+      /* A missing or invalid failure record is still a pending cache. */
+    }
+    const response = json(failure || { error: 'linkedin_cache_pending' }, 503);
     response.headers.set('Retry-After', '60');
     return response;
   }

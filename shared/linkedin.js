@@ -5,7 +5,7 @@ export function linkedinUsername(value) {
     try {
       const url = new URL(candidate);
       if (
-        !['linkedin.com', 'www.linkedin.com'].includes(url.hostname) ||
+        !/^(?:www\.|[a-z]{2}\.)?linkedin\.com$/.test(url.hostname) ||
         url.port ||
         url.username ||
         url.password

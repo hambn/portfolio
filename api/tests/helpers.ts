@@ -25,7 +25,6 @@ export function testServices(overrides: Partial<Services> = {}) {
       DISCORD_ID: '123456789',
       STEAM_ID: '123',
       STEAM_API_KEY: 'test',
-      LINKEDIN_URL: 'https://linkedin.com/in/test',
     }),
     state,
     cache: {
