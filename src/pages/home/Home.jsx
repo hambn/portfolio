@@ -1,177 +1,285 @@
 import { mediaUrl } from '../../lib/api.js';
 // Home.jsx — landing page
 // Data: contents/home/profile.json, contents/home/resume.json, contents/links/links.json
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useWindowWidth } from '../../hooks/useWindowWidth.js';
 import { PortfolioData } from '../../lib/data.js';
 import { navigate } from '../../lib/router.js';
 
-const WorkIcon = () => (
-  <svg
-    viewBox="0 0 16 16"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    width="13"
-    height="13"
-  >
-    <rect x="1.5" y="6" width="13" height="8.5" rx="1.5" />
-    <path d="M5.5 6V4.5A1.5 1.5 0 0 1 7 3h2a1.5 1.5 0 0 1 1.5 1.5V6" />
-    <line x1="1.5" y1="10" x2="14.5" y2="10" />
-  </svg>
-);
+const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 
-const EduIcon = () => (
-  <svg
-    viewBox="0 0 16 16"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    width="13"
-    height="13"
-  >
-    <polygon points="8,1.5 15.5,6 8,10.5 0.5,6" />
-    <path d="M4 8.5v3a4 4 0 0 0 8 0v-3" />
-    <line x1="15.5" y1="6" x2="15.5" y2="10" />
-  </svg>
-);
+// "Sep 2024" → a sortable month number; "present" never ends, so it sorts last.
+function monthNumber(value) {
+  const s = String(value || '').trim();
+  if (!s) return -Infinity;
+  if (s.toLowerCase() === 'present') return Infinity;
+  const month = s.match(/[a-z]{3,}/i);
+  const year = s.match(/\d{4}/);
+  if (!year) return -Infinity;
+  const m = month ? MONTHS.indexOf(month[0].slice(0, 3).toLowerCase()) : 0;
+  return Number(year[0]) * 12 + (m < 0 ? 0 : m);
+}
 
-function GitTimeline({ items }) {
+// Graph geometry, in px.
+const LANE_W = 20; // horizontal distance between lanes (tightened on phones)
+const LANE_W_SM = 14;
+const LANE_X0 = 7; // centre of the life line
+const CURVE = 18; // vertical run of a branch/merge curve
+const NODE_DY = 10; // node centre, measured from the top of its row
+
+const laneX = (lane, lw) => LANE_X0 + lane * lw;
+const toneOf = (type) =>
+  type === 'education' ? 'is-edu' : type === 'project' ? 'is-project' : 'is-work';
+
+// Lays the history out as a git graph over one time axis: the life line runs
+// from today at the top down to the birth commit at the bottom. Every company,
+// degree or project is a branch — created at its start date, where its first
+// commit lands, and merged back into the life line at its end date. A branch
+// that has not ended yet simply stays open at HEAD.
+function buildGraph(branches, born) {
+  const lanes = (branches || []).map((branch, i) => ({
+    branch,
+    id: branch.id || `branch-${i}`,
+    start: monthNumber(branch.start),
+    end: monthNumber(branch.end),
+    tone: toneOf(branch.type),
+  }));
+
+  const rows = [{ kind: 'head', key: 'head', at: Infinity }];
+  lanes.forEach((lane) => {
+    if (Number.isFinite(lane.end))
+      rows.push({ kind: 'merge', key: `m:${lane.id}`, at: lane.end, lane });
+    (lane.branch.commits || []).forEach((commit, i) => {
+      rows.push({
+        kind: 'commit',
+        key: `c:${lane.id}:${i}`,
+        at: monthNumber(commit.date),
+        seq: i,
+        commit,
+        lane,
+      });
+    });
+  });
+  rows.push({ kind: 'root', key: 'root', at: monthNumber(born), born });
+
+  // Newest first; within one month a merge closes above its commits, and
+  // commits keep the order they were written in the file (oldest lowest).
+  const rank = { head: 3, merge: 2, commit: 1, root: 0 };
+  rows.sort((a, b) => b.at - a.at || rank[b.kind] - rank[a.kind] || (b.seq ?? 0) - (a.seq ?? 0));
+
+  const rowIndex = new Map(rows.map((row, i) => [row.key, i]));
+  lanes.forEach((lane) => {
+    const own = rows.filter((row) => row.kind === 'commit' && row.lane === lane);
+    // the branch point: its oldest commit, at the bottom of its run
+    lane.bottomIdx = own.length ? rowIndex.get(own[own.length - 1].key) : rows.length - 1;
+    // an open branch runs all the way up to HEAD
+    lane.topIdx = Number.isFinite(lane.end) ? rowIndex.get(`m:${lane.id}`) : 0;
+    lane.rowIdxs = own.map((row) => rowIndex.get(row.key));
+  });
+
+  // A lane is busy from where it merges down to where it branches; a later
+  // branch may reuse the column once it is free.
+  const busyUntil = [];
+  [...lanes]
+    .sort((a, b) => a.topIdx - b.topIdx || a.bottomIdx - b.bottomIdx)
+    .forEach((lane) => {
+      let column = 1;
+      while (busyUntil[column] !== undefined && busyUntil[column] >= lane.topIdx) column++;
+      busyUntil[column] = lane.bottomIdx;
+      lane.column = column;
+    });
+
+  return { rows, lanes, laneCount: lanes.reduce((m, l) => Math.max(m, l.column), 0) + 1 };
+}
+
+// One branch: the merge curve into the life line at the top (open branches
+// start at HEAD instead), the run down its own column, then the curve back into
+// the life line just below its first commit.
+function lanePath(lane, ys, lw) {
+  const x = laneX(lane.column, lw);
+  const life = laneX(0, lw);
+  const branchY = ys[lane.bottomIdx];
+  const merges = Number.isFinite(lane.end);
+  const top = merges ? ys[lane.topIdx] + CURVE : ys[0];
+
+  let d = merges
+    ? `M ${life} ${ys[lane.topIdx]} C ${life} ${ys[lane.topIdx] + CURVE * 0.45} ${x} ${top - CURVE * 0.45} ${x} ${top}`
+    : `M ${x} ${top}`;
+  d += ` L ${x} ${Math.max(top, branchY)}`;
+  d += ` C ${x} ${branchY + CURVE * 0.45} ${life} ${branchY + CURVE * 0.55} ${life} ${branchY + CURVE}`;
+  return d;
+}
+
+// The card shown while hovering a branch — the whole history of that company,
+// degree or project in one place.
+function BranchCard({ lane, x, y }) {
+  const { branch } = lane;
   return (
-    <div style={{ position: 'relative', paddingLeft: '30px' }}>
-      {/* vertical guide line */}
-      <div
-        style={{
-          position: 'absolute',
-          left: '13px',
-          top: '6px',
-          bottom: '6px',
-          width: '1px',
-          background: 'var(--border)',
-          pointerEvents: 'none',
-        }}
-      />
+    <div className="git-branch-card" style={{ left: `${x}px`, top: `${y}px` }}>
+      <div className="git-branch-card-head">
+        <span className="git-ref">{lane.id}</span>
+        <strong>{branch.name}</strong>
+      </div>
+      <div className="git-branch-card-meta">
+        {branch.start} – {branch.end}
+        {branch.location ? ` · ${branch.location}` : ''}
+      </div>
+      <ul className="git-branch-card-list">
+        {(branch.commits || []).map((commit, i) => (
+          <li key={i} className={commit.milestone ? 'is-milestone' : ''}>
+            <span className="git-branch-card-date">{commit.date}</span>
+            {commit.text}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
-      {items.map((item, i) => {
-        const isWork = item.type === 'work';
-        const isActive = item.end === 'present';
-        // Two stints at the same company only read as separate roles once the
-        // employment type is visible, so surface it when the data has one.
-        const badge = item.employment;
+function GitLog({ branches, born }) {
+  const { rows, lanes, laneCount } = useMemo(() => buildGraph(branches, born), [branches, born]);
+  const lw = useWindowWidth() < 560 ? LANE_W_SM : LANE_W;
+  const wrapRef = useRef(null);
+  const rowRefs = useRef([]);
+  // Row heights depend on wrapped text, so the graph is drawn from measurements
+  // rather than guessed. Before the first measure (and in the prerendered HTML)
+  // only the rows render; the gutter is already reserved, so nothing shifts.
+  const [ys, setYs] = useState(null);
+  const [hover, setHover] = useState(null);
+
+  useLayoutEffect(() => {
+    const wrap = wrapRef.current;
+    if (!wrap || !rows.length) return undefined;
+
+    const measure = () => {
+      const top = wrap.getBoundingClientRect().top;
+      setYs(
+        rows.map((_, i) => {
+          const row = rowRefs.current[i];
+          return row ? row.getBoundingClientRect().top - top + NODE_DY : 0;
+        }),
+      );
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(wrap);
+    return () => observer.disconnect();
+  }, [rows]);
+
+  const width = laneCount * lw + 8;
+  const rootY = ys ? ys[rows.length - 1] : 0;
+  const hovered = hover && lanes.find((lane) => lane.id === hover.id);
+
+  return (
+    <div
+      className={`git-log${hovered ? ' is-hovering' : ''}`}
+      ref={wrapRef}
+      style={{ paddingLeft: `${width + 6}px` }}
+      onMouseLeave={() => setHover(null)}
+    >
+      {ys && (
+        <svg
+          className="git-graph"
+          width={width}
+          height={rootY + 6}
+          viewBox={`0 0 ${width} ${rootY + 6}`}
+        >
+          {/* the life line — today at the top, the birth commit at the bottom */}
+          <path d={`M ${LANE_X0} 0 L ${LANE_X0} ${rootY}`} className="git-lane is-life" />
+          <circle cx={LANE_X0} cy={ys[0]} r="4.5" className="git-dot is-life is-hollow" />
+          <circle cx={LANE_X0} cy={rootY} r="4.5" className="git-dot is-life" />
+
+          {lanes.map((lane) => {
+            const d = lanePath(lane, ys, lw);
+            const x = laneX(lane.column, lw);
+            const open = !Number.isFinite(lane.end);
+            const dim = hovered && hovered.id !== lane.id;
+
+            return (
+              <g key={lane.id} className={`${lane.tone}${dim ? ' is-dim' : ''}`}>
+                <path d={d} className="git-lane" />
+                {/* wide invisible stroke so the lane is comfortable to hover */}
+                <path
+                  d={d}
+                  className="git-hit"
+                  onMouseMove={(e) => {
+                    const box = wrapRef.current.getBoundingClientRect();
+                    setHover({ id: lane.id, y: e.clientY - box.top });
+                  }}
+                />
+                {/* merge commit — it belongs to the life line it merges into */}
+                {!open && <circle cx={LANE_X0} cy={ys[lane.topIdx]} r="3.5" className="git-dot" />}
+                {open && <circle cx={x} cy={ys[0]} r="4.5" className="git-dot is-hollow" />}
+                {lane.rowIdxs.map((idx, i) => (
+                  <circle
+                    key={idx}
+                    cx={x}
+                    cy={ys[idx]}
+                    r={lane.branch.commits[i]?.milestone ? 4.5 : 3.5}
+                    className={`git-dot${lane.branch.commits[i]?.milestone ? ' is-hollow' : ''}`}
+                  />
+                ))}
+              </g>
+            );
+          })}
+        </svg>
+      )}
+
+      {hovered && <BranchCard lane={hovered} x={width + 14} y={Math.max(0, hover.y - 24)} />}
+
+      {rows.map((row, i) => {
+        const setRef = (el) => (rowRefs.current[i] = el);
+        const dim = hovered && row.lane && row.lane.id !== hovered.id;
+        const tone = row.lane ? row.lane.tone : '';
+
+        if (row.kind === 'head')
+          return (
+            <div className="git-commit is-note" key={row.key} ref={setRef}>
+              <span className="git-ref is-head">HEAD</span>
+              <span className="git-note-text">today</span>
+            </div>
+          );
+
+        if (row.kind === 'root')
+          return (
+            <div className="git-commit is-note" key={row.key} ref={setRef}>
+              <span className="git-note-text">init — born</span>
+              <span className="git-date">{row.born}</span>
+            </div>
+          );
+
+        if (row.kind === 'merge')
+          return (
+            <div
+              className={`git-commit is-note ${tone}${dim ? ' is-dim' : ''}`}
+              key={row.key}
+              ref={setRef}
+              onMouseEnter={() => setHover(null)}
+            >
+              <span className="git-note-text">
+                Merge branch <span className="git-branch-name">{row.lane.id}</span>
+              </span>
+              <span className="git-date">{row.lane.branch.end}</span>
+            </div>
+          );
+
+        const { commit, lane } = row;
+        const isFirst = row.seq === 0;
 
         return (
           <div
-            key={i}
-            style={{ position: 'relative', paddingBottom: i < items.length - 1 ? '26px' : 0 }}
+            className={`git-commit ${tone}${dim ? ' is-dim' : ''}`}
+            key={row.key}
+            ref={setRef}
+            onMouseEnter={() => setHover(null)}
           >
-            {/* icon node — sits on top of the guide line */}
-            <div
-              style={{
-                position: 'absolute',
-                left: '-24px',
-                top: '1px',
-                color: isActive ? 'var(--primary)' : 'var(--foreground-subtle)',
-                background: 'var(--background)',
-                width: '15px',
-                height: '15px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '1px',
-              }}
-            >
-              {isWork ? <WorkIcon /> : <EduIcon />}
-            </div>
-
-            {/* role + date — stacks on mobile */}
-            <div
-              className="timeline-heading"
-              style={{
-                display: 'flex',
-
-                justifyContent: 'space-between',
-
-                marginBottom: '4px',
-              }}
-            >
-              <span
-                style={{
-                  fontWeight: '600',
-                  fontSize: 'var(--text-base)',
-                  color: 'var(--foreground)',
-                  letterSpacing: '-0.01em',
-                }}
-              >
-                {item.role || item.degree}
-                {badge && <span className="timeline-badge">{badge}</span>}
-              </span>
-
-              {/* date — "present" highlighted blue */}
-              <span
-                style={{
-                  fontSize: 'var(--text-sm)',
-                  flexShrink: 0,
-                  color: 'var(--foreground-muted)',
-                  fontVariantNumeric: 'tabular-nums',
-                }}
-              >
-                {item.start}
-                <span style={{ margin: '0 2px' }}>–</span>
-                <span style={{ color: isActive ? 'var(--primary)' : 'var(--foreground-muted)' }}>
-                  {item.end}
-                </span>
-              </span>
-            </div>
-
-            {/* company / school + location */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontSize: 'var(--text-sm)',
-                marginBottom: item.description ? '6px' : 0,
-                flexWrap: 'wrap',
-              }}
-            >
-              <span style={{ color: isActive ? 'var(--primary)' : 'var(--foreground-muted)' }}>
-                {item.company || item.school}
-              </span>
-              {item.location && (
-                <span style={{ color: 'var(--foreground-subtle)' }}>· {item.location}</span>
-              )}
-            </div>
-
-            {/* description bullets */}
-            {item.description && (
-              <div
-                style={{
-                  fontSize: 'var(--text-sm)',
-                  color: 'var(--foreground-muted)',
-                  lineHeight: '1.75',
-                }}
-              >
-                {Array.isArray(item.description)
-                  ? item.description.map((d, j) => (
-                      <div key={j} style={{ paddingLeft: '12px', position: 'relative' }}>
-                        <span
-                          style={{
-                            position: 'absolute',
-                            left: 0,
-                            color: 'var(--foreground-subtle)',
-                          }}
-                        >
-                          ·
-                        </span>
-                        {d}
-                      </div>
-                    ))
-                  : item.description}
-              </div>
-            )}
+            <span className={`git-text${commit.milestone ? ' is-milestone' : ''}`}>
+              {commit.text}
+            </span>
+            {isFirst && <span className="git-ref is-branch">{lane.id}</span>}
+            {isFirst && <span className="git-where">{lane.branch.name}</span>}
+            <span className="git-date">{commit.date}</span>
           </div>
         );
       })}
@@ -196,7 +304,7 @@ export default function Home() {
       .catch(() => {});
   }, []);
 
-  const hasResume = resume && resume.items?.length;
+  const hasResume = resume && resume.branches?.length;
 
   // Footer quick-links — driven by links.json so no duplication
   const footerLinks = links
@@ -298,12 +406,39 @@ export default function Home() {
         </a>
       </div>
 
+      {/* ── Stack ── */}
+      {resume?.skills?.length > 0 && (
+        <div style={{ marginBottom: '56px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+            <h2 className="section-label">
+              <span className="prompt-sigil" aria-hidden="true">
+                $
+              </span>{' '}
+              stack --list
+            </h2>
+            <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {resume.skills.map((s) => (
+              <span className="stack-chip" key={s}>
+                {s}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ── Work & education timeline ── */}
       {hasResume && (
         <div style={{ marginBottom: '56px' }}>
           {/* label — rule — resume link, so the section closes itself */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
-            <h2 className="section-label">work &amp; education</h2>
+            <h2 className="section-label">
+              <span className="prompt-sigil" aria-hidden="true">
+                $
+              </span>{' '}
+              git log --graph <span className="sr-only">work &amp; education</span>
+            </h2>
             <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
             <a
               href={import.meta.env.BASE_URL + 'resume/'}
@@ -317,7 +452,7 @@ export default function Home() {
               full resume →
             </a>
           </div>
-          <GitTimeline items={resume.items || []} />
+          <GitLog branches={resume.branches || []} born={resume.born} />
         </div>
       )}
 

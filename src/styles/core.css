@@ -368,10 +368,17 @@ svg {
 .home-page {
   padding: 130px 24px 80px;
 }
-.timeline-heading {
-  flex-direction: row;
-  align-items: baseline;
-  gap: 16px;
+/* Visually hidden, still read by screen readers and search engines. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 /* Avatar is the home LCP element — fixed box so it never shifts the hero. */
 .home-avatar {
@@ -399,18 +406,214 @@ svg {
 .link-quiet:hover {
   color: var(--foreground);
 }
-/* Employment type (full-time / internship) beside a role. */
-.timeline-badge {
-  margin-left: 8px;
+/* Shell prompt sigil in front of a terminal-styled section label. */
+.prompt-sigil {
+  color: var(--primary);
+}
+
+/* ── Work & education, rendered as `git log --graph` ── */
+.git-log {
+  position: relative;
+  padding-bottom: 26px;
+}
+/* one row per commit — a single line that wraps on narrow screens */
+.git-commit {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding-bottom: 14px;
+  font-size: var(--text-sm);
+  color: var(--foreground-muted);
+  transition: opacity 150ms;
+}
+.git-commit.is-note {
+  padding-bottom: 18px;
+}
+.git-log.is-hovering .git-commit.is-dim,
+.git-graph .is-dim {
+  opacity: 0.3;
+}
+.git-text {
+  color: var(--foreground-muted);
+}
+/* a milestone — new role, new college — carries the weight of the change */
+.git-text.is-milestone {
+  font-weight: 600;
+  color: var(--foreground);
+}
+.git-note-text {
+  color: var(--foreground-subtle);
+}
+.git-date {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--foreground-subtle);
+  font-variant-numeric: tabular-nums;
+}
+.git-where,
+.git-branch-name {
+  color: var(--graph-work);
+}
+.is-edu .git-where,
+.is-edu .git-branch-name {
+  color: var(--graph-edu);
+}
+.is-project .git-where,
+.is-project .git-branch-name {
+  color: var(--graph-project);
+}
+
+/* The graph itself, drawn in the reserved left gutter. */
+.git-graph {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: visible;
+}
+.git-lane {
+  fill: none;
+  stroke: var(--graph-work);
+  stroke-width: 2;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+.git-lane.is-life {
+  stroke: var(--graph-life);
+}
+.is-edu .git-lane {
+  stroke: var(--graph-edu);
+}
+.is-project .git-lane {
+  stroke: var(--graph-project);
+}
+/* invisible, generously wide stroke so a lane is easy to hover */
+.git-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 16;
+  cursor: pointer;
+}
+.git-dot {
+  fill: var(--graph-work);
+  stroke: none;
+  pointer-events: none;
+}
+.is-edu .git-dot {
+  fill: var(--graph-edu);
+}
+.is-project .git-dot {
+  fill: var(--graph-project);
+}
+.git-graph .git-dot.is-life {
+  fill: var(--graph-life);
+}
+/* hollow = a milestone commit, or the open tip of an unmerged branch */
+.git-dot.is-hollow {
+  fill: var(--background);
+  stroke: var(--graph-work);
+  stroke-width: 2.5;
+}
+.is-edu .git-dot.is-hollow {
+  stroke: var(--graph-edu);
+}
+.is-project .git-dot.is-hollow {
+  stroke: var(--graph-project);
+}
+.git-graph .git-dot.is-life.is-hollow {
+  stroke: var(--graph-life);
+}
+
+/* branch / tag refs */
+.git-ref {
   padding: 1px 6px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   font-size: 10px;
-  font-weight: 400;
   letter-spacing: 0.04em;
   color: var(--foreground-subtle);
-  vertical-align: 1px;
   white-space: nowrap;
+}
+.git-ref.is-head {
+  border-color: var(--primary-ring);
+  background: var(--primary-subtle);
+  color: var(--primary);
+}
+.git-ref.is-branch {
+  border-color: currentColor;
+  color: var(--graph-work);
+  opacity: 0.85;
+}
+.is-edu .git-ref.is-branch {
+  color: var(--graph-edu);
+}
+.is-project .git-ref.is-branch {
+  color: var(--graph-project);
+}
+
+/* Hover card — the whole branch at a glance. */
+.git-branch-card {
+  position: absolute;
+  z-index: 5;
+  width: min(420px, 78vw);
+  padding: 12px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  box-shadow: 0 14px 34px var(--overlay);
+  pointer-events: none;
+}
+.git-branch-card-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: var(--text-sm);
+  color: var(--foreground);
+  margin-bottom: 4px;
+}
+.git-branch-card-meta {
+  font-size: var(--text-xs);
+  color: var(--foreground-subtle);
+  margin-bottom: 10px;
+}
+.git-branch-card-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  font-size: var(--text-xs);
+  color: var(--foreground-muted);
+  line-height: 1.6;
+}
+.git-branch-card-list .is-milestone {
+  font-weight: 600;
+  color: var(--foreground);
+}
+.git-branch-card-date {
+  display: inline-block;
+  min-width: 68px;
+  color: var(--foreground-subtle);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tooling chips under the intro. */
+.stack-chip {
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--background-subtle);
+  font-size: var(--text-xs);
+  color: var(--foreground-muted);
+  transition:
+    border-color 150ms,
+    color 150ms;
+}
+.stack-chip:hover {
+  border-color: var(--border-strong);
+  color: var(--foreground);
 }
 .nav-brand,
 .nav-item {
@@ -459,10 +662,10 @@ svg {
   }
 }
 @media (max-width: 559px) {
-  .timeline-heading {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
+  /* narrow: the date drops to its own line instead of squeezing the refs */
+  .git-date {
+    flex-basis: 100%;
+    margin-left: 0;
   }
 }
 @media (prefers-reduced-motion: reduce) {

@@ -1,4 +1,62 @@
 {
+  "born": "Apr 2003",
+
+  "_comment": "items[] is the CV (resume page + structured data). branches[] drives the git graph on the home page: one branch per company / degree / project, with dated commits. milestone: true renders a hollow dot and bold text (role change, college change, …).",
+
+  "branches": [
+    {
+      "id": "taban",
+      "type": "work",
+      "name": "Taban Smart Electronic Commerce",
+      "location": "Tehran, Tehran Province, Iran",
+      "start": "Apr 2024",
+      "end": "present",
+      "commits": [
+        { "date": "Apr 2024", "text": "DevOps Engineer, internship", "milestone": true },
+        {
+          "date": "Apr 2024",
+          "text": "Containerization with Docker and version control via GitLab"
+        },
+        {
+          "date": "May 2024",
+          "text": "Assisted in setting up CI/CD pipelines and infrastructure tooling"
+        },
+        { "date": "Jul 2024", "text": "DevOps Engineer, full-time", "milestone": true },
+        { "date": "Sep 2024", "text": "Infrastructure automation and CI/CD pipeline management" },
+        {
+          "date": "Jan 2025",
+          "text": "Monitoring and observability with Elastic Stack (ELK) and Grafana"
+        },
+        { "date": "Jun 2025", "text": "Container orchestration and deployment workflows" }
+      ]
+    },
+    {
+      "id": "bachelor",
+      "type": "education",
+      "name": "Bachelor's degree, Computer Engineering",
+      "location": "Mazandaran, Mahmudabad, Iran",
+      "start": "Sep 2022",
+      "end": "Sep 2026",
+      "commits": [
+        {
+          "date": "Sep 2022",
+          "text": "Started at Technical and Vocational University",
+          "milestone": true
+        },
+        {
+          "date": "Sep 2023",
+          "text": "Guest student at Shamsipour Technical and Vocational College, Tehran",
+          "milestone": true
+        },
+        {
+          "date": "Jun 2025",
+          "text": "Back to Technical and Vocational University after 4 semesters",
+          "milestone": true
+        }
+      ]
+    }
+  ],
+
   "items": [
     {
       "type": "work",
@@ -33,7 +91,7 @@
       "school": "Technical and Vocational University",
       "location": "Mazandaran, Mahmudabad, Iran",
       "start": "Sep 2022",
-      "end": "present"
+      "end": "Sep 2026"
     },
     {
       "type": "education",
@@ -42,10 +100,23 @@
       "location": "Tehran, Tehran Province, Iran",
       "start": "Sep 2023",
       "end": "Jun 2025",
-      "description": [
-        "Guest student for 4 semesters"
-      ]
+      "description": ["Guest student for 4 semesters"]
     }
   ],
-  "skills": ["linux", "kubernetes", "terraform", "docker", "nixos", "ansible", "bash", "python", "git", "prometheus", "elasticsearch", "grafana", "gitlab"]
+
+  "skills": [
+    "linux",
+    "kubernetes",
+    "terraform",
+    "docker",
+    "nixos",
+    "ansible",
+    "bash",
+    "python",
+    "git",
+    "prometheus",
+    "elasticsearch",
+    "grafana",
+    "gitlab"
+  ]
 }

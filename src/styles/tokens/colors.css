@@ -47,6 +47,12 @@
   --info: #3b82f6;
   --info-subtle: rgba(59, 130, 246, 0.12);
 
+  /* ── Git graph lanes (home timeline) ── */
+  --graph-life: #3b82f6; /* the life line */
+  --graph-work: #f59e0b; /* work branches  */
+  --graph-edu: #22c55e; /* education branches */
+  --graph-project: #a855f7; /* project branches */
+
   /* ── Transparency ── */
   --overlay: rgba(0, 0, 0, 0.6);
   --scrim: rgba(9, 9, 11, 0.8);
@@ -75,6 +81,12 @@
   --secondary-foreground: #09090b;
 
   --input: #f4f4f5;
+  /* darker lanes so they hold up against white */
+  --graph-life: #2563eb;
+  --graph-work: #d97706;
+  --graph-edu: #16a34a;
+  --graph-project: #9333ea;
+
   --overlay: rgba(0, 0, 0, 0.3);
   --scrim: rgba(255, 255, 255, 0.8);
 
