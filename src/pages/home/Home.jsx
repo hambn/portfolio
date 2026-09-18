@@ -58,6 +58,9 @@ function GitTimeline({ items }) {
       {items.map((item, i) => {
         const isWork = item.type === 'work';
         const isActive = item.end === 'present';
+        // Two stints at the same company only read as separate roles once the
+        // employment type is visible, so surface it when the data has one.
+        const badge = item.employment;
 
         return (
           <div
@@ -103,6 +106,7 @@ function GitTimeline({ items }) {
                 }}
               >
                 {item.role || item.degree}
+                {badge && <span className="timeline-badge">{badge}</span>}
               </span>
 
               {/* date — "present" highlighted blue */}
@@ -222,13 +226,8 @@ export default function Home() {
           width="72"
           height="72"
           decoding="async"
-          style={{
-            width: '72px',
-            height: '72px',
-            borderRadius: '50%',
-            border: '2px solid var(--border)',
-            flexShrink: 0,
-          }}
+          fetchpriority="high"
+          className="home-avatar"
         />
         <div>
           <h1
@@ -242,23 +241,29 @@ export default function Home() {
           >
             {profile?.name || ''}
           </h1>
-          <p style={{ color: 'var(--primary)', fontSize: 'var(--text-sm)', fontWeight: '500' }}>
+          <p style={{ fontSize: 'var(--text-sm)', fontWeight: '500', color: 'var(--primary)' }}>
             @{profile?.handle || ''}
           </p>
         </div>
       </div>
 
-      <p
+      {/* intro paragraphs — falls back to the one-line bio used for meta/cards */}
+      <div
         style={{
           color: 'var(--foreground-muted)',
           fontSize: 'var(--text-base)',
-          lineHeight: '1.8',
-          maxWidth: '500px',
-          marginBottom: '32px',
+          lineHeight: '1.85',
+          // ~70 characters per line — comfortable for multi-sentence paragraphs.
+          maxWidth: '620px',
+          marginBottom: '36px',
+          display: 'grid',
+          gap: '18px',
         }}
       >
-        {profile?.bio || ''}
-      </p>
+        {(profile?.intro?.length ? profile.intro : [profile?.bio].filter(Boolean)).map((p, i) => (
+          <p key={i}>{p}</p>
+        ))}
+      </div>
 
       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '56px' }}>
         <a
@@ -296,57 +301,23 @@ export default function Home() {
       {/* ── Work & education timeline ── */}
       {hasResume && (
         <div style={{ marginBottom: '56px' }}>
+          {/* label — rule — resume link, so the section closes itself */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
-            <span
-              style={{
-                fontSize: '10px',
-                color: 'var(--foreground-subtle)',
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              work & education
-            </span>
+            <h2 className="section-label">work &amp; education</h2>
             <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+            <a
+              href={import.meta.env.BASE_URL + 'resume/'}
+              onClick={(e) => {
+                e.preventDefault();
+                navigate('resume');
+              }}
+              className="link-quiet"
+              style={{ fontSize: 'var(--text-xs)', whiteSpace: 'nowrap' }}
+            >
+              full resume →
+            </a>
           </div>
           <GitTimeline items={resume.items || []} />
-        </div>
-      )}
-
-      {/* ── Resume CTA ── */}
-      {hasResume && (
-        <div style={{ marginBottom: '40px' }}>
-          <a
-            href={import.meta.env.BASE_URL + 'resume/'}
-            onClick={(e) => {
-              e.preventDefault();
-              navigate('resume');
-            }}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: 'var(--text-sm)',
-              color: 'var(--foreground-muted)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-md)',
-              padding: '7px 16px',
-              textDecoration: 'none',
-              fontFamily: 'var(--font-mono)',
-              transition: 'border-color 150ms, color 150ms',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = 'var(--primary)';
-              e.currentTarget.style.color = 'var(--primary)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'var(--border)';
-              e.currentTarget.style.color = 'var(--foreground-muted)';
-            }}
-          >
-            view full resume →
-          </a>
         </div>
       )}
 
@@ -360,13 +331,8 @@ export default function Home() {
                 href={url}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{
-                  fontSize: 'var(--text-xs)',
-                  color: 'var(--foreground-subtle)',
-                  transition: 'color 150ms',
-                }}
-                onMouseEnter={(e) => (e.target.style.color = 'var(--foreground)')}
-                onMouseLeave={(e) => (e.target.style.color = 'var(--foreground-subtle)')}
+                className="link-quiet"
+                style={{ fontSize: 'var(--text-xs)' }}
               >
                 {label} ↗
               </a>

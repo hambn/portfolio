@@ -57,19 +57,32 @@ const sameAs = [
 
 const abs = (path = '') => (path ? `${SITE}/${path}/` : `${SITE}/`);
 
+// Employer / schools come straight from the resume so the Person entity search
+// engines see matches the timeline the page renders.
+const orgLd = (name) => (name ? { '@type': 'Organization', name } : undefined);
+const firstItem = (type) => (resume.items || []).find((i) => i.type === type);
+
 const personLd = {
   '@type': 'Person',
+  '@id': `${SITE}/#person`,
   name: profile.name,
   alternateName: profile.handle,
   jobTitle: profile.title || undefined,
+  description: profile.bio || undefined,
   url: abs(),
   image: profile.avatar,
+  worksFor: orgLd(firstItem('work')?.company),
+  alumniOf: orgLd(firstItem('education')?.school),
   sameAs,
 };
 
+// The Person is one entity across the whole site: spell it out once per graph
+// and point at it by @id everywhere else, instead of repeating the full node.
+const personRef = { '@id': personLd['@id'] };
+
 const ldGraph = (...nodes) =>
   JSON.stringify(
-    { '@context': 'https://schema.org', '@graph': nodes.filter(Boolean) },
+    { '@context': 'https://schema.org', '@graph': [personLd, ...nodes.filter(Boolean)] },
     null,
     2,
   ).replace(/<\//g, '<\\/');
@@ -80,7 +93,7 @@ const pageNode = (type, meta, path) => ({
   description: meta.desc,
   url: abs(path),
   inLanguage: 'en',
-  about: personLd,
+  about: personRef,
 });
 
 const breadcrumbs = (items) => ({
@@ -104,8 +117,8 @@ const postLd = (p) => ({
   inLanguage: 'en',
   image: profile.avatar,
   keywords: p.tags?.length ? p.tags.join(', ') : undefined,
-  author: personLd,
-  publisher: personLd,
+  author: personRef,
+  publisher: personRef,
   isPartOf: { '@type': 'Blog', name: `blog — ${profile.name}`, url: abs('blog') },
 });
 
@@ -252,7 +265,7 @@ write(
     ...meta.home,
     path: '',
     preload: assetLinks('home'),
-    jsonLd: ldGraph({ ...pageNode('ProfilePage', meta.home, ''), mainEntity: personLd }),
+    jsonLd: ldGraph({ ...pageNode('ProfilePage', meta.home, ''), mainEntity: personRef }),
   }),
 );
 write(
@@ -280,7 +293,7 @@ write(
         description: meta.blog.desc,
         url: abs('blog'),
         inLanguage: 'en',
-        author: personLd,
+        author: personRef,
         blogPost: posts.map((p) => ({
           '@type': 'BlogPosting',
           headline: p.title,
@@ -288,7 +301,7 @@ write(
           url: abs(`blog/${p.slug}`),
           datePublished: isoDate(p.date) || undefined,
           keywords: p.tags?.length ? p.tags.join(', ') : undefined,
-          author: personLd,
+          author: personRef,
         })),
       },
       crumb('blog', 'blog'),
