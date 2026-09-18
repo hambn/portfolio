@@ -5,31 +5,42 @@ Static React portfolio, built with Vite, deployed to GitHub Pages at
 
 ```
 .
-├─ index.html              Vite entry (meta/OG fallback + pre-paint theme script)
+├─ index.html              Vite entry (meta/OG fallback + pre-paint theme script
+│                          + chunk-reload recovery script)
 ├─ vite.config.js          base path, classic-JSX, blog-index plugin,
 │                          build manifest + react vendor chunk
-├─ package.json            scripts: dev / build / preview
+├─ package.json            scripts: dev / build / preview / lint / check / test:*
 │
 ├─ src/                    browser app code (bundled by Vite)
-│  ├─ main.jsx             entry: app shell + history router; syncs
-│  │                       document.title/scroll/focus per route; imports
-│  │                       font/styles, preloads the entry route chunk, then
-│  │                       hydrates the static HTML
-│  ├─ routes.js            route registry: path + <head> meta (also read by prerender)
+│  ├─ main.jsx             browser entry: imports font/styles, preloads the entry
+│  │                       route chunk, then hydrates the prerendered HTML
+│  ├─ App.jsx              history router: route state, per-route <head> sync,
+│  │                       scroll/focus handling, Suspense around lazy pages
+│  ├─ entry-server.jsx     render(route, data) used by scripts/prerender.mjs
+│  ├─ routes.js            route registry: path + <head> meta (also read by
+│  │                       prerender and the static SEO tests)
 │  ├─ lib/
-│  │  ├─ data.js           PortfolioData — fetches public/contents/
+│  │  ├─ api.js            apiUrl / mediaUrl / socketUrl / apiContent helpers
+│  │  ├─ data.js           PortfolioData — fetches public/contents/, plus a
+│  │  │                    synchronous peek() seeded from the inlined page data
+│  │  ├─ metadata.js       routeMetadata / pageGraph / updateDocumentMetadata —
+│  │  │                    shared by the prerenderer and client navigation
 │  │  ├─ router.js         navigate() / currentRoute() history helpers
 │  │  ├─ storage.js        safe localStorage get/set (never throws)
+│  │  ├─ cardState.js      shared collapsed-card store (useSyncExternalStore)
+│  │  ├─ highlight.js      highlight.js/lib/common + extra languages
 │  │  └─ markdown.js       self-hosted marked + highlight.js (lazy chunk)
 │  ├─ hooks/               useMediaQuery, useCollapsed, useCopy, usePolledJSON
 │  ├─ components/
-│  │  ├─ Nav.jsx           top nav + theme toggle
+│  │  ├─ Shell.jsx         page frame: skip link + Nav + #content
+│  │  ├─ Nav.jsx           top nav + theme toggle (styles in core.css)
 │  │  ├─ ErrorState.jsx    shared load-failure message + retry button
-│  │  └─ card/             link-card chrome: HeaderButtons, cardStyles, ContribGraph
+│  │  └─ card/             link-card chrome: HeaderButtons, cards.css, ContribGraph
 │  ├─ pages/               one folder per route (default exports)
 │  │  ├─ index.js          lazy page map (React.lazy) + preloadPage()
-│  │  ├─ home/Home.jsx
-│  │  ├─ projects/Projects.jsx   live GitHub repos
+│  │  ├─ home/             Home.jsx + Intro, Timeline/GitLog/GitRow (git-graph
+│  │  │                    timeline), Stack, SectionHead, FooterLinks
+│  │  ├─ projects/         Projects.jsx (live GitHub repos) + projects.css
 │  │  ├─ resume/Resume.jsx
 │  │  ├─ blog/
 │  │  │  ├─ Blog.jsx       container: list ↔ post routing
@@ -40,21 +51,29 @@ Static React portfolio, built with Vite, deployed to GitHub Pages at
 │  │     ├─ Links.jsx      composes the cards; reads links.json
 │  │     ├─ LinksFeed.jsx  one /links request per visit; seeds every card
 │  │     │                 (useCardFeed) so a fresh card needs no request
-│  │     └─ *Card.jsx      Email, Discord, Telegram, X, GitHub, GitLab,
-│  │                       LinkedIn, Spotify, Steam (one file each)
+│  │     └─ <provider>/    Email, Discord, Telegram, X, GitHub, GitLab,
+│  │                       LinkedIn, Spotify, Steam (JSX + CSS per folder)
 │  └─ styles/
 │     ├─ index.css         imports tokens/ + core.css
-│     ├─ blog.css          markdown rendering styles
-│     ├─ core.css          component base styles
+│     ├─ blog.css          markdown rendering styles (loads with the blog route)
+│     ├─ core.css          shared base styles — critical path on every route
 │     └─ tokens/           colors.css, typography.css, spacing.css
 │
+├─ shared/                 tiny helpers used by both the site and api/
+│                          (linkedin, telegram, x — .js + .d.ts)
+│
 ├─ scripts/                Node build tooling (NOT bundled — root by convention)
-│  ├─ blog-index.mjs       scans contents/blogs/*.md → blog index (Vite plugin)
-│  └─ prerender.mjs        post-build: static HTML + meta + JSON-LD + RSS feed
-│                          + sitemap per route (also injects chunk preloads)
+│  ├─ blog-index.mjs       scans contents/blogs/**.md → blog index (Vite plugin)
+│  ├─ prerender.mjs        post-build: static HTML + meta + JSON-LD + RSS feed
+│  │                       + sitemap + robots.txt (also injects chunk preloads)
+│  ├─ build-api.mjs        esbuild bundle of api/ for the Node entrypoint
+│  └─ test-*.mjs           node:test suites (site SEO, worker, api urls, …)
+│
+├─ tests/browser/          Playwright specs (hydration, metadata, providers)
+├─ docs/website-audit.md   record of the cleanup/perf passes
 │
 ├─ public/                 served as-is (not processed by Vite)
-│  ├─ robots.txt
+│  ├─ CNAME                custom domain for GitHub Pages
 │  └─ contents/            ← all editable content
 │     ├─ home/             profile.json, resume.json
 │     ├─ links/            links.json (every card is config-driven)
@@ -88,6 +107,12 @@ Static React portfolio, built with Vite, deployed to GitHub Pages at
   chunks (`React.lazy`); `main.jsx` preloads the entry route before hydration. Other routes load when opened.
 - **Route metadata lives in `src/routes.js`** — plain JS, also imported by
   `scripts/prerender.mjs`, so the prerendered head and the SPA never drift.
+  `src/lib/metadata.js` builds the actual titles/descriptions/JSON-LD for both.
+- **`src/styles/core.css` is render-blocking on every route.** Styles used by a
+  single page belong in a CSS file next to that page (Vite splits it into the
+  route chunk), not here. Nothing unused should survive in core.css.
+- **Styling lives in CSS, not in state.** Hover/active are `:hover` and
+  `[aria-current]` selectors so pointer movement never re-renders React.
 - **Content is data, not code.** Edit `public/contents/`; never hardcode it.
 - **Blog is auto-discovered.** No manifest. The index is generated at build
   (and served virtually in dev); raw `.md` are stripped from `dist/`.
@@ -95,9 +120,12 @@ Static React portfolio, built with Vite, deployed to GitHub Pages at
   markdown libs (`marked`, `highlight.js`, `mermaid`) are bundled/lazy-loaded —
   no third-party CDN.
 - **SEO via prerender.** `scripts/prerender.mjs` emits a real HTML file per
-  route + per post with unique title/description/canonical/OG, per-page JSON-LD
-  (BlogPosting/BreadcrumbList/…), a modulepreload hint for the route's lazy
-  chunk, plus sitemap.xml (with lastmod) and feed.xml.
+  route + per post with unique title/description/canonical/OG/Twitter tags,
+  explicit `robots` directives, a per-page JSON-LD `@graph`
+  (Person/WebSite/BlogPosting/BreadcrumbList/…), a modulepreload hint for the
+  route's lazy chunk, plus sitemap.xml (with lastmod), feed.xml and robots.txt.
+  `scripts/test-site.mjs` asserts all of it — run `npm run test:site` after
+  touching head markup.
 - **Canonical URLs end in a slash** (`/blog/`); `navigate()` pushes that form and
   the prerendered links match it.
 - **GitHub Pages.** Known routes are real 200 HTML files; `404.html` is the SPA
@@ -110,5 +138,8 @@ Static React portfolio, built with Vite, deployed to GitHub Pages at
 - Update bio / resume → `public/contents/home/*.json`.
 - Add a route → add the component in `src/pages/`, register it in
   `src/pages/index.js`, and add its meta to `src/routes.js`.
-- Restyle → `src/styles/tokens/` (design tokens) or `src/styles/core.css`.
+- Restyle → `src/styles/tokens/` (design tokens) or `src/styles/core.css` for
+  shared chrome; page-specific rules go in that page's own CSS file.
 - `npm run dev` to preview, `npm run build` to produce `dist/`.
+- `npm run check` before shipping (lint + api checks + format + build + SEO
+  tests); `npm run test:browser` for the Playwright regressions.
