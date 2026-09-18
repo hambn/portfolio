@@ -3,13 +3,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { PortfolioData } from '../../lib/data.js';
 import { ClickableTag, fmtDate, goToTag } from './blog-ui.jsx';
 
-function renderMarkdown(marked, body) {
-  marked.setOptions({ gfm: true, breaks: false, headerIds: false, mangle: false });
-  return marked.parse(body);
-}
-
 // Post-process the rendered DOM: mermaid blocks, highlight.js, copy buttons.
-function enhanceMarkdown(root, libs) {
+async function enhanceMarkdown(root) {
   if (!root) return;
   const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
 
@@ -23,14 +18,21 @@ function enhanceMarkdown(root, libs) {
     mermaidNodes.push(div);
   });
 
-  // 2. Highlight everything else + add copy buttons
-  root.querySelectorAll('pre > code').forEach((code) => {
+  // Load the highlighter only when the post contains code.
+  const codes = root.querySelectorAll('pre > code');
+  const hljs = codes.length
+    ? await import('../../lib/highlight.js').then((m) => m.hljs).catch(() => null)
+    : null;
+  if (!root.isConnected) return;
+
+  // Highlight code and add copy buttons.
+  codes.forEach((code) => {
     const pre = code.parentElement;
     if (pre.parentElement?.classList.contains('code-block')) return;
 
-    if (libs?.hljs) {
+    if (hljs) {
       try {
-        libs.hljs.highlightElement(code);
+        hljs.highlightElement(code);
       } catch (e) {}
     }
 
@@ -43,15 +45,19 @@ function enhanceMarkdown(root, libs) {
     btn.className = 'code-copy';
     btn.type = 'button';
     btn.textContent = 'copy';
-    btn.addEventListener('click', () => {
-      navigator.clipboard?.writeText(code.textContent).then(() => {
+    btn.addEventListener('click', async () => {
+      if (!navigator.clipboard) return;
+      try {
+        await navigator.clipboard.writeText(code.textContent);
         btn.textContent = 'copied';
         btn.classList.add('copied');
         setTimeout(() => {
           btn.textContent = 'copy';
           btn.classList.remove('copied');
         }, 1400);
-      });
+      } catch {
+        // Leave the button unchanged when clipboard access is denied.
+      }
     });
     wrap.appendChild(btn);
   });
@@ -68,59 +74,51 @@ function enhanceMarkdown(root, libs) {
   // 4. Render mermaid diagrams — load the (heavy) mermaid lib on demand, only
   //    when a post actually contains a diagram, so other pages never fetch it.
   if (mermaidNodes.length) {
-    ensureMermaid().then((mermaid) => {
-      if (!mermaid) return;
-      try {
-        mermaid.initialize({
-          startOnLoad: false,
-          theme: isDark ? 'dark' : 'default',
-          securityLevel: 'loose',
-          fontFamily: 'var(--font-mono)',
-        });
-        mermaid.run({ nodes: mermaidNodes });
-      } catch (e) {
-        console.warn('mermaid', e);
-      }
-    });
+    import('mermaid')
+      .then(async ({ default: mermaid }) => {
+        if (!root.isConnected) return;
+        try {
+          mermaid.initialize({
+            startOnLoad: false,
+            theme: isDark ? 'dark' : 'default',
+            securityLevel: 'loose',
+            fontFamily: 'var(--font-mono)',
+          });
+          await mermaid.run({ nodes: mermaidNodes });
+        } catch (e) {
+          console.warn('mermaid', e);
+        }
+      })
+      .catch((error) => console.warn('mermaid', error));
   }
-}
-
-// Self-hosted, code-split markdown libs — loaded once, only on post pages.
-let _libsPromise = null;
-function ensureMarkdownLibs() {
-  if (!_libsPromise) _libsPromise = import('../../lib/markdown.js').catch(() => null);
-  return _libsPromise;
-}
-
-// Lazy-load mermaid (self-hosted, code-split) once; only when a post has a diagram.
-let _mermaidPromise = null;
-function ensureMermaid() {
-  if (!_mermaidPromise)
-    _mermaidPromise = import('mermaid').then((m) => m.default).catch(() => null);
-  return _mermaidPromise;
 }
 
 export default function PostView({ post, onBack }) {
   const ref = useRef(null);
-  const [libs, setLibs] = useState(null);
   const [html, setHtml] = useState(() => PortfolioData.peek('postHtml')?.[post.slug] ?? null);
 
-  // Load the markdown libs, then render the body.
+  // Prerendered pages already contain HTML. Only SPA navigation needs a parser.
   useEffect(() => {
+    if (html != null) return;
     let alive = true;
-    ensureMarkdownLibs().then((loaded) => {
-      if (!alive) return;
-      setLibs(loaded);
-      setHtml(loaded ? renderMarkdown(loaded.marked, post.body) : post.body);
-    });
+    import('../../lib/markdown.js')
+      .then(({ marked }) => {
+        if (alive) setHtml(marked.parse(post.body));
+      })
+      .catch(() => {
+        if (alive)
+          setHtml(
+            post.body.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;'),
+          );
+      });
     return () => {
       alive = false;
     };
-  }, [post.slug, post.body]);
+  }, [html, post.body]);
 
   useEffect(() => {
-    if (html != null && libs) enhanceMarkdown(ref.current, libs);
-  }, [html, libs]);
+    if (html != null) enhanceMarkdown(ref.current);
+  }, [html]);
 
   return (
     <main

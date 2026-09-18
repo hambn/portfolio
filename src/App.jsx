@@ -3,7 +3,7 @@ import Shell from './components/Shell.jsx';
 import { pages } from './pages/index.js';
 import { currentRoute } from './lib/router.js';
 import { PortfolioData } from './lib/data.js';
-import { routes } from './routes.js';
+import { routeMetadata, updateDocumentMetadata } from './lib/metadata.js';
 
 export default function App({ initialRoute, initialPage }) {
   const [route, setRoute] = useState(() => initialRoute || currentRoute());
@@ -22,26 +22,17 @@ export default function App({ initialRoute, initialPage }) {
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
-  // Keep document.title in sync with the route. Titles come from routes.js so
-  // client-side navigation matches what the prerenderer wrote.
+  // Keep navigation metadata consistent with the static page at the same URL.
   useEffect(() => {
     let alive = true;
-    const [pageKey, ...rest] = (route || 'home').split('/');
-    const slug = rest.join('/');
-    const meta = routes.find((r) => r.page === (pageKey || 'home'));
-    if (!meta) return;
-    PortfolioData.getProfile()
-      .then((p) => {
+    Promise.all([
+      PortfolioData.getProfile(),
+      route === 'blog' || route.startsWith('blog/') ? PortfolioData.getBlogIndex() : [],
+    ])
+      .then(([profile, posts]) => {
         if (!alive) return;
-        document.title = meta.title({ profile: p });
-        if (pageKey === 'blog' && slug) {
-          PortfolioData.getBlogIndex()
-            .then((posts) => {
-              const post = posts.find((x) => x.slug === slug);
-              if (alive && post) document.title = `${post.title} — ${p.name}`;
-            })
-            .catch(() => {});
-        }
+        const metadata = routeMetadata(route, profile, posts);
+        if (metadata) updateDocumentMetadata(metadata, profile, posts);
       })
       .catch(() => {});
     return () => {

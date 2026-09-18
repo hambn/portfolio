@@ -1,59 +1,86 @@
-# Website loading audit
+# Repository cleanup and loading audit
 
-## Reload flash fixed
+This pass reviewed frontend routes, shared hooks, content loading, prerendering,
+build configuration, backend request/cache handling, deployment configuration,
+and the existing tests. Changes focus on browser startup, static metadata and
+code duplication. Public content and the design are unchanged.
 
-The old prerenderer inserted a separate, plain-text page into `#root`.
-`createRoot` then replaced it with the React design. Adding more CSS preloads
-could not fix that mismatch.
+## Changes
 
-The build now renders the actual React components. The client waits for the
-entry route and hydrates the existing markup. Embedded public JSON supplies
-initial content without extra requests. Responsive navigation, home layout,
-and social-card styles use CSS available before JavaScript runs.
+- Blog CSS loads with the blog route instead of every page.
+- Direct post visits reuse the rendered HTML. The markdown parser loads only
+  when navigating to a post that has no embedded HTML. Syntax highlighting
+  loads only for code blocks, and Mermaid still loads only for diagrams.
+- Page HTML embeds only the content used by that route. Successful content
+  fetches also update the synchronous snapshot, avoiding empty initial state
+  when returning to a page.
+- Static generation and client navigation share metadata and structured-data
+  builders. Descriptions, canonical URLs, Open Graph, article tags and JSON-LD
+  now follow navigation together.
+- Fixed static descriptions that silently retained homepage text because the
+  old replacement expression did not match multiline meta tags.
+- Canonicals, structured data, RSS and sitemap URLs now include `BASE_PATH`.
+  RSS publication dates use UTC regardless of the build machine's timezone.
+- Timeline dates and locations use CSS breakpoints. Server and browser markup
+  match on mobile, and the graph subscribes to breakpoint changes instead of
+  every resize event.
+- Tag hover colors use CSS instead of component state. Removed unused content
+  access and redundant module-promise caches. Blog discovery uses directory
+  entry types instead of a separate filesystem stat for every entry.
+- Fixed the avatar's React `fetchPriority` prop and the `/api` preconnect hint
+  that caused Vite builds using a relative API URL to fail.
+- Added static SEO checks to `npm run check` and browser regressions for
+  hydration, metadata, code blocks, diagrams and JavaScript-free mobile content.
 
-Other changes:
+## Measured results
 
-- Preload the primary font and deduplicate asset links.
-- Load additional routes on demand instead of downloading every route after startup.
-- Keep code-block spacing stable when syntax highlighting adds controls.
-- Preserve saved theme and card preferences without hydration mismatches.
-- Add page-level headings, a named blog search field, visible keyboard focus for
-  search and code-copy buttons, and reduced-motion rules.
-- Keep navigation links compatible with the configured deployment base.
-- Keep a GitHub link available while the projects page fetches repositories.
+These are local production builds. Sizes below are uncompressed, rounded to
+one decimal KB. Browser resource totals were measured in Chromium with provider
+requests stubbed consistently before and after.
 
-The implementation follows React's [hydration model](https://react.dev/reference/react-dom/client/hydrateRoot)
-and Vite's [static rendering workflow](https://vite.dev/guide/ssr).
+| Resource                       |   Before |    After |
+| ------------------------------ | -------: | -------: |
+| Shared initial CSS             |  26.1 KB |  18.7 KB |
+| Blog list HTML                 |  29.9 KB |  22.3 KB |
+| Welcome post HTML              |  24.7 KB |  19.3 KB |
+| Welcome post loaded JavaScript | 450.0 KB | 408.0 KB |
+
+Shared CSS is 28% smaller. Direct post visits avoid the 44.1 KB markdown-parser
+chunk, about 13 KB gzip. Shared metadata handling adds roughly 2.5 KB of initial
+JavaScript; home still loads about 4.8 KB less JavaScript and CSS combined.
+Blog pages retain their full stylesheet and existing syntax-highlight languages.
 
 ## Validation
 
-- `npm run check` passed: ESLint, Prettier, production build, nine generated pages.
-- `git diff --check` passed.
-- Chromium checks covered all nine generated pages at 390px and 1280px widths
-  with JavaScript requests held back. Every page had a visible heading and
-  styled content before scripts loaded. React retained the original main
-  element, with no hydration errors or horizontal overflow before startup.
-- Separate checks covered saved light theme after reload, URL tag filtering,
-  and readable home, blog post, links, and resume content with JavaScript disabled.
-- A local initial-load sample measured zero layout shift for home, blog list,
-  the welcome post, and resume at both widths. Links measured zero on mobile
-  and 0.000116 on desktop. These are short local samples, not field metrics
-  or guarantees about later live API updates.
-- Initial local-content requests were zero on the six sampled routes because
-  the initial data was embedded in the HTML.
+- `npm run check`: lint, both API type checks, 59 API/runtime regressions, Node
+  and Worker builds, formatting, production prerendering and 10 static SEO tests.
+- `npm run test:browser`: 8 tests. All nine generated routes retain their original
+  main element after hydration at 390px and 1280px, without hydration errors or
+  horizontal overflow. Tests also cover route metadata, Back navigation, syntax
+  highlighting, tables, Mermaid and mobile content with JavaScript disabled.
+- Root and `/portfolio/` builds pass all 10 static SEO checks. A separate browser
+  check verifies navigation, canonical URLs and highlighting under `/portfolio/`.
+- Eight before/after screenshots, covering home, blog list, welcome post and
+  resume at both widths, have identical dimensions and zero changed pixels.
+  Provider responses were stubbed for this comparison.
+- `git diff --check` passes.
 
-## Remaining findings
+Canonical URLs and page-specific descriptions follow
+[Google's canonical guidance](https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls)
+and [JavaScript SEO guidance](https://developers.google.com/search/docs/crawling-indexing/javascript/javascript-seo-basics).
+The timeline change preserves React's requirement that
+[hydrated markup match the server output](https://react.dev/reference/react-dom/client/hydrateRoot).
 
-- Projects and social cards still depend on external APIs. Their final content,
-  latency, and later layout changes depend on those services. This audit did
-  not establish production API reliability or measure a full polling cycle.
-- `usePolledJSON` still polls while the tab is hidden. Pausing hidden-tab polls
-  would save requests, but it is separate from static-page startup.
-- Mermaid's core chunk is about 621 KB before compression, 149 KB gzip. It is
-  already loaded only when a post contains a diagram. Static diagram generation
-  would remove that browser cost, but needs a separate diagram build workflow.
-- The Chrome DevTools MCP required by the web-perf skill was unavailable.
-  Browser checks used local Chromium instead. Production caching, compression,
-  real-user LCP/INP, and a full accessibility audit remain unmeasured.
+## Remaining limits
 
-Changes are local and have not been deployed.
+Live provider content still depends on API availability and response times.
+Mermaid remains a large optional dependency. No production Core Web Vitals or
+search ranking improvement is claimed from these local checks. Chrome DevTools
+MCP and the embedded preview host were unavailable; validation used Playwright's
+local Chromium.
+
+The dependency audit reports existing high-severity advisories, including
+Mermaid's transitive `lodash-es` dependencies. The suggested automatic fix changes
+Mermaid's major version. Dependency versions were left unchanged in this pass.
+
+Changes have not been deployed.

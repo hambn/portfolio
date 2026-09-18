@@ -3,19 +3,19 @@ import React from 'react';
 // One line of the log: HEAD, a merge, the birth commit, or a commit.
 // Wide: the date sits in its own column, left of the graph. Narrow: there is no
 // room for it there, so it moves in above the message.
-export default function GitRow({ row, narrow, dim, rowRef, onHover }) {
+export default function GitRow({ row, dim, rowRef, onHover }) {
   const tone = row.lane ? row.lane.tone : '';
   // hovering a row highlights its branch too, without opening the card
   const lift = row.lane ? { onMouseEnter: () => onHover(row.lane.id) } : null;
 
-  const lead = (date) =>
-    narrow ? null : (
-      <span className="git-meta">
-        <span className="git-date">{date}</span>
-      </span>
-    );
-  const when = (date, extra) =>
-    narrow ? <span className="git-when">{extra ? `${date} · ${extra}` : date}</span> : null;
+  const lead = (date) => (
+    <span className="git-meta">
+      <span className="git-date">{date}</span>
+    </span>
+  );
+  const when = (date, extra) => (
+    <span className="git-when">{extra ? `${date} · ${extra}` : date}</span>
+  );
 
   if (row.kind === 'head')
     return (
@@ -69,9 +69,7 @@ export default function GitRow({ row, narrow, dim, rowRef, onHover }) {
         {opens && (
           <span className="git-subject">
             <span className="git-ref is-branch">({lane.branch.name})</span>
-            {!narrow && lane.branch.location && (
-              <span className="git-where">{lane.branch.location}</span>
-            )}
+            {lane.branch.location && <span className="git-where">{lane.branch.location}</span>}
           </span>
         )}
         {when(commit.date, opens ? lane.branch.location : null)}

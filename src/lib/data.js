@@ -1,14 +1,5 @@
 import { apiContent } from './api.js';
-/**
- * data.js — Portfolio content layer
- *
- * Single source of truth for fetching content from public/contents/.
- * Results are cached in memory so multiple components share one request.
- *
- * Usage in any component:
- *   import { PortfolioData } from '../lib/data.js';
- *   PortfolioData.getProfile().then(p => setProfile(p))
- */
+// Shared content requests and synchronous snapshots for page navigation.
 
 export const PortfolioData = (() => {
   // Resolve to an ABSOLUTE url once, at load time, so blog routes like
@@ -39,10 +30,15 @@ export const PortfolioData = (() => {
   /** Deduplicate in-flight requests and cache results. */
   const cached = (key, fn) => {
     if (!_cache[key]) {
-      _cache[key] = fn().catch((err) => {
-        delete _cache[key]; // allow retry on error
-        throw err;
-      });
+      _cache[key] = fn()
+        .then((value) => {
+          snapshot[key] = value;
+          return value;
+        })
+        .catch((err) => {
+          delete _cache[key]; // allow retry on error
+          throw err;
+        });
     }
     return _cache[key];
   };
@@ -53,16 +49,6 @@ export const PortfolioData = (() => {
     return r.json();
   };
 
-  /* ──────────────────────────────────────────────────────────────
-     Blog: fully file-driven, zero manifest to maintain.
-
-     scripts/blog-index.mjs scans the .md files under contents/blogs/
-     at build time (and in dev via the Vite plugin) and emits
-     blogs/blog-data.json — already parsed and sorted newest-first.
-     Drop a .md file with frontmatter to publish; omit the `title` to
-     keep it an unlisted draft. The route slug is the filename without
-     .md, so keep filenames unique across folders.
-     ────────────────────────────────────────────────────────────── */
   const getBlogIndex = () => cached('blogIndex', () => getJSON('/blogs/blog-data.json'));
 
   return {
@@ -85,12 +71,5 @@ export const PortfolioData = (() => {
 
     /** [{ slug, path, title, date, description, tags, body }] sorted newest-first */
     getBlogIndex,
-
-    /** Raw markdown body (frontmatter stripped) for a post by slug */
-    getBlogPost: async (slug) => {
-      const post = (await getBlogIndex()).find((p) => p.slug === slug);
-      if (!post) throw new Error(`[PortfolioData] no post: ${slug}`);
-      return post.body;
-    },
   };
 })();

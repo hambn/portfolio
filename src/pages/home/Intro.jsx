@@ -26,7 +26,7 @@ export default function Intro({ profile }) {
           width="72"
           height="72"
           decoding="async"
-          fetchpriority="high"
+          fetchPriority="high"
           className="home-avatar"
         />
         <div>

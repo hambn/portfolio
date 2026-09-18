@@ -6,7 +6,6 @@ import { createRoot, hydrateRoot } from 'react-dom/client';
 // no Google Fonts request).
 import '@fontsource-variable/jetbrains-mono';
 import './styles/index.css';
-import './styles/blog.css';
 
 import App from './App.jsx';
 import { pages, preloadPage } from './pages/index.js';

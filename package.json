@@ -13,7 +13,7 @@
     "lint": "eslint src scripts api/src api/tests shared tests/browser *.js --max-warnings 0",
     "format": "prettier --write \"src/**/*.{js,jsx,css}\" \"scripts/**/*.mjs\" \"shared/*.{js,ts}\" \"api/{src,tests}/**/*.ts\" \"api/tsconfig*.json\" \"tests/browser/**/*.js\" \"*.js\" package.json .prettierrc.json",
     "format:check": "prettier --check \"src/**/*.{js,jsx,css}\" \"scripts/**/*.mjs\" \"shared/*.{js,ts}\" \"api/{src,tests}/**/*.ts\" \"api/tsconfig*.json\" \"tests/browser/**/*.js\" \"*.js\" package.json .prettierrc.json",
-    "check": "npm run lint && npm run api:check && npm run format:check && npm run build",
+    "check": "npm run lint && npm run api:check && npm run format:check && npm run build && npm run test:site",
     "test:telegram": "tsx --test api/tests/telegram.test.ts",
     "test:spotify": "tsx --test api/tests/spotify.test.ts && node --test scripts/test-spotify.mjs",
     "api:build": "node scripts/build-api.mjs",
@@ -22,7 +22,8 @@
     "api:check": "npm run api:typecheck && npm run test:api && npm run api:build && wrangler deploy --dry-run --config api/wrangler.toml",
     "test:api": "tsx --test api/tests/*.test.ts && node --test scripts/test-spotify.mjs scripts/test-worker.mjs scripts/test-api-urls.mjs",
     "test:browser": "playwright test",
-    "test:container": "docker build -f deployment/Dockerfile.api -t portfolio-api-validation . && tsx scripts/test-container.mjs"
+    "test:container": "docker build -f deployment/Dockerfile.api -t portfolio-api-validation . && tsx scripts/test-container.mjs",
+    "test:site": "node --test scripts/test-site.mjs"
   },
   "dependencies": {
     "@fontsource-variable/dm-sans": "^5.3.0",
