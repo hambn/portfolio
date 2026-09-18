@@ -1,12 +1,15 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 /** Copy text to clipboard with 2s "copied!" feedback (execCommand fallback). */
 export function useCopy(text) {
   const [copied, setCopied] = useState(false);
+  const timer = useRef(null);
+  useEffect(() => () => clearTimeout(timer.current), []);
   const copy = () => {
     const done = () => {
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      clearTimeout(timer.current);
+      timer.current = setTimeout(() => setCopied(false), 2000);
     };
     const fb = () => {
       const el = document.createElement('textarea');

@@ -74,5 +74,10 @@ export function buildBlogIndex(blogsDir) {
     .filter(Boolean)
     .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
+  const slugs = new Set();
+  for (const post of posts) {
+    if (slugs.has(post.slug)) throw new Error(`Duplicate blog slug: ${post.slug}`);
+    slugs.add(post.slug);
+  }
   return { json: JSON.stringify(posts), count: posts.length };
 }

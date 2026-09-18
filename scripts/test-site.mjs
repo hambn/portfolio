@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
 import { parse } from 'parse5';
 import { routes } from '../src/routes.js';
@@ -52,6 +54,19 @@ for (const route of [
       ),
       metadata.desc,
     );
+    for (const [attribute, name, expected] of [
+      ['name', 'twitter:image', profile.avatar],
+      ['name', 'twitter:image:alt', profile.name],
+      ['property', 'og:image:alt', profile.name],
+    ]) {
+      assert.equal(
+        attr(
+          nodes.find((node) => attr(node, attribute) === name),
+          'content',
+        ),
+        expected,
+      );
+    }
     assert.ok(nodes.some((node) => node.tagName === 'main'));
     assert.ok(nodes.some((node) => node.tagName === 'h1'));
     const script = nodes.find((node) => attr(node, 'type') === 'application/ld+json');
@@ -72,4 +87,18 @@ test('feeds and crawler hints respect the deployment base', () => {
   assert.ok(read('404.html').includes('name="robots" content="noindex"'));
   for (const post of posts)
     assert.ok(read('feed.xml').includes(`<link>${root}/blog/${post.slug}/</link>`));
+});
+
+test('blog discovery omits drafts and rejects duplicate route slugs', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'portfolio-blog-'));
+  try {
+    mkdirSync(join(directory, 'nested'));
+    writeFileSync(join(directory, 'draft.md'), '# Draft');
+    writeFileSync(join(directory, 'post.md'), '---\ntitle: Published\n---\nBody');
+    assert.equal(buildBlogIndex(directory).count, 1);
+    writeFileSync(join(directory, 'nested/post.md'), '---\ntitle: Duplicate\n---\nBody');
+    assert.throws(() => buildBlogIndex(directory), /Duplicate blog slug: post/);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 });

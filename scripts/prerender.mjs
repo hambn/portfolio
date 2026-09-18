@@ -154,8 +154,11 @@ function page({
   // Trailing slash matches how GitHub Pages serves directory index.html files.
   const url = abs(path);
   const head = [
-    `  <link rel="canonical" href="${url}" />`,
-    `  <meta property="og:url" content="${url}" />`,
+    `  <link rel="canonical" href="${esc(url)}" />`,
+    `  <meta property="og:url" content="${esc(url)}" />`,
+    `  <meta name="twitter:image" content="${esc(profile.avatar)}" />`,
+    `  <meta property="og:image:alt" content="${esc(profile.name)}" />`,
+    `  <meta name="twitter:image:alt" content="${esc(profile.name)}" />`,
     `  <meta name="twitter:title" content="${esc(title)}" />`,
     `  <meta name="twitter:description" content="${esc(desc)}" />`,
     `  <link rel="alternate" type="application/rss+xml" title="blog" href="${siteRoot}/feed.xml" />`,

@@ -58,7 +58,8 @@ export function LinksFeed({ config, children }) {
       // A failed batch is not an error the page shows: every card can still
       // fall back to fetching its own endpoint.
       .then((body) => settle('ready', body?.cards || null))
-      .catch(() => settle('error', null));
+      .catch(() => settle('error', null))
+      .finally(() => clearTimeout(timeout));
     return () => {
       alive = false;
       clearTimeout(timeout);

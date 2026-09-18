@@ -84,3 +84,27 @@ Mermaid's transitive `lodash-es` dependencies. The suggested automatic fix chang
 Mermaid's major version. Dependency versions were left unchanged in this pass.
 
 Changes have not been deployed.
+
+## Follow-up after pulling `0c54c9b`
+
+The upstream branch already contained the stylesheet split, smaller page data,
+shared route metadata, and deferred Markdown highlighting. Those changes and the
+updated home page were retained.
+
+Additional changes:
+
+- Clear the links batch request timeout as soon as the request settles.
+- Cancel the clipboard feedback timer on unmount and reset it on repeated copies.
+- Add explicit Twitter image metadata and image descriptions for social previews.
+- Escape canonical and Open Graph URL attributes.
+- Reject duplicate published blog slugs during builds instead of silently
+  overwriting a generated page. Drafts remain excluded.
+- Extend static-site checks for social image metadata and duplicate slugs.
+
+These changes preserve the current page layout and content. The performance
+measurements earlier in this document describe the existing upstream changes;
+no new page-load timing improvement is claimed for this follow-up.
+
+Validation for this follow-up: `npm run check` and all eight browser tests passed.
+Both the default build and a `/portfolio/` build passed all 11 static-site tests.
+The development server runs on port 5174 because port 5173 was already occupied.
