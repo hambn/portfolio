@@ -16,21 +16,16 @@
           "date": "Apr 2024",
           "text": "Joined as a DevOps Engineer intern, in Tehran, Tehran Province, Iran"
         },
-        {
-          "date": "Apr 2024",
-          "text": "Containerization with Docker and version control via GitLab"
-        },
-        {
-          "date": "May 2024",
-          "text": "Assisted in setting up CI/CD pipelines and infrastructure tooling"
-        },
+        { "date": "Apr 2024", "text": "Containerized services with Docker" },
+        { "date": "May 2024", "text": "Moved version control and reviews to GitLab" },
+        { "date": "Jun 2024", "text": "Helped set up the first CI/CD pipelines" },
         { "date": "Jul 2024", "text": "DevOps Engineer, full-time", "milestone": true },
-        { "date": "Sep 2024", "text": "Infrastructure automation and CI/CD pipeline management" },
-        {
-          "date": "Jan 2025",
-          "text": "Monitoring and observability with Elastic Stack (ELK) and Grafana"
-        },
-        { "date": "Jun 2025", "text": "Container orchestration and deployment workflows" }
+        { "date": "Sep 2024", "text": "Automated infrastructure provisioning" },
+        { "date": "Nov 2024", "text": "Took over CI/CD pipeline management" },
+        { "date": "Jan 2025", "text": "Centralized logging on the Elastic Stack" },
+        { "date": "Mar 2025", "text": "Built Grafana dashboards and alerting" },
+        { "date": "Jun 2025", "text": "Container orchestration with Kubernetes" },
+        { "date": "Sep 2025", "text": "Standardized deployment workflows" }
       ]
     },
     {
@@ -47,14 +42,10 @@
         },
         {
           "date": "Sep 2023",
-          "text": "Guest student at Shamsipour Technical and Vocational College, Tehran",
+          "text": "Guest student at Shamsipour College, Tehran",
           "milestone": true
         },
-        {
-          "date": "Jun 2025",
-          "text": "Back to Technical and Vocational University after 4 semesters",
-          "milestone": true
-        }
+        { "date": "Jun 2025", "text": "Back to Mahmudabad after 4 semesters", "milestone": true }
       ]
     }
   ],

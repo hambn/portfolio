@@ -416,23 +416,36 @@ svg {
   position: relative;
   padding-bottom: 26px;
 }
-/* one row per commit — a single line that wraps on narrow screens */
+/* one row per commit: date column, then the graph gutter, then the message */
 .git-commit {
-  display: flex;
+  display: grid;
+  grid-template-columns: var(--git-meta) 1fr;
+  column-gap: var(--git-gap);
   align-items: baseline;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding-bottom: 14px;
+  padding-bottom: 20px;
   font-size: var(--text-sm);
   color: var(--foreground-muted);
   transition: opacity 150ms;
 }
-.git-commit.is-note {
-  padding-bottom: 20px;
+.git-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
 }
-/* where a branch is created: its name, with the first message underneath */
-.git-commit.is-open {
-  padding-bottom: 18px;
+.git-glyph {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--graph-work);
+  line-height: 1;
+}
+.is-edu .git-glyph {
+  color: var(--graph-edu);
+}
+.is-project .git-glyph {
+  color: var(--graph-project);
+}
+.is-life .git-glyph {
+  color: var(--graph-life);
 }
 .git-log.is-hovering .git-commit.is-dim,
 .git-graph .is-dim {
@@ -449,33 +462,30 @@ svg {
 .git-note-text {
   color: var(--foreground-subtle);
 }
-.git-head {
-  color: var(--graph-life);
-  letter-spacing: 0.06em;
-}
-/* every date lines up in its own column on the right */
 .git-date {
-  margin-left: auto;
-  flex-shrink: 0;
-  min-width: 72px;
-  text-align: right;
   color: var(--foreground-faint);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
-.git-branch-name {
+/* a branch ref, parenthesised the way git prints it */
+.git-ref {
   font-weight: 600;
   color: var(--graph-work);
 }
-.git-sub {
-  flex-basis: 100%;
-  margin-top: 3px;
-  color: var(--foreground-subtle);
-}
-.is-edu .git-branch-name {
+.is-edu .git-ref {
   color: var(--graph-edu);
 }
-.is-project .git-branch-name {
+.is-project .git-ref {
   color: var(--graph-project);
+}
+.is-life .git-ref {
+  color: var(--graph-life);
+}
+/* the branch's first message, tucked under its name */
+.git-sub {
+  display: block;
+  margin-top: 1px;
+  color: var(--foreground-subtle);
 }
 
 /* The graph itself, drawn in the reserved left gutter. */
@@ -653,10 +663,12 @@ svg {
   }
 }
 @media (max-width: 559px) {
-  /* narrow: the date drops to its own line instead of squeezing the refs */
-  .git-date {
-    flex-basis: 100%;
-    margin-left: 0;
+  /* narrow: the date column tightens and the glyph hugs it */
+  .git-commit {
+    font-size: var(--text-xs);
+  }
+  .git-meta {
+    gap: 5px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
