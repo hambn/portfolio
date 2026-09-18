@@ -1,46 +1,67 @@
 import type { Services } from './contracts.js';
-import { CORS, json } from './lib/http.js';
+import { CORS, json, readBytes } from './lib/http.js';
 import { rewriteMedia } from './media/sources.js';
-import { handle as spotify } from './providers/spotify.js';
-import { handle as steam } from './providers/steam.js';
-import { handle as discord } from './providers/discord.js';
-import { handle as linkedin } from './providers/linkedin.js';
-import { handle as telegram } from './providers/telegram.js';
-import { handle as gitlab } from './providers/gitlab.js';
-import { handle as github } from './providers/github.js';
-import { handle as media } from './media/handler.js';
+import { allowedMethods, matchRoute } from './routes.js';
 
-const providers: Record<
-  string,
-  (request: Request, services: Services) => Promise<Response | null>
-> = { spotify, steam, discord, linkedin, telegram, github, gitlab, media };
+// The only route that accepts a body accepts a small one; the cap lives here so
+// no handler can be reached with an unbounded upload behind it.
+const MAX_REQUEST_BYTES = 16 * 1024;
+
+// Rewriting walks the parsed payload. A body with no upstream image URL and no
+// API-relative image path has nothing to rewrite, so skip the parse entirely.
+function mayCarryMedia(body: string): boolean {
+  return body.includes('https://') || body.includes('/avatar') || body.includes('/banner');
+}
 
 export async function handleRequest(request: Request, services: Services): Promise<Response> {
   const incoming = new URL(request.url);
   const prefix = incoming.pathname.startsWith('/api/') ? '/api' : '';
   const url = new URL(incoming);
   if (prefix) url.pathname = url.pathname.slice(prefix.length);
-  const providerName = url.pathname.split('/')[1];
-  const provider = Object.hasOwn(providers, providerName) ? providers[providerName] : undefined;
+  const route = matchRoute(url.pathname);
+  const allowed = route ? allowedMethods(route) : 'GET, HEAD, OPTIONS';
   let response: Response;
   try {
-    if (!provider && url.pathname !== '/health') response = json({ error: 'not found' }, 404);
-    else if (request.method === 'OPTIONS') response = new Response(null, { headers: CORS });
-    else if (!['GET', 'HEAD'].includes(request.method)) {
+    if (!route && url.pathname !== '/health') response = json({ error: 'not found' }, 404);
+    else if (request.method === 'OPTIONS')
+      response = new Response(null, {
+        headers: {
+          ...CORS,
+          'Access-Control-Allow-Methods': allowed,
+          'Access-Control-Allow-Headers': 'Content-Type',
+          'Access-Control-Max-Age': '86400',
+        },
+      });
+    else if (!allowed.split(', ').includes(request.method)) {
       response = json({ error: 'method not allowed' }, 405);
-      response.headers.set('Allow', 'GET, HEAD, OPTIONS');
+      response.headers.set('Allow', allowed);
     } else if (url.pathname === '/health') response = json({ ok: true });
     else {
       // Handlers build the GET representation so HEAD never poisons a cache entry.
-      response =
-        (await provider!(new Request(url, { headers: request.headers }), services)) ??
-        json({ error: 'not found' }, 404);
-      if (response.headers.get('Content-Type')?.includes('application/json')) {
-        response = new Response(
-          JSON.stringify(rewriteMedia(await response.json(), prefix || incoming.origin)),
-          response,
-        );
-        response.headers.delete('Content-Length');
+      const body = request.method === 'POST' ? await readBytes(request, MAX_REQUEST_BYTES) : null;
+      if (request.method === 'POST' && !body) response = json({ error: 'payload_too_large' }, 413);
+      else {
+        response =
+          (await route!.handler(
+            new Request(url, { method: request.method, headers: request.headers, body }),
+            services,
+          )) ?? json({ error: 'not found' }, 404);
+        if (response.headers.get('Content-Type')?.includes('application/json')) {
+          const text = await response.text();
+          if (mayCarryMedia(text)) {
+            const parsed: unknown = JSON.parse(text);
+            const rewritten = rewriteMedia(parsed, prefix || incoming.origin);
+            // Payloads without media URLs come back by reference, so they skip a
+            // full re-serialisation of the upstream body.
+            response = new Response(
+              rewritten === parsed ? text : JSON.stringify(rewritten),
+              response,
+            );
+          } else {
+            response = new Response(text, response);
+          }
+          response.headers.delete('Content-Length');
+        }
       }
     }
   } catch (error) {

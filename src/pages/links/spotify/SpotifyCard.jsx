@@ -5,6 +5,7 @@ import './SpotifyCard.css';
 import { useCollapsed } from '../../../hooks/useCollapsed.js';
 import { useCopy } from '../../../hooks/useCopy.js';
 import { useSpotifyPlayback } from './useSpotifyPlayback.js';
+import { useCardFeed } from '../LinksFeed.jsx';
 import { HeaderButtons } from '../../../components/card/HeaderButtons.jsx';
 
 const SP_PATH =
@@ -256,9 +257,13 @@ export function SpotifySimpleCard({ userId }) {
   );
 }
 export function SpotifyCard({ userId, apiEndpoint }) {
-  const { data, progress, loading, error } = useSpotifyPlayback(apiEndpoint);
-  const [tab, setTab] = useState('recent');
   const [collapsed, toggleCollapse] = useCollapsed('sp_card_collapsed');
+  // A collapsed card polls nothing; the last response stays put for re-expand.
+  const { data, progress, loading, error } = useSpotifyPlayback(
+    collapsed ? null : apiEndpoint,
+    useCardFeed('spotify'),
+  );
+  const [tab, setTab] = useState('recent');
   const id = useId();
   const profile = data?.profile;
   const status = data?.status;

@@ -1,110 +1,271 @@
-.li-style-22 {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 16px;
-  border-radius: 100px;
-  flex-shrink: 0;
-  font-size: 12px;
+/* LinkedIn card — mirrors the real profile top-card: banner, oversized avatar
+ * pulled over it, name/headline/location block, org rail, pill actions.
+ * Both LinkedIn themes are reproduced and follow the site's data-theme. */
+.li-card {
+  --li-bg: #ffffff;
+  --li-text: rgba(0, 0, 0, 0.9);
+  --li-muted: rgba(0, 0, 0, 0.6);
+  --li-border: rgba(0, 0, 0, 0.08);
+  --li-divider: #e8e8e8;
+  --li-blue: #0a66c2;
+  --li-blue-hover: #004182;
+  --li-link: #0a66c2;
+  --li-on-blue: #ffffff;
+  --li-hover: rgba(0, 0, 0, 0.06);
+  --li-skeleton: #dce6e8;
+  --li-avatar: 160px;
+  --li-ring: 4px;
+  background: var(--li-bg);
+  color: var(--li-text);
+  border: 1px solid var(--li-border);
+  color-scheme: light;
+  /* LinkedIn ships its own faces but falls back to this system stack. */
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+[data-theme='dark'] .li-card {
+  --li-bg: #1b1f23;
+  --li-text: rgba(255, 255, 255, 0.9);
+  --li-muted: rgba(255, 255, 255, 0.6);
+  --li-border: rgba(255, 255, 255, 0.13);
+  --li-divider: rgba(255, 255, 255, 0.13);
+  --li-blue: #71b7fb;
+  --li-blue-hover: #9cc9fd;
+  --li-link: #71b7fb;
+  --li-on-blue: #1b1f23;
+  --li-hover: rgba(255, 255, 255, 0.1);
+  --li-skeleton: #2f3439;
+  color-scheme: dark;
+}
+
+/* Header ------------------------------------------------------------------ */
+.li-header {
+  border-bottom: 1px solid var(--li-divider);
+}
+.li-brand {
+  color: var(--li-blue);
+}
+.li-wordmark {
   font-weight: 600;
-  text-decoration: none;
+  letter-spacing: -0.5px;
 }
-.li-style-21 {
-  font-size: 12px;
+.li-hdr-btn {
+  color: var(--li-muted);
 }
-.li-style-20 {
-  font-size: 12px;
-  font-weight: 600;
+.li-hdr-btn:hover {
+  color: var(--li-blue);
+  background: var(--li-hover);
 }
-.li-style-19 {
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
+
+/* Banner ------------------------------------------------------------------ */
+.li-banner {
+  aspect-ratio: 4 / 1;
+  background: var(--li-skeleton);
+  overflow: hidden;
 }
-.li-style-18 {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
-}
-.li-style-17 {
-  font-size: 13px;
-  line-height: 1.5;
-  margin-bottom: 8px;
-}
-.li-style-16 {
-  font-weight: 700;
-  font-size: 20px;
-  line-height: 1.2;
-  margin-bottom: 4px;
-}
-.li-style-15 {
-  flex: 1 1 220px;
-  min-width: 0;
-}
-.li-style-14 {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-.li-style-13 {
-  padding: 46px 22px 18px;
-}
-.li-style-12 {
-  width: 76px;
-  height: 76px;
-  border-radius: 50%;
-  border: 3px solid #1d2226;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.li-style-11 {
-  width: 76px;
-  height: 76px;
-  border-radius: 50%;
-  border: 3px solid #1d2226;
+.li-banner img {
   display: block;
-  object-fit: cover;
-}
-.li-style-10 {
-  position: absolute;
-  bottom: -38px;
-  left: 22px;
-}
-.li-style-9 {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  display: block;
 }
-.li-style-8 {
-  position: absolute;
-  inset: 0;
+
+/* Identity ---------------------------------------------------------------- */
+.li-identity {
+  padding: 0 24px 24px;
+}
+.li-avatar-ring {
+  width: var(--li-avatar);
+  height: var(--li-avatar);
+  border-radius: 50%;
   overflow: hidden;
+  /* LinkedIn hangs the avatar half-way over the banner inside a page-colored ring. */
+  margin-top: calc(var(--li-avatar) / -2);
+  box-sizing: border-box;
+  border: var(--li-ring) solid var(--li-bg);
+  background: var(--li-bg);
 }
-.li-style-7 {
-  height: 100px;
-  position: relative;
-  flex-shrink: 0;
+.li-avatar {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  background: var(--li-skeleton);
 }
-.li-hdr-btn {
-  color: #b0b7be;
+.li-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--li-blue);
 }
-.li-hdr-btn:hover {
-  color: #e7e9ea;
+.li-intro {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px 24px;
+  margin-top: 16px;
 }
-.li-view-btn {
+.li-intro-main {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+.li-name {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.25;
+  font-weight: 600;
+  letter-spacing: -0.25px;
+}
+.li-headline {
+  margin: 4px 0 0;
+  font-size: 16px;
+  line-height: 1.5;
+  font-weight: 400;
+}
+.li-location {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--li-muted);
+}
+.li-counts {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.li-count {
+  color: var(--li-link);
+  font-weight: 600;
+}
+.li-dot {
+  color: var(--li-muted);
+}
+.li-organizations {
+  flex: 0 1 auto;
+  max-width: 220px;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  line-height: 1.4;
+  font-weight: 600;
+  text-align: right;
+}
+.li-organizations li + li {
+  margin-top: 10px;
+}
+
+/* Actions ----------------------------------------------------------------- */
+.li-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+.li-button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  background: var(--li-blue);
+  color: var(--li-on-blue);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
   transition:
     background 0.15s,
-    border-color 0.15s,
-    color 0.15s;
+    box-shadow 0.15s;
 }
-.li-view-btn:hover {
-  background: rgba(112, 181, 249, 0.18) !important;
-  border-color: #70b5f9 !important;
-  color: #fff !important;
+.li-button:hover {
+  background: var(--li-blue-hover);
+  box-shadow: inset 0 0 0 1px var(--li-blue-hover);
+}
+.li-button-ghost {
+  background: transparent;
+  color: var(--li-link);
+  border-color: var(--li-link);
+}
+.li-button-ghost:hover {
+  background: var(--li-hover);
+  box-shadow: inset 0 0 0 1px var(--li-link);
+}
+.li-status {
+  margin: 12px 0 0;
+  font-size: 14px;
+  color: var(--li-muted);
+}
+
+/* Sections ---------------------------------------------------------------- */
+.li-section {
+  margin: 0 24px;
+  padding: 20px 0;
+  border-top: 1px solid var(--li-divider);
+}
+.li-section h3 {
+  margin: 0 0 12px;
+  font-size: 20px;
+  line-height: 1.3;
+  font-weight: 600;
+}
+.li-about {
+  margin: 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.li-languages {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.4;
+}
+.li-languages > div + div {
+  margin-top: 16px;
+}
+.li-languages dt {
+  font-weight: 600;
+}
+.li-languages dd {
+  margin: 2px 0 0;
+  color: var(--li-muted);
+  font-size: 14px;
+}
+.li-card :is(a, button):focus-visible {
+  outline: 2px solid var(--li-link);
+  outline-offset: 3px;
+}
+
+@container (max-width: 520px) {
+  /* .li-card is the query container itself, so it can't restyle here — put the
+   * narrow-layout tokens on the first descendant that needs them. */
+  .li-identity {
+    --li-avatar: 110px;
+    --li-ring: 3px;
+    padding: 0 16px 20px;
+  }
+  .li-section {
+    margin: 0 16px;
+  }
+  .li-intro {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  /* Stacked: the basis would otherwise size the block's height, not its width. */
+  .li-intro-main {
+    flex: 0 0 auto;
+  }
+  .li-organizations {
+    flex: 0 0 auto;
+    max-width: none;
+    text-align: left;
+  }
+  .li-name {
+    font-size: 20px;
+  }
 }

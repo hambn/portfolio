@@ -33,7 +33,7 @@ export function fetchWithTimeout(
 }
 
 export async function readBytes(
-  response: Response,
+  response: Response | Request,
   maxBytes: number,
 ): Promise<Uint8Array<ArrayBuffer> | null> {
   if (Number(response.headers.get('Content-Length')) > maxBytes) {

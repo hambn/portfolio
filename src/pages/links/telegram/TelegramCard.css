@@ -143,3 +143,10 @@
     line-height: 28px;
   }
 }
+
+/* Wordmark — Telegram pairs the blue glyph with plain-text medium Roboto. */
+.tg-card .link-card-title {
+  color: var(--tg-text);
+  font-weight: 500;
+  letter-spacing: 0;
+}

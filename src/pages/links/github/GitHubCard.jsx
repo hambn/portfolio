@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useCollapsed } from '../../../hooks/useCollapsed.js';
 import { useCopy } from '../../../hooks/useCopy.js';
 import { usePolledJSON } from '../../../hooks/usePolledJSON.js';
+import { useCardFeed } from '../LinksFeed.jsx';
 import { ContribGraph } from '../../../components/card/ContribGraph.jsx';
 import { HeaderButtons } from '../../../components/card/HeaderButtons.jsx';
 const GH = {
@@ -27,9 +28,10 @@ export function GitHubCard({ username, url }) {
   const href = url || `https://github.com/${username}`;
   const [copied, copyLink] = useCopy(href);
   const { loading } = usePolledJSON(
-    username ? apiUrl(`/github?username=${encodeURIComponent(username)}`) : null,
+    username && !collapsed ? apiUrl(`/github?username=${encodeURIComponent(username)}`) : null,
     0,
     (d) => setProfile(d),
+    useCardFeed('github'),
   );
   return (
     <div
@@ -83,7 +85,10 @@ export function GitHubCard({ username, url }) {
             accent={GH.blue}
             copied={copied}
             onCopy={copyLink}
+            copyLabel="copy profile link"
+            copyTitle="Copy GitHub profile link"
             href={href}
+            openLabel="open on github"
             openTitle="Open on GitHub"
             collapsed={collapsed}
             onToggle={toggleCollapse}

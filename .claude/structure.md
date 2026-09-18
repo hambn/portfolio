@@ -38,6 +38,8 @@ Static React portfolio, built with Vite, deployed to GitHub Pages at
 │  │  │  └─ blog-ui.jsx    fmtDate, InlineCode, ClickableTag, tag-nav helpers
 │  │  └─ links/
 │  │     ├─ Links.jsx      composes the cards; reads links.json
+│  │     ├─ LinksFeed.jsx  one /links request per visit; seeds every card
+│  │     │                 (useCardFeed) so a fresh card needs no request
 │  │     └─ *Card.jsx      Email, Discord, Telegram, X, GitHub, GitLab,
 │  │                       LinkedIn, Spotify, Steam (one file each)
 │  └─ styles/
@@ -59,7 +61,8 @@ Static React portfolio, built with Vite, deployed to GitHub Pages at
 │     └─ blogs/            *.md posts (drop a file to publish; no title = draft)
 │
 ├─ api/                    Portable TypeScript backend; guide: .claude/api.md
-│  ├─ src/                 app, providers, media, lib, adapters, entrypoints
+│  ├─ src/                 app, routes, identities, links (batch), providers,
+│  │                       mail (contact form), media, lib, adapters, entrypoints
 │  ├─ tests/               network-free API and persistent-storage regressions
 │  ├─ tsconfig*.json       separate Node and Worker type checking
 │  ├─ worker-configuration.d.ts   generated Cloudflare bindings/runtime types

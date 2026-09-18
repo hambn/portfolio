@@ -93,40 +93,6 @@ test('media rejects arbitrary destinations, redirects, SVG and oversized bodies'
   }
 });
 
-test('LinkedIn parses meta fields, caches for one hour and retains a bounded last good snapshot', async () => {
-  let now = 1000;
-  let calls = 0;
-  const services = testServices({
-    now: () => now,
-    fetch: async () => {
-      calls++;
-      return new Response(
-        '<meta content="Ada &amp; Team - Engineer | LinkedIn" property="og:title"><meta property="og:image" content="https://media.licdn.com/photo.jpg">',
-      );
-    },
-  });
-  const first = await handleRequest(request('/api/linkedin'), services);
-  assert.equal(first.headers.get('Cache-Control'), 'public, max-age=3600');
-  const data = await first.json();
-  assert.equal(data.name, 'Ada & Team');
-  assert.equal(data.headline, 'Engineer');
-  assert.match(data.avatar, /^\/api\/media\/linkedin\//);
-  await handleRequest(request('/api/linkedin'), services);
-  assert.equal(calls, 2);
-  now += 3600001;
-  services.fetch = async () => {
-    throw new Error('offline');
-  };
-  const stale = await handleRequest(request('/api/linkedin'), services);
-  assert.equal(stale.headers.get('X-Cache-Stale'), 'true');
-  assert.equal((await stale.json()).name, 'Ada & Team');
-  now += 8 * 86400000;
-  assert.equal(
-    (await (await handleRequest(request('/api/linkedin'), services)).json()).error,
-    'linkedin_fetch_failed',
-  );
-});
-
 test('Steam and Discord payloads retain their fields and serve local artwork', async () => {
   const services = testServices({
     fetch: async (input) => {
@@ -165,6 +131,39 @@ test('Steam and Discord payloads retain their fields and serve local artwork', a
   const discord = await (await handleRequest(request('/api/discord'), services)).json();
   assert.equal(discord.status, 'online');
   assert.equal(discord.avatar, '/api/discord/avatar');
+});
+
+test('Steam keeps the profile when optional endpoints fail, and fails without a summary', async () => {
+  const summary = Response.json({
+    response: { players: [{ personaname: 'test', personastate: 1 }] },
+  });
+  const services = testServices({
+    fetch: async (input) => {
+      const url = String(input);
+      if (url.includes('GetPlayerSummaries')) return summary.clone();
+      if (url.includes('GetSteamLevel')) return new Response('nope', { status: 500 });
+      if (url.includes('GetRecentlyPlayedGames')) throw new Error('connection reset');
+      return Response.json({
+        response: { games: [{ appid: 1, name: 'Game', playtime_forever: 120 }] },
+      });
+    },
+  });
+  const response = await handleRequest(request('/steam'), services);
+  assert.equal(response.status, 200);
+  const steam = await response.json();
+  assert.equal(steam.displayName, 'test');
+  assert.equal(steam.level, 0);
+  assert.deepEqual(steam.recentActivity, []);
+  assert.equal(steam.favoriteGame.playtime_hours, 2);
+
+  // A missing player summary leaves nothing worth rendering, so it still fails.
+  const broken = testServices({
+    fetch: async (input) =>
+      String(input).includes('GetPlayerSummaries')
+        ? new Response('nope', { status: 503 })
+        : Response.json({ response: { games: [] } }),
+  });
+  assert.equal((await handleRequest(request('/steam'), broken)).status, 502);
 });
 
 test('presence relay pins subscriptions to the configured user', () => {

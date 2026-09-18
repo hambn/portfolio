@@ -6,6 +6,7 @@ import React, { useEffect, useState } from 'react';
 import { useCollapsed } from '../../../hooks/useCollapsed.js';
 import { useCopy } from '../../../hooks/useCopy.js';
 import { usePolledJSON } from '../../../hooks/usePolledJSON.js';
+import { useCardFeed } from '../LinksFeed.jsx';
 import { HeaderButtons } from '../../../components/card/HeaderButtons.jsx';
 
 const DC = {
@@ -146,9 +147,14 @@ export function DiscordCard({ userId, lanyardData, apiEndpoint }) {
     return () => window.clearInterval(id);
   }, [hasTimedActivity]);
 
-  const { loading } = usePolledJSON(apiEndpoint, 30000, (data) => {
-    if (data?.username) setApiData(data);
-  });
+  const { loading } = usePolledJSON(
+    collapsed ? null : apiEndpoint,
+    30000,
+    (data) => {
+      if (data?.username) setApiData(data);
+    },
+    useCardFeed('discord'),
+  );
 
   const getActivityImgSrc = (activity) => {
     if (!activity?.assets?.large_image) return null;
@@ -205,10 +211,11 @@ export function DiscordCard({ userId, lanyardData, apiEndpoint }) {
             accent={DC.blurpleLt}
             copied={copied}
             onCopy={copyLink}
-            copyTitle="Copy profile link"
+            copyLabel="copy profile link"
+            copyTitle="Copy Discord profile link"
             href={profileUrl}
-            openLabel="open profile"
-            openTitle="Open Discord profile"
+            openLabel="open in discord"
+            openTitle="Open in Discord"
             collapsed={collapsed}
             onToggle={toggleCollapse}
           />

@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import { useCollapsed } from '../../../hooks/useCollapsed.js';
 import { useCopy } from '../../../hooks/useCopy.js';
 import { usePolledJSON } from '../../../hooks/usePolledJSON.js';
+import { useCardFeed } from '../LinksFeed.jsx';
 import { HeaderButtons } from '../../../components/card/HeaderButtons.jsx';
 import { telegramUsername } from '../../../../shared/telegram.js';
 
@@ -33,9 +34,14 @@ function TelegramProfile({ username, apiEndpoint }) {
     globalThis.location?.origin || 'https://api.portfolio.hgh.dev',
   );
   endpoint.searchParams.set('username', username || '');
-  const { loading, error } = usePolledJSON(username ? endpoint.href : null, 3600000, (data) => {
-    if (data?.username === username) setProfile(data);
-  });
+  const { loading, error } = usePolledJSON(
+    username && !collapsed ? endpoint.href : null,
+    3600000,
+    (data) => {
+      if (data?.username === username) setProfile(data);
+    },
+    useCardFeed('telegram'),
+  );
   const name = profile?.name || (username ? `@${username}` : 'Telegram');
   const photo = profile?.photo ? new URL(profile.photo, endpoint).href : null;
 
@@ -56,8 +62,11 @@ function TelegramProfile({ username, apiEndpoint }) {
             accent="var(--tg-accent)"
             copied={copied}
             onCopy={copyLink}
+            copyLabel="copy profile link"
+            copyTitle="Copy Telegram profile link"
             href={href}
-            openTitle="Open Telegram"
+            openLabel="open in telegram"
+            openTitle="Open in Telegram"
             collapsed={collapsed}
             onToggle={toggleCollapse}
           />

@@ -18,7 +18,10 @@ const hosts: Record<string, string[]> = {
   discord: ['cdn.discordapp.com', 'media.discordapp.net'],
   linkedin: ['media.licdn.com'],
   telegram: ['telegram.org', 'telesco.pe'],
+  x: ['pbs.twimg.com'],
 };
+
+const imageKey = /^(images?|avatar|avatar_url|photo|banner|header|hero)$/;
 
 function allowedURL(provider: string, url: URL): boolean {
   if (url.protocol !== 'https:' || url.port || url.username || url.password || url.hash)
@@ -43,43 +46,58 @@ export function allowedMedia(provider: string, source: string): boolean {
   }
 }
 
-export function mediaProvider(source: string): string | undefined {
+function resolveMedia(source: string): { provider: string; url: URL } | undefined {
   // Most strings in provider JSON are names and descriptions. Avoid parsing those.
   if (!source.startsWith('https://')) return undefined;
+  let url: URL;
   try {
-    const url = new URL(source);
-    return Object.keys(hosts).find((provider) => allowedURL(provider, url));
+    url = new URL(source);
   } catch {
     return undefined;
   }
+  const provider = Object.keys(hosts).find((candidate) => allowedURL(candidate, url));
+  return provider ? { provider, url } : undefined;
+}
+
+export function mediaProvider(source: string): string | undefined {
+  return resolveMedia(source)?.provider;
 }
 
 export function mediaPath(source: string): string | null {
-  const provider = mediaProvider(source);
-  if (!provider) return null;
-  const normalized = new URL(source).href;
+  const resolved = resolveMedia(source);
+  if (!resolved) return null;
   // Self-contained asset identifiers avoid a KV write for every album image.
-  return `/media/${provider}/${btoa(normalized).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')}`;
+  const id = btoa(resolved.url.href).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return `/media/${resolved.provider}/${id}`;
 }
 
 export function rewriteMedia(value: unknown, base: string, imageField = false): unknown {
   if (typeof value === 'string') {
     const path = mediaPath(value);
     if (path) return `${base}${path}`;
-    if (/^\/(telegram|discord)\/avatar(?:\?|$)/.test(value)) return `${base}${value}`;
+    if (/^\/(?:(telegram|discord)\/avatar|(x|linkedin)\/(avatar|banner))(?:\?|$)/.test(value))
+      return `${base}${value}`;
     return imageField && /^https?:|^\/\//.test(value) ? null : value;
   }
-  if (Array.isArray(value)) return value.map((item) => rewriteMedia(item, base, imageField));
-  if (value && typeof value === 'object')
-    return Object.fromEntries(
-      Object.entries(value).map(([key, item]) => [
-        key,
-        rewriteMedia(
-          item,
-          base,
-          imageField || /^(images?|avatar|avatar_url|photo|banner|header|hero)$/.test(key),
-        ),
-      ]),
-    );
+  // Returning the original reference when nothing changed lets callers skip
+  // re-serialising payloads that carry no media URLs at all.
+  if (Array.isArray(value)) {
+    let changed = false;
+    const next = value.map((item) => {
+      const rewritten = rewriteMedia(item, base, imageField);
+      if (rewritten !== item) changed = true;
+      return rewritten;
+    });
+    return changed ? next : value;
+  }
+  if (value && typeof value === 'object') {
+    let changed = false;
+    const entries = Object.entries(value).map(([key, item]) => {
+      const rewritten = rewriteMedia(item, base, imageField || imageKey.test(key));
+      if (rewritten !== item) changed = true;
+      return [key, rewritten];
+    });
+    return changed ? Object.fromEntries(entries) : value;
+  }
   return value;
 }

@@ -24,6 +24,13 @@ test('real Worker runtime serves cached media, snapshots, HEAD, and prefixed rou
     .get('https://i.scdn.co')
     .intercept({ path: '/image/test' })
     .reply(200, 'image-bytes', { headers: { 'Content-Type': 'image/png' } });
+  fetchMock
+    .get('https://www.linkedin.com')
+    .intercept({ path: '/in/hambn/' })
+    .reply(
+      200,
+      '<link rel="canonical" href="https://www.linkedin.com/in/hambn/"><section class="top-card-layout"><h1 class="top-card-layout__title">LinkedIn Worker Test</h1><span>655 followers</span></section>',
+    );
   const worker = new Miniflare({
     modules: true,
     modulesRoot: directory,
@@ -55,6 +62,10 @@ test('real Worker runtime serves cached media, snapshots, HEAD, and prefixed rou
     (await worker.dispatchFetch('https://api.test/api/steam', { method: 'POST' })).status,
     405,
   );
+  const linkedIn = await (await worker.dispatchFetch('https://api.test/api/linkedin')).json();
+  assert.equal(linkedIn.name, 'LinkedIn Worker Test');
+  assert.equal(linkedIn.followers, '655');
+  assert.equal((await worker.dispatchFetch('https://api.test/api/linkedin')).status, 200);
   fetchMock.assertNoPendingInterceptors();
 
   const presenceWorker = new Miniflare({

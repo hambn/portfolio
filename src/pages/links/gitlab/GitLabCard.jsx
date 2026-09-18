@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useCollapsed } from '../../../hooks/useCollapsed.js';
 import { useCopy } from '../../../hooks/useCopy.js';
 import { usePolledJSON } from '../../../hooks/usePolledJSON.js';
+import { useCardFeed } from '../LinksFeed.jsx';
 import { ContribGraph } from '../../../components/card/ContribGraph.jsx';
 import { HeaderButtons } from '../../../components/card/HeaderButtons.jsx';
 const GL = {
@@ -30,9 +31,10 @@ export function GitLabCard({ username, url }) {
   const href = url || `https://gitlab.com/${username}`;
   const [copied, copyLink] = useCopy(href);
   const { loading } = usePolledJSON(
-    username ? apiUrl(`/gitlab?username=${encodeURIComponent(username)}`) : null,
+    username && !collapsed ? apiUrl(`/gitlab?username=${encodeURIComponent(username)}`) : null,
     0,
     (d) => setProfile(Array.isArray(d) ? d[0] : null),
+    useCardFeed('gitlab'),
   );
   return (
     <div
@@ -86,7 +88,10 @@ export function GitLabCard({ username, url }) {
             accent={GL.accent}
             copied={copied}
             onCopy={copyLink}
+            copyLabel="copy profile link"
+            copyTitle="Copy GitLab profile link"
             href={href}
+            openLabel="open on gitlab"
             openTitle="Open on GitLab"
             collapsed={collapsed}
             onToggle={toggleCollapse}

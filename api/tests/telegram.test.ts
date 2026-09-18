@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import { handleRequest } from '../src/app.js';
-import { refresh } from '../src/scheduled.js';
+import { refreshTelegram as refresh } from '../src/providers/telegram.js';
 import { testServices } from './helpers.js';
 import { configuredTelegramUsername as username } from '../src/providers/telegram.js';
 import { telegramUsername } from '../../shared/telegram.js';

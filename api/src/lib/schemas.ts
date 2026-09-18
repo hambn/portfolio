@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const image = z.looseObject({ url: z.string() });
 export const spotifyItem = z.looseObject({
   id: z.string().optional(),
-  images: z.array(image).optional(),
+  images: z.array(image).nullable().optional(),
   owner: z.looseObject({ id: z.string().optional() }).optional(),
   public: z.boolean().nullable().optional(),
 });
@@ -15,6 +15,17 @@ export const spotifyData = z.looseObject({
   tracks: z.looseObject({ total: z.number().optional() }).optional(),
   external_urls: z.looseObject({ spotify: z.string().optional() }).optional(),
 });
+// Playlist details use a paging object for items, unlike library list responses.
+export const spotifyPlaylistData = spotifyData
+  .omit({ items: true })
+  .extend({ items: z.looseObject({ total: z.number().optional() }).optional() })
+  // The extended shape already satisfies spotifyData, so the mapped object is
+  // built directly rather than paying for a second validation pass.
+  .transform(({ items, ...data }): z.output<typeof spotifyData> => ({
+    ...data,
+    tracks: items ?? data.tracks,
+  }));
+
 export const tokenData = z.looseObject({
   error: z.unknown().optional(),
   access_token: z.string().optional(),

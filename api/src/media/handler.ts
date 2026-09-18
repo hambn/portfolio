@@ -1,6 +1,7 @@
 import type { Services } from '../contracts.js';
 import { CORS, fetchAllowed, json, readBytes } from '../lib/http.js';
 import { withCache } from '../lib/cache.js';
+import { MEDIA_TTL } from '../lib/ttl.js';
 import { allowedMedia } from './sources.js';
 
 export async function fetchMedia(
@@ -22,7 +23,7 @@ export async function fetchMedia(
       ...CORS,
       'Content-Type': type,
       'Content-Length': String(bytes.length),
-      'Cache-Control': 'public, max-age=86400',
+      'Cache-Control': `public, max-age=${MEDIA_TTL}`,
       'X-Content-Type-Options': 'nosniff',
     },
   });

@@ -93,7 +93,12 @@ export function HeaderButtons({
         <button
           className={btnClass}
           title={openTitle}
-          onClick={() => window.open(href, '_blank', 'noopener,noreferrer')}
+          onClick={() =>
+            // mailto: has no page to open in a tab — hand it to the OS handler.
+            href.startsWith('mailto:')
+              ? (window.location.href = href)
+              : window.open(href, '_blank', 'noopener,noreferrer')
+          }
         >
           <ExternalIcon />
           <span className={labelClass}>{openLabel}</span>

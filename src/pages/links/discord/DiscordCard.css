@@ -54,8 +54,10 @@
   color: var(--dc-blurple-light);
 }
 
-.dc-title {
-  letter-spacing: -0.5px;
+/* Wordmark — gg sans bold with normal tracking, as Discord draws its lockup. */
+.dc-card .dc-title {
+  font-weight: 700;
+  letter-spacing: 0;
 }
 
 .dc-loading {

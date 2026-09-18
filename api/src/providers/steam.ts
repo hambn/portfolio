@@ -1,6 +1,7 @@
 import type { Services } from '../contracts.js';
 import { json, fetchWithTimeout, readJSON } from '../lib/http.js';
 import { withCache } from '../lib/cache.js';
+import { STEAM_TTL } from '../lib/ttl.js';
 import { steamData } from '../lib/schemas.js';
 
 const STEAM_STATUS = [
@@ -30,14 +31,23 @@ async function steamGet(
   const url = new URL(`https://api.steampowered.com/${path}`);
   url.searchParams.set('key', apiKey);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, String(v));
-  const res = await fetchWithTimeout(services, url);
-  if (!res.ok) throw new Error('steam_upstream_failed');
-  return readJSON(res, steamData);
+  // One flaky endpoint must not discard the endpoints that did answer, so
+  // failures resolve to null and the caller degrades that section instead.
+  try {
+    const res = await fetchWithTimeout(services, url);
+    if (!res.ok) return null;
+    return await readJSON(res, steamData);
+  } catch (error) {
+    console.warn(
+      'Steam endpoint unavailable',
+      path,
+      error instanceof Error ? error.message : 'unknown',
+    );
+    return null;
+  }
 }
 
 export async function handle(request: Request, services: Services) {
-  const { pathname } = new URL(request.url);
-  if (pathname !== '/steam') return null;
   if (!services.config.STEAM_API_KEY || !/^\d+$/.test(services.config.STEAM_ID))
     return json({ error: 'steam_not_configured' }, 503);
 
@@ -67,7 +77,7 @@ export async function handle(request: Request, services: Services) {
       ),
     ]);
 
-    const player = summaryData.response.players?.[0];
+    const player = summaryData?.response?.players?.[0];
     if (!player) throw new Error('steam_profile_missing');
     const level = levelData?.response?.player_level ?? 0;
     const allGames = ownedData?.response?.games ?? [];
@@ -111,7 +121,7 @@ export async function handle(request: Request, services: Services) {
         })),
       },
       200,
-      300,
+      STEAM_TTL,
     );
   });
 }

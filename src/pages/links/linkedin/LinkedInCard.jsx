@@ -1,235 +1,185 @@
 import './LinkedInCard.css';
 import React, { useState } from 'react';
+import { apiUrl } from '../../../lib/api.js';
+import { usePolledJSON } from '../../../hooks/usePolledJSON.js';
+import { useCardFeed } from '../LinksFeed.jsx';
 import { useCollapsed } from '../../../hooks/useCollapsed.js';
 import { useCopy } from '../../../hooks/useCopy.js';
 import { HeaderButtons } from '../../../components/card/HeaderButtons.jsx';
-
-// Simple Icons LinkedIn glyph
+import { linkedinUsername } from '../../../../shared/linkedin.js';
 const LI_ICON =
   'M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 23.2 23.227 23.2 22.271V1.729C24 .774 23.2 0 22.222 0h.003z';
-export function LinkedInCard({
-  handle,
-  url,
-  name,
-  headline,
-  location,
-  connections,
-  followers,
-  banner,
-  avatar,
-}) {
-  const profileHref = url || `https://linkedin.com/in/${handle}`;
-  const [imgError, setImgError] = useState(false);
-  const [bannerError, setBannerError] = useState(false);
-  const [copied, copyLink] = useCopy(profileHref);
-  const [collapsed, toggleCollapse] = useCollapsed('li_card_collapsed');
 
-  // NOTE: LinkedIn profile HTML cannot be fetched from the browser due to CORS.
-  // All profile fields come from contents/links/links.json — no proxy, no server.
-
-  const showAvatar = avatar && !imgError;
-  const LI = {
-    card: '#1d2226',
-    banner: 'linear-gradient(125deg, #004182 0%, #0A66C2 55%, #005fa3 100%)',
-    border: '#38434f',
-    div: 'rgba(255,255,255,0.08)',
-    blue: '#0A66C2',
-    blueLt: '#70b5f9',
-    text: '#e7e9ea',
-    muted: '#b0b7be',
-    faint: '#6d7a86',
-    bgHead: 'rgba(0,0,0,0.55)',
-  };
+export function LinkedInCard({ handle, username, url, apiEndpoint }) {
+  const configuredUsername = linkedinUsername(username || handle || url);
   return (
-    <div
-      style={{
-        background: LI.card,
-        border: `1px solid ${LI.border}`,
-      }}
-      className="li-style-1 link-card"
-    >
-      {/* ── Header bar — always visible (mirrors Spotify header) ── */}
-      <div
-        style={{
-          background: LI.bgHead,
-          borderBottom: collapsed ? 'none' : `1px solid ${LI.border}`,
-        }}
-        className="li-style-2 link-card-header"
-      >
-        {/* Icon + wordmark — clickable */}
+    <LinkedInProfile
+      key={configuredUsername}
+      username={configuredUsername}
+      apiEndpoint={apiEndpoint}
+    />
+  );
+}
+
+function LinkedInProfile({ username, apiEndpoint }) {
+  const [profile, setProfile] = useState(null);
+  const [failedAvatar, setFailedAvatar] = useState(null);
+  const [failedBanner, setFailedBanner] = useState(null);
+  const [collapsed, toggleCollapse] = useCollapsed('li_card_collapsed');
+  const href = username ? `https://www.linkedin.com/in/${username}/` : 'https://www.linkedin.com';
+  const [copied, copyLink] = useCopy(href);
+  const endpoint = new URL(
+    apiEndpoint || apiUrl('/linkedin'),
+    globalThis.location?.origin || 'https://api.portfolio.hgh.dev',
+  );
+  endpoint.searchParams.set('username', username || '');
+  const { loading, error } = usePolledJSON(
+    username && !collapsed ? endpoint.href : null,
+    3600000,
+    (data) => {
+      if (data?.username === username) setProfile(data);
+    },
+    useCardFeed('linkedin'),
+  );
+  const avatar = profile?.avatar ? new URL(profile.avatar, endpoint).href : null;
+  const banner = profile?.banner ? new URL(profile.banner, endpoint).href : null;
+  const name = profile?.name || username || 'LinkedIn';
+
+  return (
+    <section className="li-card link-card" aria-label="LinkedIn profile">
+      <div className="li-header link-card-header">
         <a
-          href={profileHref}
+          className="link-card-brand li-brand"
+          href={href}
           target="_blank"
           rel="noopener noreferrer"
-          className="li-style-3 link-card-brand"
         >
-          <div
-            style={{
-              background: LI.blue,
-            }}
-            className="li-style-4 link-card-brand-box"
-          >
-            <svg viewBox="0 0 24 24" fill="white" width="15" height="15">
-              <path d={LI_ICON} />
-            </svg>
-          </div>
-          <span
-            style={{
-              color: LI.blueLt,
-            }}
-            className="li-style-5 link-card-title"
-          >
-            LinkedIn
-          </span>
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true">
+            <path d={LI_ICON} />
+          </svg>
+          <span className="link-card-title li-wordmark">LinkedIn</span>
         </a>
-
-        <div className="li-style-6 link-card-spacer" />
-
+        <div className="link-card-spacer" />
         <div className="link-card-actions">
           <HeaderButtons
             btnClass="sc-hdr-btn li-hdr-btn link-card-hdr-btn"
             labelClass="sc-hdr-label"
-            accent={LI.blueLt}
+            accent="#0a66c2"
             copied={copied}
             onCopy={copyLink}
-            copyTitle="Copy profile link"
-            href={profileHref}
-            openLabel="open profile"
+            copyLabel="copy profile link"
+            copyTitle="Copy LinkedIn profile link"
+            href={href}
+            openLabel="open on linkedin"
             openTitle="Open on LinkedIn"
             collapsed={collapsed}
             onToggle={toggleCollapse}
           />
         </div>
       </div>
-
-      {/* ── Collapsible body ── */}
-      <div className={`sc-body ${collapsed ? 'closed' : 'open'}`}>
-        {/* Banner */}
-        <div
-          style={{
-            background: LI.banner,
-          }}
-          className="li-style-7"
-        >
-          {banner && !bannerError && (
-            <div className="li-style-8">
-              <img
-                src={banner}
-                alt=""
-                onError={() => setBannerError(true)}
-                className="li-style-9"
-              />
-            </div>
+      <div
+        className={`sc-body ${collapsed ? 'closed' : 'open'}`}
+        inert={collapsed ? '' : undefined}
+      >
+        <div className="li-banner">
+          {banner && banner !== failedBanner && (
+            <img src={banner} alt="" onError={() => setFailedBanner(banner)} />
           )}
-          {/* Avatar overlapping banner */}
-          <div className="li-style-10">
-            {showAvatar ? (
+        </div>
+        <div className="li-identity" aria-busy={loading && !profile}>
+          <div className="li-avatar-ring">
+            {avatar && avatar !== failedAvatar ? (
               <img
+                className="li-avatar"
                 src={avatar}
-                alt={name || handle}
-                onError={() => setImgError(true)}
-                className="li-style-11"
+                alt=""
+                width="152"
+                height="152"
+                onError={() => setFailedAvatar(avatar)}
               />
             ) : (
-              <div
-                style={{
-                  background: LI.blue,
-                }}
-                className="li-style-12"
-              >
-                <svg viewBox="0 0 24 24" fill="white" width="38" height="38">
-                  <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
+              <div className="li-avatar li-avatar-fallback" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="56" height="56" fill="currentColor">
+                  <path d={LI_ICON} />
                 </svg>
               </div>
             )}
           </div>
-        </div>
-
-        {/* Identity */}
-        <div
-          style={{
-            borderBottom: `1px solid ${LI.div}`,
-          }}
-          className="li-style-13"
-        >
-          <div className="li-style-14">
-            <div className="li-style-15">
-              {name && (
-                <div
-                  style={{
-                    color: LI.text,
-                  }}
-                  className="li-style-16"
-                >
-                  {name}
-                </div>
+          <div className="li-intro">
+            <div className="li-intro-main">
+              <h2 className="li-name" dir="auto">
+                {name}
+              </h2>
+              {profile?.headline && (
+                <p className="li-headline" dir="auto">
+                  {profile.headline}
+                </p>
               )}
-              {headline && (
-                <div
-                  style={{
-                    color: LI.muted,
-                  }}
-                  className="li-style-17"
-                >
-                  {headline}
-                </div>
+              {profile?.location && (
+                <p className="li-location" dir="auto">
+                  {profile.location}
+                </p>
               )}
-              <div className="li-style-18">
-                {location && (
-                  <span
-                    style={{
-                      color: LI.faint,
-                    }}
-                    className="li-style-19"
-                  >
-                    <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12">
-                      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
-                    </svg>
-                    {location}
-                  </span>
-                )}
-                {connections && (
-                  <span
-                    style={{
-                      color: LI.blueLt,
-                    }}
-                    className="li-style-20"
-                  >
-                    {connections} connections
-                  </span>
-                )}
-                {followers != null && (
-                  <span
-                    style={{
-                      color: LI.faint,
-                    }}
-                    className="li-style-21"
-                  >
-                    {Number(followers).toLocaleString()} followers
-                  </span>
-                )}
-              </div>
+              <p className="li-counts">
+                {[
+                  profile?.followers != null && `${profile.followers} followers`,
+                  profile?.connections != null && `${profile.connections} connections`,
+                ]
+                  .filter(Boolean)
+                  .map((count, index) => (
+                    <React.Fragment key={count}>
+                      {index > 0 && <span className="li-dot"> · </span>}
+                      <span className="li-count">{count}</span>
+                    </React.Fragment>
+                  ))}
+              </p>
             </div>
-
-            {/* View profile pill */}
-            <a
-              href={profileHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="li-view-btn li-style-22"
-              style={{
-                border: `1px solid ${LI.blue}`,
-                color: LI.blueLt,
-              }}
-            >
-              <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13">
-                <path d={LI_ICON} />
-              </svg>
+            {profile?.organizations?.length > 0 && (
+              <ul className="li-organizations">
+                {profile.organizations.map((organization) => (
+                  <li key={organization} dir="auto">
+                    {organization}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <div className="li-buttons">
+            <a className="li-button" href={href} target="_blank" rel="noopener noreferrer">
               View profile
             </a>
+            <button className="li-button li-button-ghost" type="button" onClick={copyLink}>
+              {copied ? 'Link copied' : 'Copy link'}
+            </button>
           </div>
+          {!profile && (loading || error) && (
+            <p className="li-status" role="status">
+              {loading ? 'Loading profile…' : 'Profile unavailable. You can still open LinkedIn.'}
+            </p>
+          )}
         </div>
+        {profile?.about && (
+          <section className="li-section">
+            <h3>About</h3>
+            <p className="li-about" dir="auto">
+              {profile.about}
+            </p>
+          </section>
+        )}
+        {profile?.languages?.length > 0 && (
+          <section className="li-section">
+            <h3>Languages</h3>
+            <dl className="li-languages">
+              {profile.languages.map((language) => (
+                <div key={language.name}>
+                  <dt dir="auto">{language.name}</dt>
+                  {language.proficiency && <dd dir="auto">{language.proficiency}</dd>}
+                </div>
+              ))}
+            </dl>
+          </section>
+        )}
       </div>
-    </div>
+    </section>
   );
 }

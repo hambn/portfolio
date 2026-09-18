@@ -99,7 +99,7 @@ wrangler kv namespace create SPOTIFY_KV   # → copy id into SPOTIFY_KV_ID
 | `STEAM_API_KEY` | steamcommunity.com/dev/apikey |
 | `STEAM_ID` | your 64-bit Steam ID (https://steamid.io) |
 | `DISCORD_ID` | your Discord user ID (right-click → Copy User ID) |
-| `LINKEDIN_URL` | your public LinkedIn profile URL (e.g. `https://linkedin.com/in/hambn`) |
+| `LINKEDIN_URL` | optional public profile URL; overrides `links.json` |
 
 Pages deploy needs no secrets — GitHub's `GITHUB_TOKEN` is automatic. `STEAM_ID`
 and `DISCORD_ID` are public on your profiles; kept as secrets only so nothing
@@ -125,10 +125,28 @@ npm run api:deploy
 | `GET /steam` | 5m | status, level, current/favorite game, recent activity |
 | `GET /discord` | 60s | presence + activities + Spotify (via Lanyard) |
 | `GET /discord/avatar` | 1h | proxied Discord avatar image |
-| `GET /linkedin` | 1h | profile OG tags scraped from `LINKEDIN_URL` |
+| `GET /linkedin[?username=<username>]` | hourly snapshot | public profile configured in `links.json` |
+| `GET /linkedin/avatar` and `GET /linkedin/banner` | 1h | image bytes stored with the profile snapshot |
 | `GET /telegram[?username=<username>]` | 1h | scheduled snapshot of the profile configured in `links.json` |
 | `GET /telegram/avatar[?username=<username>]` | 1h | photo bytes stored with the hourly profile snapshot |
 | `GET /health` | none | `{ ok: true }` liveness check |
+
+LinkedIn runs entirely inside the API. Node starts a refresh on startup and every
+hour; Workers use the hourly scheduled handler. Profile data and images are saved
+together in `/data` for the container or KV for Workers. Failed refreshes retain
+the last successful snapshot for up to seven days.
+
+Set `LINKEDIN_URL` to choose a public profile at runtime without rebuilding the
+container. If omitted, the API uses `linkedin.handle` from
+`public/contents/links/links.json`. Invalid URLs are rejected. Requests can only
+read the configured profile, so the API does not become an arbitrary URL proxy.
+No GitHub Actions job or external snapshot upload is needed.
+
+The guest request headers work in the tested Node environment, including image
+downloads. LinkedIn still returned HTTP 999 from Cloudflare's network during
+validation. The API reports that block and retains cached data; it cannot
+guarantee access from every hosting network or read private profiles without
+authorized account access.
 
 The Spotify card checks playback every 3 seconds while the page is visible and
 refreshes immediately on return. The timeline uses elapsed time between samples;
@@ -183,7 +201,7 @@ Environment variables:
 | `STEAM_API_KEY` | secret | yes |
 | `STEAM_ID` | config | yes |
 | `DISCORD_ID` | config | yes |
-| `LINKEDIN_URL` | config | no (`/linkedin` returns 503 without it) |
+| `LINKEDIN_URL` | config | optional public profile URL; defaults to `links.json` |
 | `CACHE_VERSION` | config | no (Node default: `1`, stable across restarts) |
 | `API_DATA_DIR` | config | no (default: `.api-data`) |
 | `API_CACHE_MAX_BYTES` | config | no (default: `268435456`) |
@@ -198,6 +216,27 @@ the repo root:
 docker compose -f deployment/docker-compose.yml up -d --build
 # web → http://localhost:8080   api → http://localhost:8787
 ```
+
+A private homelab host only needs outbound internet access to the providers.
+It does not need GitHub Actions, Cloudflare credentials, a public domain, or inbound
+internet access. On your LAN, open `http://<homelab-ip>:8080`; the site uses its own
+`/api/` route. The API is also available directly at `http://<homelab-ip>:8787`.
+Telegram, X, and LinkedIn refresh on API startup and every hour. Other providers
+refresh through their existing request caches and polling intervals.
+
+To run only the API:
+
+```bash
+docker build -f deployment/Dockerfile.api -t portfolio-api .
+docker run -d --name portfolio-api --restart unless-stopped \
+  -p 8787:8787 -v portfolio-api-data:/data \
+  -e LINKEDIN_URL=https://www.linkedin.com/in/hambn/ \
+  portfolio-api
+```
+
+Pass the provider credentials below when enabling Spotify and Steam. If a reverse
+proxy changes the external scheme or host, set `API_PUBLIC_ORIGIN` to your API's
+address, for example `https://api.home.example`. A private HTTP address works too.
 
 API environment variables (from host env or `.env` file beside compose):
 

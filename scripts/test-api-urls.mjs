@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { build } from 'esbuild';
 
-for (const base of ['/api', 'https://api.example.test/api']) {
+for (const base of ['/api', 'https://api.example.test/api', 'http://192.168.1.10:8787/api']) {
   test(`frontend media URLs respect API base ${base}`, async () => {
     const result = await build({
       entryPoints: ['src/lib/api.js'],
