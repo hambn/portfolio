@@ -151,9 +151,16 @@ function BranchCard({ lane, x, y, maxY }) {
       {/* newest first, the way the log itself reads */}
       <ul className="git-branch-card-list">
         {[...(branch.commits || [])].reverse().map((commit, i) => (
-          <li key={i} className={commit.milestone ? 'is-milestone' : ''}>
+          <li key={i}>
             <span className="git-branch-card-date">{commit.date}</span>
-            {commit.text}
+            <span className="is-milestone">{commit.text}</span>
+            {commit.body?.length > 0 && (
+              <span className="git-msg">
+                {commit.body.map((line) => (
+                  <span key={line}>{line}</span>
+                ))}
+              </span>
+            )}
           </li>
         ))}
       </ul>
@@ -314,38 +321,40 @@ function GitLog({ branches, born }) {
             </div>
           );
 
+        // A commit is a section of the branch — a role, a campus — written as a
+        // subject line with the work itself as the message body underneath. The
+        // oldest one also creates the branch, so it carries its name and place.
         const { commit, lane } = row;
-
-        // The oldest commit is where the branch is created: it carries the name
-        // of the company, degree or project, with its first message underneath.
-        if (row.seq === 0)
-          return (
-            <div
-              className={`git-commit is-open ${tone}${dim ? ' is-dim' : ''}`}
-              key={row.key}
-              ref={setRef}
-              {...lift}
-            >
-              {meta(GLYPH.open, commit.date)}
-              <span className="git-body">
-                <span className="git-ref is-branch">({lane.branch.name})</span>
-                <span className="git-sub">{commit.text}</span>
-              </span>
-            </div>
-          );
+        const opens = row.seq === 0;
+        const glyph = opens ? GLYPH.open : commit.milestone ? GLYPH.milestone : GLYPH.commit;
 
         return (
           <div
-            className={`git-commit ${tone}${dim ? ' is-dim' : ''}`}
+            className={`git-commit ${opens ? 'is-open ' : ''}${tone}${dim ? ' is-dim' : ''}`}
             key={row.key}
             ref={setRef}
             {...lift}
           >
-            {meta(commit.milestone ? GLYPH.milestone : GLYPH.commit, commit.date)}
+            {meta(glyph, commit.date)}
             <span className="git-body">
-              <span className={`git-text${commit.milestone ? ' is-milestone' : ''}`}>
+              {opens && (
+                <span className="git-subject">
+                  <span className="git-ref is-branch">({lane.branch.name})</span>
+                  {lane.branch.location && (
+                    <span className="git-where">{lane.branch.location}</span>
+                  )}
+                </span>
+              )}
+              <span className={`git-text${commit.milestone || opens ? ' is-milestone' : ''}`}>
                 {commit.text}
               </span>
+              {commit.body?.length > 0 && (
+                <span className="git-msg">
+                  {commit.body.map((line) => (
+                    <span key={line}>{line}</span>
+                  ))}
+                </span>
+              )}
             </span>
           </div>
         );

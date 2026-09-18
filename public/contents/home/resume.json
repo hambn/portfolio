@@ -1,7 +1,7 @@
 {
   "born": "Apr 2003",
 
-  "_comment": "items[] is the CV (resume page + structured data). branches[] drives the git graph on the home page: one branch per company / degree / project, with dated commits. The oldest commit is where the branch is created, so it is titled with the branch name. milestone: true renders a hollow dot and bold text (role change, college change, …).",
+  "_comment": "items[] is the CV (resume page + structured data). branches[] drives the git graph on the home page: one branch per company / degree / project. A commit is a section of that branch — a role, a campus — with `text` as the subject line and `body[]` as the message underneath. The oldest commit is where the branch is created, so it is titled with the branch name. milestone: true renders a hollow dot and bold text (role change, college change, …).",
 
   "branches": [
     {
@@ -14,18 +14,26 @@
       "commits": [
         {
           "date": "Apr 2024",
-          "text": "Joined as a DevOps Engineer intern, in Tehran, Tehran Province, Iran"
+          "text": "DevOps Engineer, internship",
+          "body": [
+            "Containerized services with Docker",
+            "Moved version control and reviews to GitLab",
+            "Helped set up the first CI/CD pipelines"
+          ]
         },
-        { "date": "Apr 2024", "text": "Containerized services with Docker" },
-        { "date": "May 2024", "text": "Moved version control and reviews to GitLab" },
-        { "date": "Jun 2024", "text": "Helped set up the first CI/CD pipelines" },
-        { "date": "Jul 2024", "text": "DevOps Engineer, full-time", "milestone": true },
-        { "date": "Sep 2024", "text": "Automated infrastructure provisioning" },
-        { "date": "Nov 2024", "text": "Took over CI/CD pipeline management" },
-        { "date": "Jan 2025", "text": "Centralized logging on the Elastic Stack" },
-        { "date": "Mar 2025", "text": "Built Grafana dashboards and alerting" },
-        { "date": "Jun 2025", "text": "Container orchestration with Kubernetes" },
-        { "date": "Sep 2025", "text": "Standardized deployment workflows" }
+        {
+          "date": "Jul 2024",
+          "text": "DevOps Engineer, full-time",
+          "milestone": true,
+          "body": [
+            "Automated infrastructure provisioning",
+            "Took over CI/CD pipeline management",
+            "Centralized logging on the Elastic Stack",
+            "Built Grafana dashboards and alerting",
+            "Container orchestration with Kubernetes",
+            "Standardized deployment workflows"
+          ]
+        }
       ]
     },
     {
@@ -36,16 +44,18 @@
       "start": "Sep 2022",
       "end": "Sep 2026",
       "commits": [
-        {
-          "date": "Sep 2022",
-          "text": "Started at Technical and Vocational University, in Mazandaran, Mahmudabad, Iran"
-        },
+        { "date": "Sep 2022", "text": "Started at Technical and Vocational University" },
         {
           "date": "Sep 2023",
           "text": "Guest student at Shamsipour College, Tehran",
-          "milestone": true
+          "milestone": true,
+          "body": ["Four semesters on the Tehran campus"]
         },
-        { "date": "Jun 2025", "text": "Back to Mahmudabad after 4 semesters", "milestone": true }
+        {
+          "date": "Jun 2025",
+          "text": "Back to Technical and Vocational University",
+          "milestone": true
+        }
       ]
     }
   ],

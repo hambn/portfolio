@@ -451,9 +451,6 @@ svg {
 .git-graph .is-dim {
   opacity: 0.28;
 }
-.git-text {
-  color: var(--foreground-muted);
-}
 /* a milestone — new role, new college — carries the weight of the change */
 .git-text.is-milestone {
   font-weight: 600;
@@ -481,11 +478,34 @@ svg {
 .is-life .git-ref {
   color: var(--graph-life);
 }
-/* the branch's first message, tucked under its name */
-.git-sub {
+/* the branch name and where it happened, above the first subject line */
+.git-subject {
   display: block;
-  margin-top: 1px;
+  margin-bottom: 2px;
+}
+.git-where {
+  margin-left: 8px;
+  color: var(--foreground-faint);
+}
+.git-text {
+  display: block;
+  color: var(--foreground-muted);
+}
+/* the commit message body — the work itself, as bullets under the subject */
+.git-msg {
+  display: block;
+  margin-top: 6px;
+}
+.git-msg > span {
+  display: block;
+  padding-left: 14px;
+  text-indent: -14px;
   color: var(--foreground-subtle);
+  line-height: 1.7;
+}
+.git-msg > span::before {
+  content: '- ';
+  color: var(--foreground-faint);
 }
 
 /* The graph itself, drawn in the reserved left gutter. */
@@ -591,6 +611,12 @@ svg {
 .git-branch-card-list .is-milestone {
   font-weight: 600;
   color: var(--foreground);
+}
+.git-branch-card-list .git-msg {
+  margin-top: 2px;
+}
+.git-branch-card-list .git-msg > span {
+  line-height: 1.6;
 }
 .git-branch-card-date {
   display: inline-block;
