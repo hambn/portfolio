@@ -153,21 +153,6 @@ function page({
 }) {
   // Trailing slash matches how GitHub Pages serves directory index.html files.
   const url = abs(path);
-  const head = [
-    `  <link rel="canonical" href="${esc(url)}" />`,
-    `  <meta property="og:url" content="${esc(url)}" />`,
-    `  <meta name="twitter:image" content="${esc(profile.avatar)}" />`,
-    `  <meta property="og:image:alt" content="${esc(profile.name)}" />`,
-    `  <meta name="twitter:image:alt" content="${esc(profile.name)}" />`,
-    `  <meta name="twitter:title" content="${esc(title)}" />`,
-    `  <meta name="twitter:description" content="${esc(desc)}" />`,
-    `  <link rel="alternate" type="application/rss+xml" title="blog" href="${siteRoot}/feed.xml" />`,
-    robots ? `  <meta name="robots" content="noindex" />` : '',
-    preload,
-    extraHead,
-  ]
-    .filter(Boolean)
-    .join('\n');
   const data = { profile };
   if (!path || path === 'resume') data.resume = resume;
   if (!path || ['projects', 'links', 'resume'].includes(path)) data.links = links;
@@ -178,6 +163,31 @@ function page({
   }
   const content = robots ? '' : render(path || 'home', data);
   const serialized = JSON.stringify(data).replace(/</g, '\\u003c');
+
+  // No image preload here on purpose: React already emits one for the home
+  // avatar because it renders with fetchPriority="high". A second link for the
+  // same URL would only duplicate markup.
+  const head = [
+    `  <link rel="canonical" href="${esc(url)}" />`,
+    `  <meta property="og:url" content="${esc(url)}" />`,
+    `  <meta property="og:site_name" content="${esc(profile.name)}" />`,
+    `  <meta property="og:locale" content="en_US" />`,
+    `  <meta name="twitter:image" content="${esc(profile.avatar)}" />`,
+    `  <meta property="og:image:alt" content="${esc(profile.name)}" />`,
+    `  <meta name="twitter:image:alt" content="${esc(profile.name)}" />`,
+    `  <meta name="twitter:title" content="${esc(title)}" />`,
+    `  <meta name="twitter:description" content="${esc(desc)}" />`,
+    `  <link rel="alternate" type="application/rss+xml" title="blog" href="${siteRoot}/feed.xml" />`,
+    // Defaults are conservative: ask explicitly for full-size image previews and
+    // untruncated snippets so results aren't capped at a thumbnail and 160 chars.
+    robots
+      ? `  <meta name="robots" content="noindex" />`
+      : `  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />`,
+    preload,
+    extraHead,
+  ]
+    .filter(Boolean)
+    .join('\n');
   let html = template
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(title)}</title>`)
     .replace(/(<meta\s+name="description"\s+content=")[^"]*(")/, `$1${esc(desc)}$2`)

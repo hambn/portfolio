@@ -36,7 +36,12 @@ export function pageGraph(meta, person, siteRoot, posts = []) {
     keywords: post.tags?.length ? post.tags.join(', ') : undefined,
     author,
     publisher: author,
-    isPartOf: { '@type': 'Blog', name: `blog — ${person.name}`, url: abs('blog') },
+    isPartOf: {
+      '@id': `${siteRoot}/#blog`,
+      '@type': 'Blog',
+      name: `blog — ${person.name}`,
+      url: abs('blog'),
+    },
   });
   const types = {
     home: 'ProfilePage',
@@ -44,6 +49,18 @@ export function pageGraph(meta, person, siteRoot, posts = []) {
     links: 'CollectionPage',
     blog: 'Blog',
   };
+  // One WebSite entity every page points at, so search engines treat the routes
+  // as one site with one publisher instead of unrelated documents.
+  const site = {
+    '@type': 'WebSite',
+    '@id': `${siteRoot}/#website`,
+    url: abs(),
+    name: person.name,
+    description: person.description || undefined,
+    inLanguage: 'en',
+    publisher: author,
+  };
+  const partOf = { '@id': site['@id'] };
   const page = meta.post
     ? postNode(meta.post)
     : {
@@ -52,9 +69,13 @@ export function pageGraph(meta, person, siteRoot, posts = []) {
         description: meta.desc,
         url: abs(meta.path),
         inLanguage: 'en',
+        isPartOf: partOf,
         about: author,
         ...(meta.page === 'home' ? { mainEntity: author } : {}),
-        ...(meta.page === 'blog' ? { author, blogPost: posts.map(postNode) } : {}),
+        // Same @id the posts' isPartOf points at — one Blog entity, not two.
+        ...(meta.page === 'blog'
+          ? { '@id': `${siteRoot}/#blog`, author, blogPost: posts.map(postNode) }
+          : {}),
       };
   const trail = [['home', '']];
   if (meta.page !== 'home') trail.push([meta.page, meta.page]);
@@ -64,6 +85,7 @@ export function pageGraph(meta, person, siteRoot, posts = []) {
     '@graph': [
       person,
       page,
+      site,
       ...(trail.length > 1
         ? [
             {
