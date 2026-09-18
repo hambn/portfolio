@@ -1,9 +1,10 @@
-import { apiUrl } from '../../lib/api.js';
 // Projects.jsx — GitHub public repos
 // GitHub username is read from contents/links/links.json (github.username)
 import React, { useEffect, useState } from 'react';
 import { PortfolioData } from '../../lib/data.js';
+import { apiUrl } from '../../lib/api.js';
 import ErrorState from '../../components/ErrorState.jsx';
+import './projects.css';
 
 const LANG_COLORS = {
   JavaScript: '#f1e05a',
@@ -25,29 +26,13 @@ const LANG_COLORS = {
 };
 
 function RepoCard({ repo }) {
-  const [hov, setHov] = useState(false);
   const pushed = new Date(repo.pushed_at).toLocaleDateString('en', {
     month: 'short',
     year: 'numeric',
   });
 
   return (
-    <a
-      href={repo.html_url}
-      target="_blank"
-      rel="noopener noreferrer"
-      style={{
-        display: 'block',
-        textDecoration: 'none',
-        background: 'var(--card)',
-        border: `1px solid ${hov ? 'var(--border-strong)' : 'var(--border)'}`,
-        borderRadius: 'var(--radius-lg)',
-        padding: '16px 18px',
-        transition: 'border-color 150ms',
-      }}
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
-    >
+    <a href={repo.html_url} target="_blank" rel="noopener noreferrer" className="repo-card">
       <div
         style={{
           display: 'flex',
@@ -57,17 +42,7 @@ function RepoCard({ repo }) {
           marginBottom: '8px',
         }}
       >
-        <span
-          style={{
-            fontWeight: '600',
-            fontSize: 'var(--text-sm)',
-            color: hov ? 'var(--primary)' : 'var(--foreground)',
-            transition: 'color 150ms',
-            wordBreak: 'break-word',
-          }}
-        >
-          {repo.name}
-        </span>
+        <span className="repo-card-name">{repo.name}</span>
         {repo.stargazers_count > 0 && (
           <span
             style={{ fontSize: 'var(--text-xs)', color: 'var(--foreground-subtle)', flexShrink: 0 }}

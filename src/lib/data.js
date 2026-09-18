@@ -1,5 +1,5 @@
-import { apiContent } from './api.js';
 // Shared content requests and synchronous snapshots for page navigation.
+import { apiContent } from './api.js';
 
 export const PortfolioData = (() => {
   // Resolve to an ABSOLUTE url once, at load time, so blog routes like

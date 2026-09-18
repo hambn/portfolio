@@ -108,3 +108,54 @@ no new page-load timing improvement is claimed for this follow-up.
 Validation for this follow-up: `npm run check` and all eight browser tests passed.
 Both the default build and a `/portfolio/` build passed all 11 static-site tests.
 The development server runs on port 5174 because port 5173 was already occupied.
+
+## Cleanup pass: dead CSS, nav styling, search index, crawler hints
+
+Rendered output is unchanged. Screenshots of `/`, `/projects/`, `/blog/`,
+`/resume/`, `/blog/welcome/` and `404.html` at 1280px and 390px are identical
+byte for byte against the previous build, with provider responses stubbed.
+
+- Removed the unused half of `core.css` — badge, card, input, avatar, divider,
+  status-dot and focus-ring rules, plus five unused button variants. None had a
+  single usage outside the stylesheet. This file is render-blocking on every
+  route, so every rule in it is downloaded by every visitor.
+- Moved the top navigation's inline style objects into `core.css`. The bar is
+  static chrome, so it no longer rebuilds ~100 lines of style objects per
+  render, and the mobile overrides no longer need `!important` to outrank inline
+  styles. The active route is expressed as `aria-current="page"`, which CSS and
+  assistive technology now read from the same attribute.
+- Repo card hover moved from React state to `:hover` in a new
+  `src/pages/projects/projects.css`, so moving the pointer across the grid no
+  longer re-renders a component.
+- The blog search corpus is lowercased once per post list instead of once per
+  post per keystroke.
+- The favicon is drawn during an idle callback (load event as fallback) rather
+  than at module scope, so its image fetch and canvas export no longer compete
+  with hydration.
+- Dropped the unused `@fontsource-variable/open-sans` dependency, and pointed
+  SpotifyCard at the same `dm-sans/wght.css` entry DiscordCard already used.
+- Crawler hints: explicit `robots` directives (`max-image-preview:large`,
+  `max-snippet:-1`, `max-video-preview:-1`) on indexable routes, `og:site_name`
+  and `og:locale`, and a `WebSite` node in the JSON-LD `@graph` that every page
+  declares itself `isPartOf`. The blog index and each post's `isPartOf` now
+  share one `#blog` `@id` instead of describing two separate Blog entities.
+
+| Resource      | Before (raw / gzip) | After (raw / gzip) |
+| ------------- | ------------------: | -----------------: |
+| Shared CSS    |    18,741 / 6,637 B |   16,285 / 6,174 B |
+| Entry JS      |    14,879 / 5,851 B |   14,194 / 5,617 B |
+| Projects JS   |     3,890 / 1,699 B |    3,507 / 1,556 B |
+| Links CSS     |   47,233 / 10,543 B |  46,538 / 10,514 B |
+| Home HTML     |            18,742 B |           18,074 B |
+| Blog list     |            22,403 B |           21,856 B |
+| Welcome post  |            19,491 B |           18,778 B |
+
+Projects also gains a 409 B (256 B gzip) route stylesheet, loaded only with that
+page. Blog's route chunk grows 59 B for the memoized search index.
+
+No image preload was added for the home avatar: React already emits one for it
+because the element renders with `fetchPriority="high"`.
+
+Validation: `npm run lint`, `npm run format:check`, `npm run build`, all 11
+static-site tests and all 8 browser tests pass. No Core Web Vitals or ranking
+improvement is claimed — these are local build measurements.

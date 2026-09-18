@@ -1,0 +1,25 @@
+/* Repo card chrome. Hover lives here rather than in component state: the
+ * browser already tracks the pointer, so React never re-renders a card for it. */
+.repo-card {
+  display: block;
+  text-decoration: none;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  transition: border-color 150ms;
+}
+.repo-card:hover {
+  border-color: var(--border-strong);
+}
+
+.repo-card-name {
+  font-weight: 600;
+  font-size: var(--text-sm);
+  color: var(--foreground);
+  transition: color 150ms;
+  word-break: break-word;
+}
+.repo-card:hover .repo-card-name {
+  color: var(--primary);
+}

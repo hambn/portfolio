@@ -1,4 +1,3 @@
-import { mediaUrl } from './lib/api.js';
 // SPA entry — app shell + history router.
 import React from 'react';
 import { createRoot, hydrateRoot } from 'react-dom/client';
@@ -10,9 +9,10 @@ import './styles/index.css';
 import App from './App.jsx';
 import { pages, preloadPage } from './pages/index.js';
 import { currentRoute } from './lib/router.js';
+import { mediaUrl } from './lib/api.js';
 
 // Round the API-hosted avatar into a tab favicon after it loads.
-(function roundFavicon(url) {
+function roundFavicon(url) {
   const img = new Image();
   img.crossOrigin = 'anonymous';
   img.onload = () => {
@@ -35,7 +35,14 @@ import { currentRoute } from './lib/router.js';
     link.href = canvas.toDataURL('image/png');
   };
   img.src = url;
-})(mediaUrl('https://avatars.githubusercontent.com/hambn'));
+}
+
+// A tab icon is worth nothing before the page paints, and the decode plus
+// canvas export is not free — wait for an idle moment, or the load event where
+// requestIdleCallback is missing (Safari), so it never competes with hydration.
+const drawFavicon = () => roundFavicon(mediaUrl('https://avatars.githubusercontent.com/hambn'));
+if (typeof requestIdleCallback === 'function') requestIdleCallback(drawFavicon, { timeout: 4000 });
+else window.addEventListener('load', drawFavicon, { once: true });
 
 const initialRoute = currentRoute();
 const initial = (initialRoute || 'home').split('/')[0] || 'home';

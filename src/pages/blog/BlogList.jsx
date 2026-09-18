@@ -55,16 +55,28 @@ export default function PostList({ posts, onOpen }) {
   const toggleTag = (t) =>
     setActive((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
 
+  // Post bodies are the whole search corpus. Lowercasing them once per post
+  // list, rather than once per post per keystroke, keeps typing responsive.
+  const searchIndex = useMemo(
+    () =>
+      new Map(
+        posts.map((p) => [
+          p,
+          [p.title, p.description, p.tags.join(' '), p.body].join(' ').toLowerCase(),
+        ]),
+      ),
+    [posts],
+  );
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return posts.filter((p) => {
       const tagOk = activeTags.every((t) => p.tags.includes(t));
       if (!tagOk) return false;
       if (!q) return true;
-      const hay = [p.title, p.description, p.tags.join(' '), p.body].join(' ').toLowerCase();
-      return hay.includes(q);
+      return searchIndex.get(p).includes(q);
     });
-  }, [posts, query, activeTags]);
+  }, [posts, query, activeTags, searchIndex]);
 
   const totalPages = Math.ceil(filtered.length / POSTS_PER_PAGE);
   const pagePosts = filtered.slice((page - 1) * POSTS_PER_PAGE, page * POSTS_PER_PAGE);

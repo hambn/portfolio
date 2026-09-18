@@ -1,8 +1,8 @@
-import { apiUrl } from '../../lib/api.js';
 // GitHub / GitLab contribution graph.
 // GitHub data comes from the public (no-auth) jogruber contributions API;
 // GitLab has no no-auth calendar API so it uses a deterministic synthetic grid.
 import React, { useEffect, useRef, useState } from 'react';
+import { apiUrl } from '../../lib/api.js';
 import { useCardFeed } from '../../pages/links/LinksFeed.jsx';
 
 const GH_MONTHS = [
