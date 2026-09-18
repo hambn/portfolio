@@ -4,8 +4,8 @@
   "title": "devops engineer",
   "bio": "DevOps engineer building and operating systems end to end — infrastructure, virtualization, networking, containers, CI/CD, monitoring, and the tooling around them.",
   "intro": [
-    "I like building and operating systems end to end, from infrastructure, virtualization, and networking to containers, automation, CI/CD, monitoring, and the tooling around them. I also enjoy building small apps, plugins, scripts, and internal tools when something can be made simpler or automated.",
-    "Most of my work sits around infrastructure, platform, reliability, cloud, networking, and automation engineering. I lean toward open source and self-hosting, and I'm also interested in AI infrastructure, tooling, and practical AI integrations."
+    "I like building and operating systems end to end, from infrastructure, virtualization, and networking to containers, automation, CI/CD, monitoring, and internal tooling.",
+    "My work focuses on infrastructure, platform, reliability, cloud, networking, and automation, with a preference for open source, self-hosting, and practical AI tooling."
   ],
   "avatar": "https://avatars.githubusercontent.com/hambn"
 }
