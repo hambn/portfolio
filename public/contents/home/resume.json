@@ -1,4 +1,66 @@
 {
+  "born": "Apr 2003",
+
+  "_comment": "items[] is the CV (resume page + structured data). branches[] drives the git graph on the home page: one branch per company / degree / project. A commit is a section of that branch — a role, a campus — with `text` as the subject line and `body[]` as the message underneath. The oldest commit is where the branch is created, so it is titled with the branch name. milestone: true renders a hollow dot and bold text (role change, college change, …).",
+
+  "branches": [
+    {
+      "id": "taban",
+      "type": "work",
+      "name": "Taban Smart Electronic Commerce",
+      "location": "Tehran, Tehran Province, Iran",
+      "start": "Apr 2024",
+      "end": "present",
+      "commits": [
+        {
+          "date": "Apr 2024",
+          "text": "DevOps Engineer, internship",
+          "body": [
+            "Containerized services with Docker",
+            "Moved version control and reviews to GitLab",
+            "Helped set up the first CI/CD pipelines"
+          ]
+        },
+        {
+          "date": "Jul 2024",
+          "text": "DevOps Engineer, full-time",
+          "milestone": true,
+          "body": [
+            "Automated infrastructure provisioning",
+            "Took over CI/CD pipeline management",
+            "Centralized logging on the Elastic Stack, with Grafana dashboards and alerting",
+            "Container orchestration with Docker Swarm",
+            "Virtualization on VMware ESXi",
+            "Network management with MikroTik CHR",
+            "Standardized deployment workflows"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bachelor",
+      "type": "education",
+      "name": "Bachelor's degree, Computer Engineering",
+      "location": "Mazandaran, Mahmudabad, Iran",
+      "start": "Sep 2022",
+      "end": "Sep 2026",
+      "commits": [
+        { "date": "Sep 2022", "text": "Started at Technical and Vocational University" },
+        {
+          "date": "Sep 2023",
+          "text": "Guest student at Shamsipour College, Tehran",
+          "milestone": true,
+          "body": ["Four semesters on the Tehran campus"]
+        },
+        {
+          "date": "Jun 2025",
+          "text": "Back to Technical and Vocational University",
+          "milestone": true
+        }
+      ]
+    }
+  ],
+
   "items": [
     {
       "type": "work",
@@ -33,7 +95,7 @@
       "school": "Technical and Vocational University",
       "location": "Mazandaran, Mahmudabad, Iran",
       "start": "Sep 2022",
-      "end": "present"
+      "end": "Sep 2026"
     },
     {
       "type": "education",
@@ -42,10 +104,23 @@
       "location": "Tehran, Tehran Province, Iran",
       "start": "Sep 2023",
       "end": "Jun 2025",
-      "description": [
-        "Guest student for 4 semesters"
-      ]
+      "description": ["Guest student for 4 semesters"]
     }
   ],
-  "skills": ["linux", "kubernetes", "terraform", "docker", "nixos", "ansible", "bash", "python", "git", "prometheus", "elasticsearch", "grafana", "gitlab"]
+
+  "skills": [
+    "linux",
+    "kubernetes",
+    "terraform",
+    "docker",
+    "nixos",
+    "ansible",
+    "bash",
+    "python",
+    "git",
+    "prometheus",
+    "elasticsearch",
+    "grafana",
+    "gitlab"
+  ]
 }

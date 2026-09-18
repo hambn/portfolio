@@ -2,6 +2,10 @@
   "name": "hamed ghasempour",
   "handle": "hambn",
   "title": "devops engineer",
-  "bio": "DevOps engineer. i like tech stuff — infrastructure, containers, homelab setups. sometimes i write about it.",
+  "bio": "DevOps engineer building and operating systems end to end — infrastructure, virtualization, networking, containers, CI/CD, monitoring, and the tooling around them.",
+  "intro": [
+    "I like building and operating systems end to end, from infrastructure, virtualization, and networking to containers, automation, CI/CD, monitoring, and internal tooling.",
+    "My work focuses on infrastructure, platform, reliability, cloud, networking, and automation, with a preference for open source, self-hosting, and practical AI tooling."
+  ],
   "avatar": "https://avatars.githubusercontent.com/hambn"
 }

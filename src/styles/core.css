@@ -368,10 +368,270 @@ svg {
 .home-page {
   padding: 130px 24px 80px;
 }
-.timeline-heading {
-  flex-direction: row;
+/* Visually hidden, still read by screen readers and search engines. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+/* Avatar is the home LCP element — fixed box so it never shifts the hero. */
+.home-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--border);
+  flex-shrink: 0;
+}
+/* Small uppercase section label — also the <h2> in the timeline header. */
+.section-label {
+  font-size: 10px;
+  font-weight: 400;
+  margin: 0;
+  color: var(--foreground-subtle);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.link-quiet {
+  color: var(--foreground-subtle);
+  transition: color 150ms;
+}
+.link-quiet:hover {
+  color: var(--foreground);
+}
+/* Shell prompt sigil in front of a terminal-styled section label. */
+.prompt-sigil {
+  color: var(--primary);
+}
+
+/* ── Work & education, rendered as `git log --graph` ── */
+.git-log {
+  position: relative;
+  padding-bottom: 26px;
+}
+/* one row per commit: date column, then the graph gutter, then the message */
+.git-commit {
+  display: grid;
+  grid-template-columns: var(--git-meta) 1fr;
+  column-gap: var(--git-gap);
   align-items: baseline;
-  gap: 16px;
+  padding-bottom: 20px;
+  font-size: var(--text-sm);
+  color: var(--foreground-muted);
+  transition: opacity 150ms;
+}
+.git-meta {
+  display: block;
+}
+.git-log.is-hovering .git-commit.is-dim,
+.git-graph .is-dim {
+  opacity: 0.28;
+}
+/* a milestone — new role, new college — carries the weight of the change */
+.git-text.is-milestone {
+  font-weight: 600;
+  color: var(--foreground);
+}
+.git-note-text {
+  color: var(--foreground-subtle);
+}
+.git-date {
+  color: var(--foreground-faint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* a branch ref, parenthesised the way git prints it */
+.git-ref {
+  font-weight: 600;
+  color: var(--graph-work);
+}
+.is-edu .git-ref {
+  color: var(--graph-edu);
+}
+.is-project .git-ref {
+  color: var(--graph-project);
+}
+.is-life .git-ref {
+  color: var(--graph-life);
+}
+/* narrow screens: the date rides with the message instead of in a column */
+.git-when {
+  display: block;
+  margin-bottom: 2px;
+  font-size: var(--text-xs);
+  color: var(--foreground-faint);
+  font-variant-numeric: tabular-nums;
+}
+/* the branch name and where it happened, above the first subject line */
+.git-subject {
+  display: block;
+  margin-bottom: 2px;
+}
+.git-where {
+  margin-left: 8px;
+  color: var(--foreground-faint);
+}
+.git-text {
+  display: block;
+  color: var(--foreground-muted);
+}
+/* the commit message body — the work itself, as bullets under the subject */
+.git-msg {
+  display: block;
+  margin-top: 6px;
+}
+.git-msg > span {
+  display: block;
+  padding-left: 14px;
+  text-indent: -14px;
+  color: var(--foreground-subtle);
+  line-height: 1.7;
+}
+.git-msg > span::before {
+  content: '- ';
+  color: var(--foreground-faint);
+}
+
+/* The graph itself, drawn in the reserved left gutter. */
+.git-graph {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: visible;
+}
+.git-lane {
+  fill: none;
+  stroke: var(--graph-work);
+  stroke-width: 2;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+.git-lane.is-life {
+  stroke: var(--graph-life);
+}
+.is-edu .git-lane {
+  stroke: var(--graph-edu);
+}
+.is-project .git-lane {
+  stroke: var(--graph-project);
+}
+/* invisible, generously wide stroke so a lane is easy to hover */
+.git-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 16;
+  cursor: pointer;
+}
+.git-dot {
+  fill: var(--graph-work);
+  stroke: none;
+  pointer-events: none;
+}
+.is-edu .git-dot {
+  fill: var(--graph-edu);
+}
+.is-project .git-dot {
+  fill: var(--graph-project);
+}
+.git-graph .git-dot.is-life {
+  fill: var(--graph-life);
+}
+/* hollow = a milestone commit, or the open tip of an unmerged branch */
+.git-dot.is-hollow {
+  fill: var(--background);
+  stroke: var(--graph-work);
+  stroke-width: 2.5;
+}
+.is-edu .git-dot.is-hollow {
+  stroke: var(--graph-edu);
+}
+.is-project .git-dot.is-hollow {
+  stroke: var(--graph-project);
+}
+.git-graph .git-dot.is-life.is-hollow {
+  stroke: var(--graph-life);
+}
+
+/* Hover card — the whole branch at a glance. */
+.git-branch-card {
+  position: absolute;
+  z-index: 5;
+  width: min(420px, 78vw);
+  padding: 12px 14px;
+  border: 1px solid var(--border-strong);
+  border-left: 2px solid var(--graph-work);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  box-shadow: 0 14px 34px var(--overlay);
+  pointer-events: none;
+}
+.git-branch-card.is-edu {
+  border-left-color: var(--graph-edu);
+}
+.git-branch-card.is-project {
+  border-left-color: var(--graph-project);
+}
+.git-branch-card-head {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 4px;
+}
+.git-branch-card-meta {
+  font-size: var(--text-xs);
+  color: var(--foreground-subtle);
+  margin-bottom: 10px;
+}
+.git-branch-card-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  font-size: var(--text-xs);
+  color: var(--foreground-muted);
+  line-height: 1.6;
+}
+.git-branch-card-list .is-milestone {
+  font-weight: 600;
+  color: var(--foreground);
+}
+.git-branch-card-list .git-msg {
+  margin-top: 2px;
+}
+.git-branch-card-list .git-msg > span {
+  line-height: 1.6;
+}
+.git-branch-card-date {
+  display: inline-block;
+  min-width: 68px;
+  color: var(--foreground-subtle);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tooling chips under the intro. */
+.stack-chip {
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--background-subtle);
+  font-size: var(--text-xs);
+  color: var(--foreground-muted);
+  transition:
+    border-color 150ms,
+    color 150ms;
+}
+.stack-chip:hover {
+  border-color: var(--border-strong);
+  color: var(--foreground);
 }
 .nav-brand,
 .nav-item {
@@ -420,10 +680,16 @@ svg {
   }
 }
 @media (max-width: 559px) {
-  .timeline-heading {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
+  /* no date column here — the date moves inside the message, so the row is a
+     single column pushed clear of the graph gutter */
+  .git-commit {
+    grid-template-columns: 1fr;
+    column-gap: 0;
+    padding-left: var(--git-gap);
+    font-size: var(--text-xs);
+  }
+  .git-subject {
+    margin-bottom: 0;
   }
 }
 @media (prefers-reduced-motion: reduce) {
