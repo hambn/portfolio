@@ -27,18 +27,7 @@ const LANE_X0 = 7; // centre of the life line
 const CURVE = 18; // vertical run of a branch/merge curve
 const NODE_DY = 10; // node centre, measured from the top of its row
 
-// The glyph that leads each row, as lazygit marks its log.
-const GLYPH = {
-  head: '◉',
-  root: '◉',
-  merge: '◎',
-  open: '◈',
-  milestone: '◇',
-  commit: '◆',
-};
-
 const META_W = 84; // the date column, to the left of the graph (lazygit order)
-const META_W_SM = 66;
 
 const laneX = (lane, lw) => LANE_X0 + lane * lw;
 const toneOf = (type) =>
@@ -201,7 +190,7 @@ function GitLog({ branches, born }) {
   }, [rows]);
 
   const width = laneCount * lw + 8;
-  const metaW = narrow ? META_W_SM : META_W;
+  const metaW = narrow ? 0 : META_W;
   const rootY = ys ? ys[rows.length - 1] : 0;
   const hovered = hover && lanes.find((lane) => lane.id === hover.id);
 
@@ -275,19 +264,23 @@ function GitLog({ branches, born }) {
         // hovering a row highlights its branch too, without opening the card
         const lift = row.lane ? { onMouseEnter: () => setHover({ id: row.lane.id }) } : null;
 
-        // every row leads with its glyph and date, then the graph, then the body
-        const meta = (glyph, date) => (
-          <span className="git-meta">
-            <span className="git-glyph">{glyph}</span>
-            <span className="git-date">{date}</span>
-          </span>
-        );
+        // Wide: the date sits in its own column, left of the graph. Narrow:
+        // there is no room for it there, so it moves in above the message.
+        const lead = (date) =>
+          narrow ? null : (
+            <span className="git-meta">
+              <span className="git-date">{date}</span>
+            </span>
+          );
+        const when = (date, extra) =>
+          narrow ? <span className="git-when">{extra ? `${date} · ${extra}` : date}</span> : null;
 
         if (row.kind === 'head')
           return (
             <div className="git-commit is-note is-life" key={row.key} ref={setRef}>
-              {meta(GLYPH.head, 'today')}
+              {lead('today')}
               <span className="git-body">
+                {when('today')}
                 <span className="git-ref">(HEAD)</span>
               </span>
             </div>
@@ -296,8 +289,9 @@ function GitLog({ branches, born }) {
         if (row.kind === 'root')
           return (
             <div className="git-commit is-note is-life" key={row.key} ref={setRef}>
-              {meta(GLYPH.root, row.born)}
+              {lead(row.born)}
               <span className="git-body">
+                {when(row.born)}
                 <span className="git-note-text">init — born</span>
               </span>
             </div>
@@ -311,8 +305,9 @@ function GitLog({ branches, born }) {
               ref={setRef}
               {...lift}
             >
-              {meta(GLYPH.merge, row.lane.branch.end)}
+              {lead(row.lane.branch.end)}
               <span className="git-body">
+                {when(row.lane.branch.end)}
                 <span className="git-note-text">
                   Merge <span className="git-ref is-branch">({row.lane.branch.name})</span> into
                   life
@@ -326,7 +321,6 @@ function GitLog({ branches, born }) {
         // oldest one also creates the branch, so it carries its name and place.
         const { commit, lane } = row;
         const opens = row.seq === 0;
-        const glyph = opens ? GLYPH.open : commit.milestone ? GLYPH.milestone : GLYPH.commit;
 
         return (
           <div
@@ -335,16 +329,17 @@ function GitLog({ branches, born }) {
             ref={setRef}
             {...lift}
           >
-            {meta(glyph, commit.date)}
+            {lead(commit.date)}
             <span className="git-body">
               {opens && (
                 <span className="git-subject">
                   <span className="git-ref is-branch">({lane.branch.name})</span>
-                  {lane.branch.location && (
+                  {!narrow && lane.branch.location && (
                     <span className="git-where">{lane.branch.location}</span>
                   )}
                 </span>
               )}
+              {when(commit.date, opens ? lane.branch.location : null)}
               <span className={`git-text${commit.milestone || opens ? ' is-milestone' : ''}`}>
                 {commit.text}
               </span>

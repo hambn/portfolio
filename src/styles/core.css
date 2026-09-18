@@ -428,24 +428,7 @@ svg {
   transition: opacity 150ms;
 }
 .git-meta {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-.git-glyph {
-  flex-shrink: 0;
-  font-size: 11px;
-  color: var(--graph-work);
-  line-height: 1;
-}
-.is-edu .git-glyph {
-  color: var(--graph-edu);
-}
-.is-project .git-glyph {
-  color: var(--graph-project);
-}
-.is-life .git-glyph {
-  color: var(--graph-life);
+  display: block;
 }
 .git-log.is-hovering .git-commit.is-dim,
 .git-graph .is-dim {
@@ -477,6 +460,14 @@ svg {
 }
 .is-life .git-ref {
   color: var(--graph-life);
+}
+/* narrow screens: the date rides with the message instead of in a column */
+.git-when {
+  display: block;
+  margin-bottom: 2px;
+  font-size: var(--text-xs);
+  color: var(--foreground-faint);
+  font-variant-numeric: tabular-nums;
 }
 /* the branch name and where it happened, above the first subject line */
 .git-subject {
@@ -689,12 +680,16 @@ svg {
   }
 }
 @media (max-width: 559px) {
-  /* narrow: the date column tightens and the glyph hugs it */
+  /* no date column here — the date moves inside the message, so the row is a
+     single column pushed clear of the graph gutter */
   .git-commit {
+    grid-template-columns: 1fr;
+    column-gap: 0;
+    padding-left: var(--git-gap);
     font-size: var(--text-xs);
   }
-  .git-meta {
-    gap: 5px;
+  .git-subject {
+    margin-bottom: 0;
   }
 }
 @media (prefers-reduced-motion: reduce) {
