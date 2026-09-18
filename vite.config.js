@@ -54,7 +54,11 @@ export default defineConfig({
       output: {
         // React gets its own long-lived chunk: its hash stays stable across app
         // deploys, so browser/CDN caches keep it instead of refetching.
-        manualChunks: { react: ['react', 'react-dom'] },
+        manualChunks(id) {
+          if (id.includes('/node_modules/react/') || id.includes('/node_modules/react-dom/')) {
+            return 'react';
+          }
+        },
       },
     },
   },
