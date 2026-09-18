@@ -23,7 +23,7 @@ export default function Timeline({ resume }) {
 
   return (
     <div style={{ marginBottom: '56px' }}>
-      <SectionHead command="git log --graph" action={fullResume} gap="18px">
+      <SectionHead command="history --graph" action={fullResume} gap="18px">
         <span className="sr-only"> work &amp; education</span>
       </SectionHead>
       <GitLog branches={resume.branches} born={resume.born} />

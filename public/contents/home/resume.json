@@ -28,9 +28,10 @@
           "body": [
             "Automated infrastructure provisioning",
             "Took over CI/CD pipeline management",
-            "Centralized logging on the Elastic Stack",
-            "Built Grafana dashboards and alerting",
-            "Container orchestration with Kubernetes",
+            "Centralized logging on the Elastic Stack, with Grafana dashboards and alerting",
+            "Container orchestration with Docker Swarm",
+            "Virtualization on VMware ESXi",
+            "Network management with MikroTik CHR",
             "Standardized deployment workflows"
           ]
         }
