@@ -44,120 +44,39 @@ export default function Nav({ page }) {
     document.documentElement.setAttribute('data-theme', next);
   };
 
-  /* ── Desktop layout: centered cluster, theme btn pinned right ── */
+  /* ── Desktop layout: centered cluster, theme btn pinned right ──
+     Everything visual lives in core.css; the active route is expressed as
+     aria-current so CSS and assistive tech read it from the same attribute. */
   return (
-    <nav
-      className="site-nav"
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: '56px',
-        background: 'var(--background)',
-        borderBottom: '1px solid var(--border)',
-        zIndex: 50,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      {/* Centered group */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-        {/* Brand */}
+    <nav className="site-nav">
+      <div className="nav-group">
         <a
           className="nav-brand"
+          aria-current={isHome ? 'page' : undefined}
           href={import.meta.env.BASE_URL + ''}
           onClick={goHome}
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontWeight: isHome ? 700 : 600,
-
-            textDecoration: 'none',
-            letterSpacing: '-0.01em',
-            display: 'inline-flex',
-            alignItems: 'baseline',
-            padding: '6px 10px',
-            borderRadius: 'var(--radius-md)',
-          }}
         >
-          <span
-            style={{
-              color: isHome ? 'var(--primary)' : 'var(--foreground-faint)',
-              fontWeight: 400,
-            }}
-          >
-            ~/
-          </span>
-          <span style={{ color: 'var(--foreground-faint)', fontWeight: 400 }}>..</span>
-          <span
-            style={{
-              color: isHome ? 'var(--primary)' : 'var(--foreground-faint)',
-              fontWeight: 400,
-            }}
-          >
-            /
-          </span>
-          <span
-            style={{
-              color: isHome ? 'var(--foreground)' : 'var(--foreground-muted)',
-              transition: 'color 150ms',
-            }}
-          >
-            {handle}
-          </span>
+          <span className="nav-brand-sigil nav-brand-path">~/</span>
+          <span className="nav-brand-sigil">..</span>
+          <span className="nav-brand-sigil nav-brand-path">/</span>
+          <span>{handle}</span>
         </a>
 
-        {navItems.map(({ key, label }) => {
-          const active = page === key;
-          return (
-            <a
-              key={key}
-              className="nav-item"
-              aria-current={active ? 'page' : undefined}
-              href={import.meta.env.BASE_URL + key + '/'}
-              onClick={go(key)}
-              style={{
-                padding: '6px 10px',
-                borderRadius: 'var(--radius-md)',
-                color: active ? 'var(--foreground)' : 'var(--foreground-muted)',
-                fontWeight: active ? '700' : '500',
-                transition: 'color 150ms',
-                fontFamily: 'var(--font-mono)',
-                textDecoration: 'none',
-              }}
-            >
-              <span
-                style={{
-                  color: active ? 'var(--primary)' : 'var(--foreground-faint)',
-                  fontSize: '0.85em',
-                }}
-              >
-                ~/
-              </span>
-              {label}
-            </a>
-          );
-        })}
+        {navItems.map(({ key, label }) => (
+          <a
+            key={key}
+            className="nav-item"
+            aria-current={page === key ? 'page' : undefined}
+            href={import.meta.env.BASE_URL + key + '/'}
+            onClick={go(key)}
+          >
+            <span className="nav-item-sigil">~/</span>
+            {label}
+          </a>
+        ))}
       </div>
 
-      {/* Theme toggle — pinned to the right */}
-      <button
-        onClick={toggleTheme}
-        style={{
-          position: 'absolute',
-          right: '20px',
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          color: 'var(--foreground-muted)',
-          padding: '6px 8px',
-          borderRadius: 'var(--radius-md)',
-          fontSize: '14px',
-          fontFamily: 'var(--font-mono)',
-        }}
-        aria-label="toggle theme"
-      >
+      <button className="nav-theme" onClick={toggleTheme} aria-label="toggle theme">
         <span className="theme-dark-icon">☀</span>
         <span className="theme-light-icon">☾</span>
       </button>
