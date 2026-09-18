@@ -9,7 +9,7 @@
 // Vite plugin (vite.config.js) calls this and serves the result virtually in
 // dev / emits it as an asset at build — nothing is written to disk.
 
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join, relative, basename } from 'node:path';
 
 /** Minimal YAML-frontmatter parser. Returns { meta, body }. */
@@ -42,10 +42,11 @@ function parseFrontmatter(raw) {
 /** Recursively collect every .md path under dir. */
 function walkMarkdown(dir, base = dir) {
   const out = [];
-  for (const entry of readdirSync(dir)) {
-    const full = join(dir, entry);
-    if (statSync(full).isDirectory()) out.push(...walkMarkdown(full, base));
-    else if (entry.toLowerCase().endsWith('.md')) out.push(relative(base, full));
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) out.push(...walkMarkdown(full, base));
+    else if (entry.isFile() && entry.name.toLowerCase().endsWith('.md'))
+      out.push(relative(base, full));
   }
   return out;
 }

@@ -14,6 +14,7 @@ import { marked } from 'marked';
 import { createServer } from 'vite';
 import { buildBlogIndex } from './blog-index.mjs';
 import { routes } from '../src/routes.js';
+import { isoDate, routeMetadata, pageGraph } from '../src/lib/metadata.js';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const dist = join(root, 'dist');
@@ -31,10 +32,9 @@ const esc = (s) =>
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 const dateParts = (d) => /^(\d{4})-(\d{2})-(\d{2})/.exec(d || '');
-const isoDate = (d) => (dateParts(d) ? dateParts(d)[0] : '');
 const rfc822 = (d) => {
   const m = dateParts(d);
-  return m ? new Date(+m[1], +m[2] - 1, +m[3]).toUTCString() : '';
+  return m ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])).toUTCString() : '';
 };
 
 const profile = readJSON('home/profile.json');
@@ -55,7 +55,8 @@ const sameAs = [
 
 /* ── structured data ── */
 
-const abs = (path = '') => (path ? `${SITE}/${path}/` : `${SITE}/`);
+const siteRoot = `${SITE}${BASE}`;
+const abs = (path = '') => `${siteRoot}/${path ? `${path}/` : ''}`;
 
 // Employer / schools come straight from the resume so the Person entity search
 // engines see matches the timeline the page renders.
@@ -64,7 +65,7 @@ const firstItem = (type) => (resume.items || []).find((i) => i.type === type);
 
 const personLd = {
   '@type': 'Person',
-  '@id': `${SITE}/#person`,
+  '@id': `${siteRoot}/#person`,
   name: profile.name,
   alternateName: profile.handle,
   jobTitle: profile.title || undefined,
@@ -75,52 +76,6 @@ const personLd = {
   alumniOf: orgLd(firstItem('education')?.school),
   sameAs,
 };
-
-// The Person is one entity across the whole site: spell it out once per graph
-// and point at it by @id everywhere else, instead of repeating the full node.
-const personRef = { '@id': personLd['@id'] };
-
-const ldGraph = (...nodes) =>
-  JSON.stringify(
-    { '@context': 'https://schema.org', '@graph': [personLd, ...nodes.filter(Boolean)] },
-    null,
-    2,
-  ).replace(/<\//g, '<\\/');
-
-const pageNode = (type, meta, path) => ({
-  '@type': type,
-  name: meta.title,
-  description: meta.desc,
-  url: abs(path),
-  inLanguage: 'en',
-  about: personRef,
-});
-
-const breadcrumbs = (items) => ({
-  '@type': 'BreadcrumbList',
-  itemListElement: items.map(([name, path], i) => ({
-    '@type': 'ListItem',
-    position: i + 1,
-    name,
-    item: abs(path),
-  })),
-});
-
-const postLd = (p) => ({
-  '@type': 'BlogPosting',
-  headline: p.title,
-  description: p.description || p.title,
-  url: abs(`blog/${p.slug}`),
-  mainEntityOfPage: abs(`blog/${p.slug}`),
-  datePublished: isoDate(p.date) || undefined,
-  dateModified: isoDate(p.date) || undefined,
-  inLanguage: 'en',
-  image: profile.avatar,
-  keywords: p.tags?.length ? p.tags.join(', ') : undefined,
-  author: personRef,
-  publisher: personRef,
-  isPartOf: { '@type': 'Blog', name: `blog — ${profile.name}`, url: abs('blog') },
-});
 
 /* ── lazy route chunks ──
  * Pages are dynamic imports, so the browser only discovers a route's chunk
@@ -139,7 +94,7 @@ const pageEntries = Object.fromEntries(
     .map((k) => [/^src\/pages\/([^/]+)\//.exec(k)[1], k]),
 );
 
-function assetLinks(page, extra = []) {
+function assetLinks(page) {
   const seen = new Set();
   const out = [];
   const linked = new Set([...template.matchAll(/(?:href|src)="([^"]+)"/g)].map((m) => m[1]));
@@ -159,7 +114,6 @@ function assetLinks(page, extra = []) {
     for (const dep of m.imports || []) visit(dep);
   }
   visit(pageEntries[page]);
-  for (const k of extra) visit(k);
   return out.join('\n');
 }
 
@@ -179,10 +133,10 @@ try {
 }
 
 const template = readFileSync(join(dist, 'index.html'), 'utf8')
-  .replace(/(<meta name="author" content=")[^"]*(")/, `$1${esc(profile.name)}$2`)
-  .replace(/(<meta property="og:image" content=")[^"]*(")/, `$1${esc(profile.avatar)}$2`)
+  .replace(/(<meta\s+name="author"\s+content=")[^"]*(")/, `$1${esc(profile.name)}$2`)
+  .replace(/(<meta\s+property="og:image"\s+content=")[^"]*(")/, `$1${esc(profile.avatar)}$2`)
   .replace(
-    /(<meta name="twitter:creator" content=")[^"]*(")/,
+    /(<meta\s+name="twitter:creator"\s+content=")[^"]*(")/,
     `$1@${esc(links.x?.handle || profile.handle)}$2`,
   );
 
@@ -204,14 +158,16 @@ function page({
     `  <meta property="og:url" content="${url}" />`,
     `  <meta name="twitter:title" content="${esc(title)}" />`,
     `  <meta name="twitter:description" content="${esc(desc)}" />`,
-    `  <link rel="alternate" type="application/rss+xml" title="blog" href="${SITE}/feed.xml" />`,
+    `  <link rel="alternate" type="application/rss+xml" title="blog" href="${siteRoot}/feed.xml" />`,
     robots ? `  <meta name="robots" content="noindex" />` : '',
     preload,
     extraHead,
   ]
     .filter(Boolean)
     .join('\n');
-  const data = { profile, resume, links };
+  const data = { profile };
+  if (!path || path === 'resume') data.resume = resume;
+  if (!path || ['projects', 'links', 'resume'].includes(path)) data.links = links;
   if (path === 'blog' || path?.startsWith('blog/')) data.blogIndex = posts;
   if (path?.startsWith('blog/')) {
     const post = posts.find((p) => `blog/${p.slug}` === path);
@@ -221,10 +177,10 @@ function page({
   const serialized = JSON.stringify(data).replace(/</g, '\\u003c');
   let html = template
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(title)}</title>`)
-    .replace(/(<meta name="description" content=")[^"]*(")/, `$1${esc(desc)}$2`)
-    .replace(/(<meta property="og:title" content=")[^"]*(")/, `$1${esc(title)}$2`)
-    .replace(/(<meta property="og:description" content=")[^"]*(")/, `$1${esc(desc)}$2`)
-    .replace(/(<meta property="og:type" content=")[^"]*(")/, `$1${type}$2`)
+    .replace(/(<meta\s+name="description"\s+content=")[^"]*(")/, `$1${esc(desc)}$2`)
+    .replace(/(<meta\s+property="og:title"\s+content=")[^"]*(")/, `$1${esc(title)}$2`)
+    .replace(/(<meta\s+property="og:description"\s+content=")[^"]*(")/, `$1${esc(desc)}$2`)
+    .replace(/(<meta\s+property="og:type"\s+content=")[^"]*(")/, `$1${type}$2`)
     .replace('</head>', `${head}\n</head>`)
     .replace(
       '<div id="root"></div>',
@@ -251,109 +207,31 @@ const meta = Object.fromEntries(
   routes.map((r) => [r.page, { title: r.title(ctx), desc: r.description(ctx) }]),
 );
 
-/* ── emit ── */
-
-const crumb = (page, label) =>
-  breadcrumbs([
-    ['home', ''],
-    [label, page],
-  ]);
-
-write(
-  '',
-  page({
-    ...meta.home,
-    path: '',
-    preload: assetLinks('home'),
-    jsonLd: ldGraph({ ...pageNode('ProfilePage', meta.home, ''), mainEntity: personRef }),
-  }),
-);
-write(
-  'projects',
-  page({
-    ...meta.projects,
-    path: 'projects',
-    preload: assetLinks('projects'),
-    jsonLd: ldGraph(
-      pageNode('CollectionPage', meta.projects, 'projects'),
-      crumb('projects', 'projects'),
-    ),
-  }),
-);
-write(
-  'blog',
-  page({
-    ...meta.blog,
-    path: 'blog',
-    preload: assetLinks('blog'),
-    jsonLd: ldGraph(
-      {
-        '@type': 'Blog',
-        name: meta.blog.title,
-        description: meta.blog.desc,
-        url: abs('blog'),
-        inLanguage: 'en',
-        author: personRef,
-        blogPost: posts.map((p) => ({
-          '@type': 'BlogPosting',
-          headline: p.title,
-          description: p.description || undefined,
-          url: abs(`blog/${p.slug}`),
-          datePublished: isoDate(p.date) || undefined,
-          keywords: p.tags?.length ? p.tags.join(', ') : undefined,
-          author: personRef,
-        })),
-      },
-      crumb('blog', 'blog'),
-    ),
-  }),
-);
-write(
-  'links',
-  page({
-    ...meta.links,
-    path: 'links',
-    preload: assetLinks('links'),
-    jsonLd: ldGraph(pageNode('CollectionPage', meta.links, 'links'), crumb('links', 'links')),
-  }),
-);
-write(
-  'resume',
-  page({
-    ...meta.resume,
-    path: 'resume',
-    preload: assetLinks('resume'),
-    jsonLd: ldGraph(pageNode('WebPage', meta.resume, 'resume'), crumb('resume', 'resume')),
-  }),
-);
-
-for (const p of posts) {
-  const path = `blog/${p.slug}`;
+for (const route of [
+  ...routes.map((entry) => entry.page),
+  ...posts.map((post) => `blog/${post.slug}`),
+]) {
+  const metadata = routeMetadata(route, profile, posts);
   write(
-    path,
+    metadata.path,
     page({
-      title: `${p.title} — ${profile.name}`,
-      desc: p.description || p.title,
-      path,
-      type: 'article',
-      // The post body is re-rendered client-side from markdown, so its chunk is
-      // needed right after boot — preload it alongside the blog chunk.
-      preload: assetLinks('blog', ['src/lib/markdown.js']),
-      extraHead: [
-        isoDate(p.date)
-          ? `  <meta property="article:published_time" content="${isoDate(p.date)}" />`
-          : '',
-        ...(p.tags || []).map((t) => `  <meta property="article:tag" content="${esc(t)}" />`),
-      ]
-        .filter(Boolean)
-        .join('\n'),
-      jsonLd: ldGraph(
-        postLd(p),
-        breadcrumbs([
-          ['home', ''],
-          ['blog', 'blog'],
-          [p.title, path],
-        ]),
+      ...metadata,
+      preload: assetLinks(metadata.page),
+      extraHead: metadata.post
+        ? [
+            isoDate(metadata.post.date)
+              ? `  <meta property="article:published_time" content="${isoDate(metadata.post.date)}" />`
+              : '',
+            ...metadata.post.tags.map(
+              (tag) => `  <meta property="article:tag" content="${esc(tag)}" />`,
+            ),
+          ]
+            .filter(Boolean)
+            .join('\n')
+        : '',
+      jsonLd: JSON.stringify(pageGraph(metadata, personLd, siteRoot, posts)).replace(
+        /</g,
+        '\\u003c',
       ),
     }),
   );
@@ -370,7 +248,7 @@ const feed = `<?xml version="1.0" encoding="UTF-8"?>
     <link>${abs('blog')}</link>
     <description>${esc(meta.blog.desc)}</description>
     <language>en</language>
-    <atom:link href="${SITE}/feed.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="${siteRoot}/feed.xml" rel="self" type="application/rss+xml" />
 ${posts
   .map((p) => {
     const url = abs(`blog/${p.slug}`);
@@ -404,7 +282,7 @@ const entries = routes
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries
   .map(
     ({ loc, lastmod }) =>
-      `  <url><loc>${SITE}/${loc}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}</url>`,
+      `  <url><loc>${esc(`${siteRoot}/${loc}`)}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}</url>`,
   )
   .join('\n')}\n</urlset>\n`;
 writeFileSync(join(dist, 'sitemap.xml'), sitemap);
@@ -412,7 +290,7 @@ writeFileSync(join(dist, 'sitemap.xml'), sitemap);
 // robots.txt — keep its Sitemap line on the same origin as everything else.
 writeFileSync(
   join(dist, 'robots.txt'),
-  `User-agent: *\nAllow: /\n\nSitemap: ${SITE}/sitemap.xml\n`,
+  `User-agent: *\nAllow: /\n\nSitemap: ${siteRoot}/sitemap.xml\n`,
 );
 
 // The manifest is a build artifact, not site content — drop it once read.

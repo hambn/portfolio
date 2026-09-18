@@ -434,3 +434,21 @@
   outline: 2px solid var(--ring) !important;
   outline-offset: 2px;
 }
+
+.blog-tag {
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  background: var(--background-muted);
+  color: var(--foreground-subtle);
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  white-space: nowrap;
+  transition: all var(--transition-base);
+}
+.blog-tag:hover {
+  background: var(--primary-subtle);
+  color: var(--primary);
+  border-color: var(--primary-ring);
+}

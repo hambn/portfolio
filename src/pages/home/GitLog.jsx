@@ -1,5 +1,5 @@
 import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { useWindowWidth } from '../../hooks/useWindowWidth.js';
+import { useMediaQuery } from '../../hooks/useMediaQuery.js';
 import BranchCard from './BranchCard.jsx';
 import GitRow from './GitRow.jsx';
 import {
@@ -15,7 +15,7 @@ import {
 
 export default function GitLog({ branches, born }) {
   const { rows, lanes, laneCount } = useMemo(() => buildGraph(branches, born), [branches, born]);
-  const narrow = useWindowWidth() < 560;
+  const narrow = useMediaQuery('(max-width: 559px)');
   const lw = narrow ? LANE_W_SM : LANE_W;
   const wrapRef = useRef(null);
   const rowRefs = useRef([]);
@@ -54,7 +54,11 @@ export default function GitLog({ branches, born }) {
     <div
       className={`git-log${hovered ? ' is-hovering' : ''}`}
       ref={wrapRef}
-      style={{ '--git-meta': `${metaW}px`, '--git-gap': `${width + 8}px` }}
+      style={{
+        '--git-meta': `${META_W}px`,
+        '--git-gap': `${laneCount * LANE_W + 16}px`,
+        '--git-gap-small': `${laneCount * LANE_W_SM + 16}px`,
+      }}
       onMouseLeave={() => setHover(null)}
     >
       {ys && (
@@ -117,7 +121,6 @@ export default function GitLog({ branches, born }) {
         <GitRow
           key={row.key}
           row={row}
-          narrow={narrow}
           dim={hovered && row.lane && row.lane.id !== hovered.id}
           rowRef={(el) => (rowRefs.current[i] = el)}
           onHover={(id) => setHover({ id })}

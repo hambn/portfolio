@@ -14,14 +14,14 @@ Static React portfolio, built with Vite, deployed to GitHub Pages at
 │  ├─ main.jsx             entry: app shell + history router; syncs
 │  │                       document.title/scroll/focus per route; imports
 │  │                       font/styles, preloads the entry route chunk, then
-│  │                       prefetches the rest when idle
+│  │                       hydrates the static HTML
 │  ├─ routes.js            route registry: path + <head> meta (also read by prerender)
 │  ├─ lib/
 │  │  ├─ data.js           PortfolioData — fetches public/contents/
 │  │  ├─ router.js         navigate() / currentRoute() history helpers
 │  │  ├─ storage.js        safe localStorage get/set (never throws)
 │  │  └─ markdown.js       self-hosted marked + highlight.js (lazy chunk)
-│  ├─ hooks/               useWindowWidth, useCollapsed, useCopy, usePolledJSON
+│  ├─ hooks/               useMediaQuery, useCollapsed, useCopy, usePolledJSON
 │  ├─ components/
 │  │  ├─ Nav.jsx           top nav + theme toggle
 │  │  ├─ ErrorState.jsx    shared load-failure message + retry button
@@ -85,8 +85,7 @@ Static React portfolio, built with Vite, deployed to GitHub Pages at
   transform (`React.createElement`), so every `.jsx` file imports React itself.
   Do NOT switch to the automatic runtime.
 - **Pages are default exports** wired together in `src/pages/index.js` as lazy
-  chunks (`React.lazy`); `main.jsx` preloads the entry route and prefetches the
-  rest once idle.
+  chunks (`React.lazy`); `main.jsx` preloads the entry route before hydration. Other routes load when opened.
 - **Route metadata lives in `src/routes.js`** — plain JS, also imported by
   `scripts/prerender.mjs`, so the prerendered head and the SPA never drift.
 - **Content is data, not code.** Edit `public/contents/`; never hardcode it.

@@ -6,6 +6,7 @@
 //
 // Features: search, tag filtering, GitHub-flavored rendering with syntax
 // highlighting (highlight.js), mermaid diagrams, copy-to-clipboard, tables.
+import '../../styles/blog.css';
 import React, { useEffect, useState } from 'react';
 import { PortfolioData } from '../../lib/data.js';
 import { navigate } from '../../lib/router.js';

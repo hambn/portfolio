@@ -463,7 +463,7 @@ svg {
 }
 /* narrow screens: the date rides with the message instead of in a column */
 .git-when {
-  display: block;
+  display: none;
   margin-bottom: 2px;
   font-size: var(--text-xs);
   color: var(--foreground-faint);
@@ -685,8 +685,15 @@ svg {
   .git-commit {
     grid-template-columns: 1fr;
     column-gap: 0;
-    padding-left: var(--git-gap);
+    padding-left: var(--git-gap-small);
     font-size: var(--text-xs);
+  }
+  .git-meta,
+  .git-where {
+    display: none;
+  }
+  .git-when {
+    display: block;
   }
   .git-subject {
     margin-bottom: 0;
