@@ -428,11 +428,15 @@ svg {
   transition: opacity 150ms;
 }
 .git-commit.is-note {
+  padding-bottom: 20px;
+}
+/* where a branch is created: its name, with the first message underneath */
+.git-commit.is-open {
   padding-bottom: 18px;
 }
 .git-log.is-hovering .git-commit.is-dim,
 .git-graph .is-dim {
-  opacity: 0.3;
+  opacity: 0.28;
 }
 .git-text {
   color: var(--foreground-muted);
@@ -445,21 +449,31 @@ svg {
 .git-note-text {
   color: var(--foreground-subtle);
 }
+.git-head {
+  color: var(--graph-life);
+  letter-spacing: 0.06em;
+}
+/* every date lines up in its own column on the right */
 .git-date {
   margin-left: auto;
   flex-shrink: 0;
-  color: var(--foreground-subtle);
+  min-width: 72px;
+  text-align: right;
+  color: var(--foreground-faint);
   font-variant-numeric: tabular-nums;
 }
-.git-where,
 .git-branch-name {
+  font-weight: 600;
   color: var(--graph-work);
 }
-.is-edu .git-where,
+.git-sub {
+  flex-basis: 100%;
+  margin-top: 3px;
+  color: var(--foreground-subtle);
+}
 .is-edu .git-branch-name {
   color: var(--graph-edu);
 }
-.is-project .git-where,
 .is-project .git-branch-name {
   color: var(--graph-project);
 }
@@ -524,33 +538,6 @@ svg {
   stroke: var(--graph-life);
 }
 
-/* branch / tag refs */
-.git-ref {
-  padding: 1px 6px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  font-size: 10px;
-  letter-spacing: 0.04em;
-  color: var(--foreground-subtle);
-  white-space: nowrap;
-}
-.git-ref.is-head {
-  border-color: var(--primary-ring);
-  background: var(--primary-subtle);
-  color: var(--primary);
-}
-.git-ref.is-branch {
-  border-color: currentColor;
-  color: var(--graph-work);
-  opacity: 0.85;
-}
-.is-edu .git-ref.is-branch {
-  color: var(--graph-edu);
-}
-.is-project .git-ref.is-branch {
-  color: var(--graph-project);
-}
-
 /* Hover card — the whole branch at a glance. */
 .git-branch-card {
   position: absolute;
@@ -558,17 +545,21 @@ svg {
   width: min(420px, 78vw);
   padding: 12px 14px;
   border: 1px solid var(--border-strong);
+  border-left: 2px solid var(--graph-work);
   border-radius: var(--radius-md);
   background: var(--card);
   box-shadow: 0 14px 34px var(--overlay);
   pointer-events: none;
 }
+.git-branch-card.is-edu {
+  border-left-color: var(--graph-edu);
+}
+.git-branch-card.is-project {
+  border-left-color: var(--graph-project);
+}
 .git-branch-card-head {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 8px;
   font-size: var(--text-sm);
+  font-weight: 600;
   color: var(--foreground);
   margin-bottom: 4px;
 }

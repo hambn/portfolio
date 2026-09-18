@@ -1,7 +1,7 @@
 {
   "born": "Apr 2003",
 
-  "_comment": "items[] is the CV (resume page + structured data). branches[] drives the git graph on the home page: one branch per company / degree / project, with dated commits. milestone: true renders a hollow dot and bold text (role change, college change, …).",
+  "_comment": "items[] is the CV (resume page + structured data). branches[] drives the git graph on the home page: one branch per company / degree / project, with dated commits. The oldest commit is where the branch is created, so it is titled with the branch name. milestone: true renders a hollow dot and bold text (role change, college change, …).",
 
   "branches": [
     {
@@ -12,7 +12,10 @@
       "start": "Apr 2024",
       "end": "present",
       "commits": [
-        { "date": "Apr 2024", "text": "DevOps Engineer, internship", "milestone": true },
+        {
+          "date": "Apr 2024",
+          "text": "Joined as a DevOps Engineer intern, in Tehran, Tehran Province, Iran"
+        },
         {
           "date": "Apr 2024",
           "text": "Containerization with Docker and version control via GitLab"
@@ -40,8 +43,7 @@
       "commits": [
         {
           "date": "Sep 2022",
-          "text": "Started at Technical and Vocational University",
-          "milestone": true
+          "text": "Started at Technical and Vocational University, in Mazandaran, Mahmudabad, Iran"
         },
         {
           "date": "Sep 2023",

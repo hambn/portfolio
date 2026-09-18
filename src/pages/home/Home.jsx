@@ -74,7 +74,9 @@ function buildGraph(branches, born) {
     lane.bottomIdx = own.length ? rowIndex.get(own[own.length - 1].key) : rows.length - 1;
     // an open branch runs all the way up to HEAD
     lane.topIdx = Number.isFinite(lane.end) ? rowIndex.get(`m:${lane.id}`) : 0;
-    lane.rowIdxs = own.map((row) => rowIndex.get(row.key));
+    // rows run newest first, commits[] runs oldest first — carry the commit
+    // along so a node never reads the wrong end of the branch
+    lane.nodes = own.map((row) => ({ idx: rowIndex.get(row.key), row }));
   });
 
   // A lane is busy from where it merges down to where it branches; a later
@@ -112,14 +114,23 @@ function lanePath(lane, ys, lw) {
 
 // The card shown while hovering a branch — the whole history of that company,
 // degree or project in one place.
-function BranchCard({ lane, x, y }) {
+function BranchCard({ lane, x, y, maxY }) {
   const { branch } = lane;
+  const ref = useRef(null);
+  // keep the card inside the log, however far down the lane is hovered
+  const [top, setTop] = useState(y);
+  useLayoutEffect(() => {
+    const h = ref.current ? ref.current.offsetHeight : 0;
+    setTop(Math.max(0, Math.min(y, maxY - h)));
+  }, [y, maxY, lane]);
+
   return (
-    <div className="git-branch-card" style={{ left: `${x}px`, top: `${y}px` }}>
-      <div className="git-branch-card-head">
-        <span className="git-ref">{lane.id}</span>
-        <strong>{branch.name}</strong>
-      </div>
+    <div
+      className={`git-branch-card ${lane.tone}`}
+      ref={ref}
+      style={{ left: `${x}px`, top: `${top}px` }}
+    >
+      <div className="git-branch-card-head">{branch.name}</div>
       <div className="git-branch-card-meta">
         {branch.start} – {branch.end}
         {branch.location ? ` · ${branch.location}` : ''}
@@ -205,46 +216,53 @@ function GitLog({ branches, born }) {
                   className="git-hit"
                   onMouseMove={(e) => {
                     const box = wrapRef.current.getBoundingClientRect();
-                    setHover({ id: lane.id, y: e.clientY - box.top });
+                    setHover({ id: lane.id, y: e.clientY - box.top, card: true });
                   }}
                 />
                 {/* merge commit — it belongs to the life line it merges into */}
                 {!open && <circle cx={LANE_X0} cy={ys[lane.topIdx]} r="3.5" className="git-dot" />}
                 {open && <circle cx={x} cy={ys[0]} r="4.5" className="git-dot is-hollow" />}
-                {lane.rowIdxs.map((idx, i) => (
-                  <circle
-                    key={idx}
-                    cx={x}
-                    cy={ys[idx]}
-                    r={lane.branch.commits[i]?.milestone ? 4.5 : 3.5}
-                    className={`git-dot${lane.branch.commits[i]?.milestone ? ' is-hollow' : ''}`}
-                  />
-                ))}
+                {lane.nodes.map(({ idx, row }) => {
+                  const hollow = row.seq === 0 || row.commit.milestone;
+                  return (
+                    <circle
+                      key={idx}
+                      cx={x}
+                      cy={ys[idx]}
+                      r={row.seq === 0 ? 5 : hollow ? 4.5 : 3.5}
+                      className={`git-dot${hollow ? ' is-hollow' : ''}`}
+                    />
+                  );
+                })}
               </g>
             );
           })}
         </svg>
       )}
 
-      {hovered && <BranchCard lane={hovered} x={width + 14} y={Math.max(0, hover.y - 24)} />}
+      {hovered && hover.card && (
+        <BranchCard lane={hovered} x={width + 14} y={hover.y - 24} maxY={rootY} />
+      )}
 
       {rows.map((row, i) => {
         const setRef = (el) => (rowRefs.current[i] = el);
         const dim = hovered && row.lane && row.lane.id !== hovered.id;
         const tone = row.lane ? row.lane.tone : '';
+        // hovering a row highlights its branch too, without opening the card
+        const lift = row.lane ? { onMouseEnter: () => setHover({ id: row.lane.id }) } : null;
 
         if (row.kind === 'head')
           return (
             <div className="git-commit is-note" key={row.key} ref={setRef}>
-              <span className="git-ref is-head">HEAD</span>
-              <span className="git-note-text">today</span>
+              <span className="git-head">HEAD</span>
+              <span className="git-date">today</span>
             </div>
           );
 
         if (row.kind === 'root')
           return (
             <div className="git-commit is-note" key={row.key} ref={setRef}>
-              <span className="git-note-text">init — born</span>
+              <span className="git-note-text">born</span>
               <span className="git-date">{row.born}</span>
             </div>
           );
@@ -255,30 +273,43 @@ function GitLog({ branches, born }) {
               className={`git-commit is-note ${tone}${dim ? ' is-dim' : ''}`}
               key={row.key}
               ref={setRef}
-              onMouseEnter={() => setHover(null)}
+              {...lift}
             >
               <span className="git-note-text">
-                Merge branch <span className="git-branch-name">{row.lane.id}</span>
+                Merged <span className="git-branch-name">{row.lane.branch.name}</span>
               </span>
               <span className="git-date">{row.lane.branch.end}</span>
             </div>
           );
 
         const { commit, lane } = row;
-        const isFirst = row.seq === 0;
+
+        // The oldest commit is where the branch is created: it carries the name
+        // of the company, degree or project, with its first message underneath.
+        if (row.seq === 0)
+          return (
+            <div
+              className={`git-commit is-open ${tone}${dim ? ' is-dim' : ''}`}
+              key={row.key}
+              ref={setRef}
+              {...lift}
+            >
+              <span className="git-branch-name">{lane.branch.name}</span>
+              <span className="git-date">{commit.date}</span>
+              <span className="git-sub">{commit.text}</span>
+            </div>
+          );
 
         return (
           <div
             className={`git-commit ${tone}${dim ? ' is-dim' : ''}`}
             key={row.key}
             ref={setRef}
-            onMouseEnter={() => setHover(null)}
+            {...lift}
           >
             <span className={`git-text${commit.milestone ? ' is-milestone' : ''}`}>
               {commit.text}
             </span>
-            {isFirst && <span className="git-ref is-branch">{lane.id}</span>}
-            {isFirst && <span className="git-where">{lane.branch.name}</span>}
             <span className="git-date">{commit.date}</span>
           </div>
         );
