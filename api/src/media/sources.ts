@@ -46,6 +46,34 @@ export function allowedMedia(provider: string, source: string): boolean {
   }
 }
 
+// Hosts that render any square size from the same URL. Asking for the size the
+// page actually draws is the difference between a 460px, 44 KB avatar and a
+// 6 KB one. Anything not listed here has no size lever and is left alone.
+const sizeParam: Record<string, string> = {
+  'avatars.githubusercontent.com': 's',
+  'secure.gravatar.com': 's',
+  'www.gravatar.com': 's',
+  'cdn.discordapp.com': 'size',
+  'media.discordapp.net': 'size',
+};
+
+/** Discord serves only powers of two, from 16 up to 4096. */
+const discordSize = (size: number) => Math.min(4096, Math.max(16, 2 ** Math.ceil(Math.log2(size))));
+
+/** `source` with a size hint its host understands, or unchanged if it has none. */
+export function resizedSource(source: string, size: number): string {
+  let url: URL;
+  try {
+    url = new URL(source);
+  } catch {
+    return source;
+  }
+  const param = sizeParam[url.hostname];
+  if (!param || !(size > 0)) return source;
+  url.searchParams.set(param, String(param === 'size' ? discordSize(size) : Math.round(size)));
+  return url.href;
+}
+
 function resolveMedia(source: string): { provider: string; url: URL } | undefined {
   // Most strings in provider JSON are names and descriptions. Avoid parsing those.
   if (!source.startsWith('https://')) return undefined;

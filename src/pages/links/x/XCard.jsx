@@ -105,19 +105,42 @@ function XProfile({ username, apiEndpoint }) {
       >
         <div className="x-banner-wrap">
           {banner && banner !== failedBanner ? (
-            <img className="x-banner" src={banner} alt="" onError={() => setFailedBanner(banner)} />
+            <img
+              className="x-banner"
+              src={banner}
+              alt=""
+              width={1500}
+              height={500}
+              loading="lazy"
+              decoding="async"
+              onError={() => setFailedBanner(banner)}
+            />
           ) : (
             <div className="x-banner x-banner-empty" />
           )}
         </div>
         <div className="x-profile" aria-busy={loading && !profile}>
           <div className="x-actions-row">
-            <a href={href} target="_blank" rel="noopener noreferrer" className="x-avatar-ring">
+            {/* Goes to the same profile as the "Follow" link beside it, and
+                holds only a decorative avatar, so it has no accessible name to
+                give. Hide it from assistive tech and from the tab order. */}
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="x-avatar-ring"
+              aria-hidden="true"
+              tabIndex={-1}
+            >
               {avatar && avatar !== failedAvatar ? (
                 <img
                   className="x-avatar"
                   src={avatar}
                   alt=""
+                  width={112}
+                  height={112}
+                  loading="lazy"
+                  decoding="async"
                   onError={() => setFailedAvatar(avatar)}
                 />
               ) : (

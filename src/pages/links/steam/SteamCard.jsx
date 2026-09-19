@@ -8,6 +8,15 @@ import { usePolledJSON } from '../../../hooks/usePolledJSON.js';
 import { useCardFeed } from '../LinksFeed.jsx';
 import { HeaderButtons } from '../../../components/card/HeaderButtons.jsx';
 
+// Steam serves one fixed size per artwork slug, so these are the real pixel
+// dimensions of every header.jpg / library_hero.jpg. CSS still decides how big
+// they're drawn — the attributes only hand the browser an aspect ratio up
+// front, so lazily-loaded art doesn't reflow the card when it arrives.
+const HEADER_W = 460;
+const HEADER_H = 215;
+const HERO_W = 1920;
+const HERO_H = 620;
+
 // ── One-time CSS ───────────────────────────────────────────────────────────────
 
 // ── Palette (always dark — Steam brand) ───────────────────────────────────────
@@ -59,10 +68,25 @@ function StGameRow({ game, showRecent }) {
     <a href={href} target="_blank" rel="noopener noreferrer" className="st-game-row st-style-2">
       {/* library_hero as subtle background */}
       {game.images?.hero && (
-        <img src={mediaUrl(game.images.hero)} alt="" aria-hidden="true" className="st-style-3" />
+        <img
+          src={mediaUrl(game.images.hero)}
+          alt=""
+          aria-hidden="true"
+          loading="lazy"
+          decoding="async"
+          className="st-style-3"
+        />
       )}
       {game.images?.header ? (
-        <img src={mediaUrl(game.images.header)} alt={game.name} className="st-style-5" />
+        <img
+          src={mediaUrl(game.images.header)}
+          alt={game.name}
+          width={HEADER_W}
+          height={HEADER_H}
+          loading="lazy"
+          decoding="async"
+          className="st-style-5"
+        />
       ) : (
         <div
           style={{
@@ -163,13 +187,35 @@ function StFavoriteSection({ game }) {
             className="st-hero-img st-style-16"
             src={mediaUrl(game.images.hero || game.images.header)}
             alt={game.name}
+            width={game.images.hero ? HERO_W : HEADER_W}
+            height={game.images.hero ? HERO_H : HEADER_H}
+            loading="lazy"
+            decoding="async"
           />
         </a>
       )}
       <div className="st-style-17">
         {game.images?.header && (
-          <a href={href} target="_blank" rel="noopener noreferrer" className="st-style-18">
-            <img src={mediaUrl(game.images.header)} alt="" className="st-style-19" />
+          // A thumbnail shortcut to the same page as the game-name link next to
+          // it. Hidden from assistive tech (and from tab order, so focus can't
+          // land on a nameless link) rather than given a duplicate name.
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="st-style-18"
+            aria-hidden="true"
+            tabIndex={-1}
+          >
+            <img
+              src={mediaUrl(game.images.header)}
+              alt=""
+              width={HEADER_W}
+              height={HEADER_H}
+              loading="lazy"
+              decoding="async"
+              className="st-style-19"
+            />
           </a>
         )}
         <div className="st-style-20">
@@ -354,6 +400,10 @@ export function SteamCard({ handle, url, apiEndpoint }) {
                 <img
                   src={mediaUrl(data.avatar.large)}
                   alt={data.displayName}
+                  width={88}
+                  height={88}
+                  loading="lazy"
+                  decoding="async"
                   style={{
                     border: `2px solid ${isOnline ? dotColor : ST.faint}`,
                   }}
@@ -442,11 +492,13 @@ export function SteamCard({ handle, url, apiEndpoint }) {
                   Level <span className="st-style-44">{data.level}</span>
                 </span>
               )}
+              {/* The label has to contain the visible "View profile" text —
+                  a voice-control user says what they can see. */}
               <a
                 href={profileUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label="View Steam profile"
+                aria-label="View profile on Steam"
                 className="st-open-btn st-style-48"
                 style={{
                   border: '1px solid transparent',
@@ -483,6 +535,8 @@ export function SteamCard({ handle, url, apiEndpoint }) {
                     src={mediaUrl(cg.images.hero)}
                     alt=""
                     aria-hidden="true"
+                    loading="lazy"
+                    decoding="async"
                     className="st-style-50"
                   />
                 )}
@@ -505,7 +559,15 @@ export function SteamCard({ handle, url, apiEndpoint }) {
                       rel="noopener noreferrer"
                       className="st-style-54"
                     >
-                      <img src={mediaUrl(cg.images.header)} alt={cg.name} className="st-style-55" />
+                      <img
+                        src={mediaUrl(cg.images.header)}
+                        alt={cg.name}
+                        width={HEADER_W}
+                        height={HEADER_H}
+                        loading="lazy"
+                        decoding="async"
+                        className="st-style-55"
+                      />
                     </a>
                   )}
                   <div>

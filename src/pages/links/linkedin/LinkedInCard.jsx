@@ -83,7 +83,13 @@ function LinkedInProfile({ username, apiEndpoint }) {
       >
         <div className="li-banner">
           {banner && banner !== failedBanner && (
-            <img src={banner} alt="" onError={() => setFailedBanner(banner)} />
+            <img
+              src={banner}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              onError={() => setFailedBanner(banner)}
+            />
           )}
         </div>
         <div className="li-identity" aria-busy={loading && !profile}>
@@ -95,6 +101,8 @@ function LinkedInProfile({ username, apiEndpoint }) {
                 alt=""
                 width="152"
                 height="152"
+                loading="lazy"
+                decoding="async"
                 onError={() => setFailedAvatar(avatar)}
               />
             ) : (

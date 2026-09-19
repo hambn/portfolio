@@ -243,6 +243,15 @@
   color: var(--sp-muted);
   font-size: 13px;
 }
+/* Vertical padding on an inline box grows the hit area without touching the
+   line box, so touch users get a bigger target for free and nothing on screen
+   moves. Downward only: reaching up would put this box over the bottom of
+   .sp-track-title and obscure part of it. A short artist name is still under
+   24px wide, and horizontal padding on an inline box *does* move text, so the
+   link stays on WCAG 2.5.8's inline exemption rather than meeting the minimum. */
+.sp-artists a {
+  padding-bottom: 8px;
+}
 .sp-player-copy > .sp-artists {
   max-width: 100%;
   overflow-wrap: anywhere;
@@ -446,6 +455,11 @@
   white-space: nowrap;
   font-size: 14px;
   font-weight: 550;
+  /* Takes the 21px line box to the 24px WCAG 2.5.8 minimum. The row's height
+     comes from the 44px artwork beside it and the title + artists lines only
+     add up to 39px, so these 4px are absorbed by that slack: the target grows,
+     the row does not. Anything more than 2px here would start moving rows. */
+  padding-block: 2px;
 }
 .sp-track-copy .sp-artists {
   overflow: hidden;

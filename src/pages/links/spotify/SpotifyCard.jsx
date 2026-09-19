@@ -2,7 +2,7 @@ import React, { useId, useState } from 'react';
 // DM Sans, declared latin-only — the same file DiscordCard pulls in.
 import '../link-fonts.css';
 import './SpotifyCard.css';
-import { mediaUrl } from '../../../lib/api.js';
+import { pickImage } from '../../../lib/api.js';
 import { useCollapsed } from '../../../hooks/useCollapsed.js';
 import { useCopy } from '../../../hooks/useCopy.js';
 import { useSpotifyPlayback } from './useSpotifyPlayback.js';
@@ -66,15 +66,21 @@ function timeAgo(iso) {
   if (minutes < 1440) return `${Math.floor(minutes / 60)}h ago`;
   return `${Math.floor(minutes / 1440)}d ago`;
 }
-function Artwork({ images, className = '', name = '' }) {
-  const url = mediaUrl(images?.[0]?.url);
+// `size` is the widest this artwork is ever drawn (see the .sp-art rules and
+// their responsive overrides); pickImage turns it into the closest rendition
+// Spotify offers rather than always taking the 640px one.
+function Artwork({ images, className = '', name = '', size = 44 }) {
+  const url = pickImage(images, size);
   const [failed, setFailed] = useState(null);
   return url && url !== failed ? (
     <img
       className={`sp-art ${className}`}
       src={url}
       alt={name}
+      width={size}
+      height={size}
       loading="lazy"
+      decoding="async"
       onError={() => setFailed(url)}
     />
   ) : (
@@ -149,7 +155,9 @@ function Collection({ items, artists = false }) {
           key={item.id}
           href={item.external_urls?.spotify}
         >
-          <Artwork images={item.images} />
+          {/* tiles are fluid (.sp-tile .sp-art is width:100%), so ask for the
+              largest rendition rather than a fixed slot width */}
+          <Artwork images={item.images} size={320} />
           <span className="sp-tile-title">{item.name}</span>
           <span className="sp-tile-subtitle">
             {artists
@@ -180,7 +188,7 @@ function NowPlaying({ item, progress, playing, context, playlist }) {
           href={item.album?.external_urls?.spotify}
           aria-label={`Open ${item.album?.name || item.name} on Spotify`}
         >
-          <Artwork images={item.album?.images} className="sp-player-art" />
+          <Artwork images={item.album?.images} className="sp-player-art" size={136} />
         </ExternalLink>
         <div className="sp-player-copy">
           <ExternalLink className="sp-player-title" href={item.external_urls?.spotify}>
@@ -224,7 +232,7 @@ function NowPlaying({ item, progress, playing, context, playlist }) {
       )}
       {playlistUrl && (
         <ExternalLink className="sp-context" href={playlistUrl}>
-          <Artwork images={playlist?.images} />
+          <Artwork images={playlist?.images} size={64} />
           <span className="sp-context-copy">
             <span className="sp-context-label">
               <SpIcon size={12} />
@@ -316,7 +324,7 @@ export function SpotifyCard({ userId, apiEndpoint }) {
         {profile && (
           <section className="sp-profile">
             <ExternalLink href={href} aria-label="Open Spotify profile">
-              <Artwork className="sp-avatar" images={profile.images} />
+              <Artwork className="sp-avatar" images={profile.images} size={108} />
             </ExternalLink>
             <div className="sp-profile-copy">
               <span className="sp-eyebrow">Public profile</span>
@@ -339,7 +347,7 @@ export function SpotifyCard({ userId, apiEndpoint }) {
             <ExternalLink
               className="sp-profile-open"
               href={href}
-              aria-label="Open profile on Spotify"
+              aria-label="View profile on Spotify"
             >
               View profile <ExternalIcon />
             </ExternalLink>

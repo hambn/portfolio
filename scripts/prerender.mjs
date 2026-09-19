@@ -103,6 +103,15 @@ const pageEntries = Object.fromEntries(
 // Stylesheets inlineStylesheet() has folded into the template as <style>.
 const inlinedCss = new Set();
 
+/** Contents of a built asset addressed by its public href, or null if missing. */
+function readAsset(href) {
+  try {
+    return readFileSync(join(dist, href.replace(BASE, '').replace(/^\//, '')), 'utf8');
+  } catch {
+    return null;
+  }
+}
+
 function assetLinks(page) {
   const seen = new Set();
   const out = [];
@@ -116,13 +125,27 @@ function assetLinks(page) {
     linked.add(href);
     out.push(`  <link rel="${rel}" crossorigin href="${href}" />`);
   }
+  // A route's own stylesheet blocks the first paint exactly like the entry one
+  // does, and it is only a few KB, so fold it in too. Linking is kept as the
+  // fallback for a file the manifest names but the build didn't emit.
+  function addStyle(file) {
+    const href = `${BASE}/${file}`;
+    if (linked.has(href)) return;
+    linked.add(href);
+    const css = readAsset(href);
+    out.push(
+      css === null
+        ? `  <link rel="stylesheet" crossorigin href="${href}" />`
+        : `  <style>${css}</style>`,
+    );
+  }
   function visit(k) {
     if (!k || seen.has(k)) return;
     seen.add(k);
     const m = manifest[k];
     if (!m) return;
     if (m.file) add('modulepreload', m.file);
-    for (const css of m.css || []) add('stylesheet', css);
+    for (const css of m.css || []) addStyle(css);
     for (const dep of m.imports || []) visit(dep);
   }
   visit(pageEntries[page]);
@@ -153,15 +176,12 @@ try {
  * reuses the same document, so no route pays for it twice. */
 function inlineStylesheet(html) {
   return html.replace(/<link rel="stylesheet"[^>]*href="([^"]+)"[^>]*>/, (tag, href) => {
-    try {
-      const css = readFileSync(join(dist, href.replace(BASE, '').replace(/^\//, '')), 'utf8');
-      // Remember it: assetLinks() walks the manifest and would otherwise link
-      // this same file again as a route dependency.
-      inlinedCss.add(href);
-      return `<style>${css}</style>`;
-    } catch {
-      return tag; // Leave the link in place if the file moved.
-    }
+    const css = readAsset(href);
+    if (css === null) return tag; // Leave the link in place if the file moved.
+    // Remember it: assetLinks() walks the manifest and would otherwise link
+    // this same file again as a route dependency.
+    inlinedCss.add(href);
+    return `<style>${css}</style>`;
   });
 }
 

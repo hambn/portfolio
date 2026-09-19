@@ -1,4 +1,4 @@
-import { mediaPath } from '../../api/src/media/sources.ts';
+import { mediaPath, resizedSource } from '../../api/src/media/sources.ts';
 
 export const API_BASE = (
   import.meta.env.VITE_API_BASE_URL || 'https://api.portfolio.hgh.dev'
@@ -34,6 +34,43 @@ export function avatarImage(source, size) {
   if (!GITHUB_AVATAR.test(source)) return { src: mediaUrl(source) ?? undefined };
   const at = (scale) => mediaUrl(`${source}${source.includes('?') ? '&' : '?'}s=${size * scale}`);
   return { src: at(1), srcSet: `${at(1)} 1x, ${at(2)} 2x` };
+}
+
+const PROXIED_MEDIA = /\/media\/[a-z]+\/([A-Za-z0-9_-]+)$/;
+
+/**
+ * Ask for a smaller rendition of an image the API has already proxied. The
+ * upstream URL is base64 inside the proxy path, so decode it, let sources.ts
+ * apply whatever size lever that host understands, and re-encode. Hosts
+ * without one — and anything that isn't a proxy URL — come back untouched.
+ * `size` is in CSS pixels; the request is doubled to stay sharp on 2x screens.
+ */
+export function sizedMedia(url, size) {
+  const id = typeof url === 'string' ? url.match(PROXIED_MEDIA)?.[1] : null;
+  if (!id) return url;
+  try {
+    const source = atob(id.replace(/-/g, '+').replace(/_/g, '/'));
+    const resized = resizedSource(source, size * 2);
+    return resized === source ? url : (mediaUrl(resized) ?? url);
+  } catch {
+    return url;
+  }
+}
+
+/**
+ * Pick the smallest rendition that still covers `size` CSS pixels on a 2x
+ * screen. Providers hand back the same artwork at several widths (Spotify:
+ * 640/300/64) sorted largest-first, so reaching for `images[0]` drops a 640px
+ * file into a 44px slot. Renditions without a declared width sort last.
+ */
+export function pickImage(images, size) {
+  const sized = (Array.isArray(images) ? images : []).filter((image) => image?.url);
+  if (!sized.length) return null;
+  const covers = sized
+    .filter((image) => image.width)
+    .sort((a, b) => a.width - b.width)
+    .find((image) => image.width >= size * 2);
+  return mediaUrl((covers || sized[0]).url);
 }
 
 export function socketUrl() {

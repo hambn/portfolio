@@ -100,7 +100,15 @@ function ActivityArtwork({ src, alt, isGame }) {
   const [failedSrc, setFailedSrc] = useState(null);
   return (
     <div className={`dc-activity-art${!src || failedSrc === src ? ' is-broken' : ''}`}>
-      {src && <img src={src} alt={alt || ''} onError={() => setFailedSrc(src)} />}
+      {src && (
+        <img
+          src={src}
+          alt={alt || ''}
+          loading="lazy"
+          decoding="async"
+          onError={() => setFailedSrc(src)}
+        />
+      )}
       <span className="dc-activity-art-fallback">
         {isGame ? <ActivityIcon size={28} /> : <DcIcon size={27} color="currentColor" />}
       </span>
@@ -229,7 +237,18 @@ export function DiscordCard({ userId, lanyardData, apiEndpoint }) {
         <div className="dc-profile">
           <div className="dc-avatar-wrap">
             {avatarUrl ? (
-              <img className="dc-avatar" src={avatarUrl} alt={displayName || handle || 'Discord'} />
+              // Discord is the first card, so this avatar is the page's LCP
+              // element. Its URL only exists once /links responds, so it can't
+              // be preloaded — the priority hint is what's left.
+              <img
+                className="dc-avatar"
+                src={avatarUrl}
+                alt={displayName || handle || 'Discord'}
+                width={64}
+                height={64}
+                decoding="async"
+                fetchPriority="high"
+              />
             ) : (
               <div className="dc-avatar dc-avatar-fallback">
                 <DcIcon size={27} color="white" />

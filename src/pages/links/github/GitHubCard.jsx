@@ -1,4 +1,4 @@
-import { apiUrl, mediaUrl } from '../../../lib/api.js';
+import { apiUrl, mediaUrl, sizedMedia } from '../../../lib/api.js';
 import './GitHubCard.css';
 import React, { useState } from 'react';
 import { useCollapsed } from '../../../hooks/useCollapsed.js';
@@ -109,8 +109,12 @@ export function GitHubCard({ username, url }) {
           {profile?.avatar_url ? (
             <a href={href} target="_blank" rel="noopener noreferrer" className="gh-style-9">
               <img
-                src={mediaUrl(profile.avatar_url)}
+                src={sizedMedia(mediaUrl(profile.avatar_url), 52)}
                 alt={username}
+                width={52}
+                height={52}
+                loading="lazy"
+                decoding="async"
                 style={{
                   border: `2px solid ${GH.border}`,
                 }}

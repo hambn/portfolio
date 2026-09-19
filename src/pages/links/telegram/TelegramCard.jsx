@@ -85,6 +85,8 @@ function TelegramProfile({ username, apiEndpoint }) {
                 alt=""
                 width="108"
                 height="108"
+                loading="lazy"
+                decoding="async"
                 onError={() => setFailedPhoto(photo)}
               />
             ) : (
