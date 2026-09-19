@@ -24,7 +24,13 @@ const contents = join(root, 'public', 'contents');
 const SITE = (process.env.SITE_URL || 'https://hgh.dev').replace(/\/+$/, '');
 const BASE = (process.env.BASE_PATH || '/').replace(/\/+$/, '');
 
-const readJSON = (p) => JSON.parse(readFileSync(join(contents, p), 'utf8'));
+// `_`-prefixed keys document the schema for whoever edits contents/ by hand.
+// They're notes to a human, so they're dropped before the payload is inlined
+// into every prerendered page.
+const readJSON = (p) =>
+  JSON.parse(readFileSync(join(contents, p), 'utf8'), (key, value) =>
+    key.startsWith('_') ? undefined : value,
+  );
 const esc = (s) =>
   String(s ?? '')
     .replace(/&/g, '&amp;')
@@ -94,10 +100,16 @@ const pageEntries = Object.fromEntries(
     .map((k) => [/^src\/pages\/([^/]+)\//.exec(k)[1], k]),
 );
 
+// Stylesheets inlineStylesheet() has folded into the template as <style>.
+const inlinedCss = new Set();
+
 function assetLinks(page) {
   const seen = new Set();
   const out = [];
-  const linked = new Set([...template.matchAll(/(?:href|src)="([^"]+)"/g)].map((m) => m[1]));
+  const linked = new Set([
+    ...inlinedCss,
+    ...[...template.matchAll(/(?:href|src)="([^"]+)"/g)].map((m) => m[1]),
+  ]);
   function add(rel, file) {
     const href = `${BASE}/${file}`;
     if (linked.has(href)) return;
@@ -126,15 +138,42 @@ const server = await createServer({
   esbuild: { jsx: 'transform', jsxFactory: 'React.createElement', jsxFragment: 'React.Fragment' },
 });
 let render;
+let avatarImage;
 try {
   ({ render } = await server.ssrLoadModule('/src/entry-server.jsx'));
+  ({ avatarImage } = await server.ssrLoadModule('/src/lib/api.js'));
 } finally {
   await server.close();
 }
 
-const template = readFileSync(join(dist, 'index.html'), 'utf8')
+/* ── critical CSS ──
+ * The app's one stylesheet is small but render-blocking: the browser can't
+ * find it until the HTML arrives, and can't paint until it lands. Inlining it
+ * collapses that round-trip out of the critical path. Client-side navigation
+ * reuses the same document, so no route pays for it twice. */
+function inlineStylesheet(html) {
+  return html.replace(/<link rel="stylesheet"[^>]*href="([^"]+)"[^>]*>/, (tag, href) => {
+    try {
+      const css = readFileSync(join(dist, href.replace(BASE, '').replace(/^\//, '')), 'utf8');
+      // Remember it: assetLinks() walks the manifest and would otherwise link
+      // this same file again as a route dependency.
+      inlinedCss.add(href);
+      return `<style>${css}</style>`;
+    } catch {
+      return tag; // Leave the link in place if the file moved.
+    }
+  });
+}
+
+const template = inlineStylesheet(readFileSync(join(dist, 'index.html'), 'utf8'))
   .replace(/(<meta\s+name="author"\s+content=")[^"]*(")/, `$1${esc(profile.name)}$2`)
   .replace(/(<meta\s+property="og:image"\s+content=")[^"]*(")/, `$1${esc(profile.avatar)}$2`)
+  // The tab icon is drawn at 32px at most, so ask the proxy for a small
+  // rendition rather than the full-size image the og: tags advertise.
+  .replace(
+    /(<link\s+rel="icon"[^>]*\shref=")[^"]*(")/,
+    `$1${esc(avatarImage(profile.avatar, 64).src)}$2`,
+  )
   .replace(
     /(<meta\s+name="twitter:creator"\s+content=")[^"]*(")/,
     `$1@${esc(links.x?.handle || profile.handle)}$2`,

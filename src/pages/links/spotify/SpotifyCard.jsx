@@ -1,6 +1,6 @@
 import React, { useId, useState } from 'react';
-// Weight axis only — same file DiscordCard pulls in, so the two share one import.
-import '@fontsource-variable/dm-sans/wght.css';
+// DM Sans, declared latin-only — the same file DiscordCard pulls in.
+import '../link-fonts.css';
 import './SpotifyCard.css';
 import { mediaUrl } from '../../../lib/api.js';
 import { useCollapsed } from '../../../hooks/useCollapsed.js';

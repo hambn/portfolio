@@ -1,0 +1,24 @@
+/* Self-hosted webfaces, declared by hand rather than imported from @fontsource.
+ *
+ * @fontsource's own stylesheets register every subset it ships — cyrillic,
+ * greek, latin-ext, vietnamese — and Vite emits a woff2 for each one. The site
+ * renders latin only, so those extra faces are bytes nobody ever needs. Each
+ * face below points straight at the latin file, with the unicode-range
+ * @fontsource generates for it, so the browser still declines to download the
+ * font at all on a page with no matching glyphs.
+ *
+ * Latin range, shared by all three families (@fontsource's `wght.css`):
+ *   basic latin + punctuation, currency, arrows and the replacement char.
+ */
+
+@font-face {
+  font-family: 'JetBrains Mono Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 800;
+  src: url('@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2')
+    format('woff2-variations');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}

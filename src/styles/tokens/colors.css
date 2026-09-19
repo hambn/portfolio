@@ -11,8 +11,8 @@
   /* ── Foreground ── */
   --foreground: #fafafa; /* zinc-50  */
   --foreground-muted: #a1a1aa; /* zinc-400 */
-  --foreground-subtle: #71717a; /* zinc-500 */
-  --foreground-faint: #52525b; /* zinc-600 */
+  --foreground-subtle: #82828c; /* between zinc-500 and -400: zinc-500 is 4.1:1 here, under AA */
+  --foreground-faint: #52525b; /* zinc-600 — decorative only (sigils, separators) */
 
   /* ── Borders ── */
   --border: #27272a; /* zinc-800 */
@@ -22,9 +22,14 @@
   --card: #18181b;
   --card-foreground: #fafafa;
 
-  /* ── Primary / Accent: Blue ── */
+  /* ── Primary / Accent: Blue ──
+   * Two blues, because one can't clear AA in both roles: --primary is the
+   * accent drawn AS text on the page background, --primary-solid is the fill
+   * drawn BEHIND --primary-foreground. On dark, blue-500 reads at 5.4:1 as
+   * text but only 3.7:1 under white, so solid fills step down to blue-600. */
   --primary: #3b82f6; /* blue-500 */
-  --primary-hover: #2563eb; /* blue-600 */
+  --primary-solid: #2563eb; /* blue-600 — 5.2:1 under white */
+  --primary-hover: #1d4ed8; /* blue-700 — hover for solid fills */
   --primary-foreground: #ffffff;
   --primary-subtle: rgba(59, 130, 246, 0.12);
   --primary-ring: rgba(59, 130, 246, 0.35);
@@ -70,6 +75,12 @@
   --foreground-muted: #52525b; /* bumped for readability on white */
   --foreground-subtle: #71717a;
   --foreground-faint: #a1a1aa; /* was #d4d4d8 — near-invisible on white */
+
+  /* blue-500 reads at 3.7:1 on white, so the accent drops a step here and the
+     text/fill blues converge — white on blue-600 is 5.2:1 either way. */
+  --primary: #2563eb;
+  --primary-solid: #2563eb;
+  --primary-hover: #1d4ed8;
 
   --border: #e4e4e7;
   --border-strong: #d4d4d8;

@@ -1,0 +1,37 @@
+/* link-fonts.css — the two webfonts the link cards borrow to look like the
+ * service they link to: DM Sans stands in for Discord's "gg sans" and
+ * Spotify's "Spotify Mix", Roboto is what Telegram Web actually uses.
+ *
+ * Declared by hand instead of imported from @fontsource for the reason given
+ * in src/styles/fonts.css: the packaged stylesheets register every subset they
+ * ship (Roboto alone has nine), and Vite emits a woff2 for each. These faces
+ * point at the latin file only. Both are declared here rather than in each
+ * card's stylesheet so DM Sans isn't defined twice for Discord and Spotify.
+ *
+ * unicode-range keeps the cost of declaring both here at zero: the browser
+ * downloads a face only once an element on screen is actually set in it.
+ */
+
+@font-face {
+  font-family: 'DM Sans Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 1000;
+  src: url('@fontsource-variable/dm-sans/files/dm-sans-latin-wght-normal.woff2')
+    format('woff2-variations');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Roboto Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('@fontsource-variable/roboto/files/roboto-latin-wght-normal.woff2')
+    format('woff2-variations');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}

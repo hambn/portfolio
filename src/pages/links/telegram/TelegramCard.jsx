@@ -1,5 +1,5 @@
 import { apiUrl } from '../../../lib/api.js';
-import '@fontsource-variable/roboto/wght.css';
+import '../link-fonts.css';
 import './TelegramCard.css';
 import React, { useState } from 'react';
 import { useCollapsed } from '../../../hooks/useCollapsed.js';

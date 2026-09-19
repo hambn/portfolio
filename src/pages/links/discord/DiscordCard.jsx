@@ -1,5 +1,5 @@
 import { mediaUrl } from '../../../lib/api.js';
-import '@fontsource-variable/dm-sans/wght.css';
+import '../link-fonts.css';
 import './DiscordCard.css';
 // Uses the API profile endpoint and its live presence relay.
 import React, { useEffect, useState } from 'react';

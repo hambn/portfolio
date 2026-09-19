@@ -51,10 +51,12 @@ Static React portfolio, built with Vite, deployed to GitHub Pages at
 │  │     ├─ Links.jsx      composes the cards; reads links.json
 │  │     ├─ LinksFeed.jsx  one /links request per visit; seeds every card
 │  │     │                 (useCardFeed) so a fresh card needs no request
+│  │     ├─ link-fonts.css  brand faces the cards share (DM Sans, Roboto)
 │  │     └─ <provider>/    Email, Discord, Telegram, X, GitHub, GitLab,
 │  │                       LinkedIn, Spotify, Steam (JSX + CSS per folder)
 │  └─ styles/
-│     ├─ index.css         imports tokens/ + core.css
+│     ├─ index.css         imports fonts.css + tokens/ + core.css
+│     ├─ fonts.css         JetBrains Mono @font-face (latin subset only)
 │     ├─ blog.css          markdown rendering styles (loads with the blog route)
 │     ├─ core.css          shared base styles — critical path on every route
 │     └─ tokens/           colors.css, typography.css, spacing.css
@@ -116,9 +118,14 @@ Static React portfolio, built with Vite, deployed to GitHub Pages at
 - **Content is data, not code.** Edit `public/contents/`; never hardcode it.
 - **Blog is auto-discovered.** No manifest. The index is generated at build
   (and served virtually in dev); raw `.md` are stripped from `dist/`.
-- **Self-hosted.** One variable font (`@fontsource-variable/jetbrains-mono`) and
-  markdown libs (`marked`, `highlight.js`, `mermaid`) are bundled/lazy-loaded —
-  no third-party CDN.
+- **Self-hosted.** One variable font (JetBrains Mono) and markdown libs
+  (`marked`, `highlight.js`, `mermaid`) are bundled/lazy-loaded — no
+  third-party CDN.
+- **Fonts declare their own `@font-face`.** `@fontsource-variable` package
+  entrypoints register every subset (cyrillic, greek, vietnamese…), so
+  `styles/fonts.css` and `pages/links/link-fonts.css` point at the `files/`
+  woff2 directly with a latin `unicode-range`. Importing the package root
+  instead quietly adds four unused downloads per family.
 - **SEO via prerender.** `scripts/prerender.mjs` emits a real HTML file per
   route + per post with unique title/description/canonical/OG/Twitter tags,
   explicit `robots` directives, a per-page JSON-LD `@graph`
@@ -126,6 +133,9 @@ Static React portfolio, built with Vite, deployed to GitHub Pages at
   route's lazy chunk, plus sitemap.xml (with lastmod), feed.xml and robots.txt.
   `scripts/test-site.mjs` asserts all of it — run `npm run test:site` after
   touching head markup.
+- **Prerender inlines the entry stylesheet** as `<style>` so the first paint
+  costs no extra round-trip, and records it so `assetLinks()` doesn't link the
+  same file again. Route-scoped CSS (e.g. blog.css) still loads as a link.
 - **Canonical URLs end in a slash** (`/blog/`); `navigate()` pushes that form and
   the prerendered links match it.
 - **GitHub Pages.** Known routes are real 200 HTML files; `404.html` is the SPA
