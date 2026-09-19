@@ -185,7 +185,24 @@ function inlineStylesheet(html) {
   });
 }
 
-const template = inlineStylesheet(readFileSync(join(dist, 'index.html'), 'utf8'))
+/* ── entry chunk ──
+ * Vite leaves the module script at the end of <body>, so the request for it
+ * only starts once the parser has walked the whole document — including the
+ * inlined stylesheet and the JSON-LD block. A modulepreload at the top of
+ * <head> starts it immediately instead, shortening the critical path to the
+ * first byte of app code. Its static imports (the react chunk) are preloaded
+ * by Vite's own hints. */
+function preloadEntry(html) {
+  const src = /<script type="module"[^>]*src="([^"]+)"/.exec(html)?.[1];
+  if (!src) return html;
+  if (html.includes(`rel="modulepreload" crossorigin href="${src}"`)) return html;
+  return html.replace(
+    /(<meta name="viewport"[^>]*>)/,
+    `$1\n    <link rel="modulepreload" crossorigin href="${src}" />`,
+  );
+}
+
+const template = preloadEntry(inlineStylesheet(readFileSync(join(dist, 'index.html'), 'utf8')))
   .replace(/(<meta\s+name="author"\s+content=")[^"]*(")/, `$1${esc(profile.name)}$2`)
   .replace(/(<meta\s+property="og:image"\s+content=")[^"]*(")/, `$1${esc(profile.avatar)}$2`)
   // The tab icon is drawn at 32px at most, so ask the proxy for a small
