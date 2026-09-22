@@ -1,29 +1,9 @@
 /* LinkedIn card — mirrors the real profile top-card: banner, oversized avatar
  * pulled over it, name/headline/location block, org rail, pill actions.
  * Both LinkedIn themes are reproduced and follow the site's data-theme. */
+/* Dark by default, like the site and every other card; light is the override,
+ * so the card can never disagree with the page while data-theme is settling. */
 .li-card {
-  --li-bg: #ffffff;
-  --li-text: rgba(0, 0, 0, 0.9);
-  --li-muted: rgba(0, 0, 0, 0.6);
-  --li-border: rgba(0, 0, 0, 0.08);
-  --li-divider: #e8e8e8;
-  --li-blue: #0a66c2;
-  --li-blue-hover: #004182;
-  --li-link: #0a66c2;
-  --li-on-blue: #ffffff;
-  --li-hover: rgba(0, 0, 0, 0.06);
-  --li-skeleton: #dce6e8;
-  --li-avatar: 160px;
-  --li-ring: 4px;
-  background: var(--li-bg);
-  color: var(--li-text);
-  border: 1px solid var(--li-border);
-  color-scheme: light;
-  /* LinkedIn ships its own faces but falls back to this system stack. */
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-}
-[data-theme='dark'] .li-card {
   --li-bg: #1b1f23;
   --li-text: rgba(255, 255, 255, 0.9);
   --li-muted: rgba(255, 255, 255, 0.6);
@@ -35,7 +15,29 @@
   --li-on-blue: #1b1f23;
   --li-hover: rgba(255, 255, 255, 0.1);
   --li-skeleton: #2f3439;
+  --li-avatar: 160px;
+  --li-ring: 4px;
+  background: var(--li-bg);
+  color: var(--li-text);
+  border: 1px solid var(--li-border);
   color-scheme: dark;
+  /* LinkedIn ships its own faces but falls back to this system stack. */
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+[data-theme='light'] .li-card {
+  --li-bg: #ffffff;
+  --li-text: rgba(0, 0, 0, 0.9);
+  --li-muted: rgba(0, 0, 0, 0.6);
+  --li-border: rgba(0, 0, 0, 0.08);
+  --li-divider: #e8e8e8;
+  --li-blue: #0a66c2;
+  --li-blue-hover: #004182;
+  --li-link: #0a66c2;
+  --li-on-blue: #ffffff;
+  --li-hover: rgba(0, 0, 0, 0.06);
+  --li-skeleton: #dce6e8;
+  color-scheme: light;
 }
 
 /* Header ------------------------------------------------------------------ */
