@@ -1,6 +1,5 @@
 import { mediaUrl } from '../../../lib/api.js';
 import './SteamCard.css';
-// SteamCard.jsx — Steam card, API endpoint driven
 import React, { useState } from 'react';
 import { useCollapsed } from '../../../hooks/useCollapsed.js';
 import { useCopy } from '../../../hooks/useCopy.js';
@@ -16,8 +15,6 @@ const HEADER_W = 460;
 const HEADER_H = 215;
 const HERO_W = 1920;
 const HERO_H = 620;
-
-// ── One-time CSS ───────────────────────────────────────────────────────────────
 
 // ── Palette (always dark — Steam brand) ───────────────────────────────────────
 const ST = {
@@ -60,7 +57,7 @@ function stFmtHrs(h) {
   return `${n % 1 === 0 ? n : n.toFixed(1)} hrs`;
 }
 
-// ── Game Row (prefixed to avoid window collision) ─────────────────────────────
+// ── Game Row ──────────────────────────────────────────────────────────────────
 function StGameRow({ game, showRecent }) {
   if (!game) return null;
   const href = `https://store.steampowered.com/app/${game.appid}`;
@@ -150,17 +147,6 @@ function StSectionLabel({ children, detail }) {
 
 // ── Recent Activity section ───────────────────────────────────────────────────
 function StRecentSection({ items }) {
-  if (!items?.length)
-    return (
-      <p
-        style={{
-          color: ST.faint,
-        }}
-        className="st-style-13"
-      >
-        No recent activity
-      </p>
-    );
   return (
     <div className="st-style-14">
       {items.map((game, i) => (
@@ -252,7 +238,7 @@ function StFavoriteSection({ game }) {
 }
 
 // ── Main SteamCard ────────────────────────────────────────────────────────────
-export function SteamCard({ handle, url, apiEndpoint }) {
+export const SteamCard = React.memo(function SteamCard({ handle, url, apiEndpoint }) {
   const [data, setData] = useState(null);
   const [collapsed, toggleCollapse] = useCollapsed('st_card_collapsed');
   const profileUrl =
@@ -405,7 +391,7 @@ export function SteamCard({ handle, url, apiEndpoint }) {
                   loading="lazy"
                   decoding="async"
                   style={{
-                    border: `2px solid ${isOnline ? dotColor : ST.faint}`,
+                    border: `2px solid ${dotColor}`,
                   }}
                   className="st-style-36"
                 />
@@ -500,10 +486,6 @@ export function SteamCard({ handle, url, apiEndpoint }) {
                 rel="noopener noreferrer"
                 aria-label="View profile on Steam"
                 className="st-open-btn st-style-48"
-                style={{
-                  border: '1px solid transparent',
-                  color: '#fff',
-                }}
               >
                 <StIcon size={14} color="#fff" />
                 <span className="st-open-label">View profile</span>
@@ -615,4 +597,4 @@ export function SteamCard({ handle, url, apiEndpoint }) {
       </div>
     </div>
   );
-}
+});

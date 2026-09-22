@@ -281,10 +281,6 @@
   gap: 10px;
   padding: 10px;
 }
-.st-style-13 {
-  font-size: 13px;
-  margin: 0;
-}
 .st-style-12 {
   font-size: 15px;
   display: flex;
@@ -377,8 +373,10 @@
 .st-hdr-btn {
   color: #8f98a0;
 }
+/* The background matches the other cards: the collapse chevron gets a hover plate too. */
 .st-hdr-btn:hover {
   color: #c7d5e0;
+  background: rgba(103, 193, 245, 0.12);
 }
 .st-game-row {
   transition: background 0.1s;
@@ -387,6 +385,8 @@
   background: #253b50;
 }
 .st-open-btn {
+  border: 1px solid transparent;
+  color: #fff;
   background: #ffffff12;
   transition:
     background 0.15s,
@@ -395,8 +395,7 @@
 }
 .st-open-btn:hover {
   background: #ffffff22;
-  color: #fff !important;
-  border-color: #66c0f4 !important;
+  border-color: #66c0f4;
 }
 .st-hero-img {
   transition: transform 0.2s;
@@ -489,9 +488,4 @@
   .st-style-27 .sc-body {
     transition: none;
   }
-}
-
-/* Match the other cards: the collapse chevron gets a hover plate too. */
-.st-hdr-btn:hover {
-  background: rgba(103, 193, 245, 0.12);
 }

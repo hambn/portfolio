@@ -89,7 +89,9 @@ function Artwork({ images, className = '', name = '', size = 44 }) {
     </span>
   );
 }
-function Artists({ artists }) {
+// Memoized against the 250ms playback clock: Artists and Collection only change
+// with the data. TrackList is left alone so its "3m ago" labels keep up.
+const Artists = React.memo(function Artists({ artists }) {
   return (
     <span className="sp-artists">
       {artists?.map((artist, i) => (
@@ -100,7 +102,7 @@ function Artists({ artists }) {
       ))}
     </span>
   );
-}
+});
 function Equalizer() {
   return (
     <span className="sp-equalizer" aria-hidden="true">
@@ -144,7 +146,7 @@ function TrackList({ items, recent = false }) {
     </div>
   );
 }
-function Collection({ items, artists = false }) {
+const Collection = React.memo(function Collection({ items, artists = false }) {
   if (!items?.length)
     return <p className="sp-empty">No {artists ? 'top artists' : 'public playlists'} yet.</p>;
   return (
@@ -170,7 +172,7 @@ function Collection({ items, artists = false }) {
       ))}
     </div>
   );
-}
+});
 function NowPlaying({ item, progress, playing, context, playlist }) {
   const duration = item.duration_ms || 0;
   const elapsed = Math.min(progress, duration);
@@ -265,7 +267,7 @@ export function SpotifySimpleCard({ userId }) {
     </ExternalLink>
   );
 }
-export function SpotifyCard({ userId, apiEndpoint }) {
+export const SpotifyCard = React.memo(function SpotifyCard({ userId, apiEndpoint }) {
   const [collapsed, toggleCollapse] = useCollapsed('sp_card_collapsed');
   // A collapsed card polls nothing; the last response stays put for re-expand.
   const { data, progress, loading, error } = useSpotifyPlayback(
@@ -421,4 +423,4 @@ export function SpotifyCard({ userId, apiEndpoint }) {
       </div>
     </article>
   );
-}
+});

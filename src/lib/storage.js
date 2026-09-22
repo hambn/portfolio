@@ -1,11 +1,11 @@
 // localStorage access that never throws: private mode, ITP and locked-down
 // webviews reject reads and writes, and a render-time throw would blank the app.
 export const storage = {
-  get(key, fallback = null) {
+  get(key) {
     try {
-      return localStorage.getItem(key) ?? fallback;
+      return localStorage.getItem(key);
     } catch {
-      return fallback;
+      return null;
     }
   },
   set(key, value) {

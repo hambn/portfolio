@@ -13,11 +13,9 @@ const DC = {
   bg: 'var(--dc-bg)',
   bgHead: 'var(--dc-bg-head)',
   border: 'var(--dc-border)',
-  divider: 'var(--dc-divider)',
   blurple: 'var(--dc-blurple)',
   blurpleLt: 'var(--dc-blurple-light)',
   text: 'var(--dc-text)',
-  muted: 'var(--dc-muted)',
   faint: 'var(--dc-subtle)',
   STATUS_COLOR: {
     online: '#23a55a',
@@ -68,6 +66,24 @@ function ActivityIcon({ size = 13 }) {
       <path d="M8 10.5v3M6.5 12h3M16 11.5h.01M18 13h.01" />
     </svg>
   );
+}
+
+const ACTIVITY_LABEL = {
+  0: 'Playing',
+  1: 'Streaming',
+  2: 'Listening to',
+  3: 'Watching',
+  5: 'Competing in',
+};
+
+function activityImageSrc(activity) {
+  if (!activity?.assets?.large_image) return null;
+  const image = activity.assets.large_image;
+  if (image.startsWith('spotify:')) return mediaUrl(`https://i.scdn.co/image/${image.slice(8)}`);
+  if (image.startsWith('mp:')) return mediaUrl(`https://media.discordapp.net/${image.slice(3)}`);
+  return activity.application_id
+    ? mediaUrl(`https://cdn.discordapp.com/app-assets/${activity.application_id}/${image}.png`)
+    : null;
 }
 
 function formatDuration(ms) {
@@ -147,13 +163,14 @@ export function DiscordCard({ userId, lanyardData, apiEndpoint }) {
   const dotColor = DC.STATUS_COLOR[status] || DC.STATUS_COLOR.offline;
   const [copied, copyLink] = useCopy(profileUrl);
 
+  // A collapsed card shows no timers; expanding re-reads the time straight away.
   useEffect(() => {
-    if (!hasTimedActivity) return undefined;
+    if (!hasTimedActivity || collapsed) return undefined;
     const tick = () => setNow(Date.now());
     tick();
     const id = window.setInterval(tick, 1000);
     return () => window.clearInterval(id);
-  }, [hasTimedActivity]);
+  }, [hasTimedActivity, collapsed]);
 
   const { loading } = usePolledJSON(
     collapsed ? null : apiEndpoint,
@@ -163,24 +180,6 @@ export function DiscordCard({ userId, lanyardData, apiEndpoint }) {
     },
     useCardFeed('discord'),
   );
-
-  const getActivityImgSrc = (activity) => {
-    if (!activity?.assets?.large_image) return null;
-    const image = activity.assets.large_image;
-    if (image.startsWith('spotify:')) return mediaUrl(`https://i.scdn.co/image/${image.slice(8)}`);
-    if (image.startsWith('mp:')) return mediaUrl(`https://media.discordapp.net/${image.slice(3)}`);
-    return activity.application_id
-      ? mediaUrl(`https://cdn.discordapp.com/app-assets/${activity.application_id}/${image}.png`)
-      : null;
-  };
-
-  const activityLabel = {
-    0: 'Playing',
-    1: 'Streaming',
-    2: 'Listening to',
-    3: 'Watching',
-    5: 'Competing in',
-  };
 
   return (
     <div
@@ -237,9 +236,9 @@ export function DiscordCard({ userId, lanyardData, apiEndpoint }) {
         <div className="dc-profile">
           <div className="dc-avatar-wrap">
             {avatarUrl ? (
-              // Discord is the first card, so this avatar is the page's LCP
-              // element. Its URL only exists once /links responds, so it can't
-              // be preloaded — the priority hint is what's left.
+              // Discord sits right below the Email card, so this avatar is usually
+              // above the fold. Its URL only exists once /links responds, so it
+              // can't be preloaded — the priority hint is what's left.
               <img
                 className="dc-avatar"
                 src={avatarUrl}
@@ -299,13 +298,13 @@ export function DiscordCard({ userId, lanyardData, apiEndpoint }) {
             <div className="dc-activities-heading">Current activity</div>
             {liveActivities.map((activity, index) => {
               const timing = activityTiming(activity, now);
-              const imageSrc = getActivityImgSrc(activity);
+              const imageSrc = activityImageSrc(activity);
               const isSpotify = activity.type === 2 && activity.name === 'Spotify';
               const title =
                 (activity.type === 0 ? activity.name : activity.details || activity.name) ||
                 'Activity';
               const trackId = activity.sync_id || raw?.spotify?.track_id;
-              const label = activityLabel[activity.type] || 'Activity';
+              const label = ACTIVITY_LABEL[activity.type] || 'Activity';
               const heading =
                 activity.type === 2 && activity.name ? `${label} ${activity.name}` : label;
 

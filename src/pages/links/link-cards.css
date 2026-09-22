@@ -13,7 +13,6 @@
  *   spacer:      `link-card-spacer`
  *   actions:     wrap <HeaderButtons/> in `link-card-actions`
  *   buttons:     add `link-card-hdr-btn` to HeaderButtons btnClass
- *   logo box (LinkedIn-style): `link-card-brand-box`
  */
 .link-card {
   border-radius: 12px;
@@ -43,16 +42,6 @@
   width: 25px;
   height: 25px;
   display: block;
-  flex-shrink: 0;
-}
-/* Squared logo box variant (e.g. LinkedIn). Glyph inside keeps brand size. */
-.link-card-brand-box {
-  width: 25px;
-  height: 25px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   flex-shrink: 0;
 }
 /* Only the optical size is shared. Weight, tracking and case belong to the

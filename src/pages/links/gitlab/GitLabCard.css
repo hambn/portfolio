@@ -1,9 +1,15 @@
+/* GitLab Sans (OFL, see fonts/OFL.txt) cut down to the latin range the other
+ * card faces use — 67 KB instead of the 325 KB every-script original. Rebuild:
+ * pyftsubset GitLabSans.woff2 --flavor=woff2 --unicodes=<range below> */
 @font-face {
   font-family: 'GitLab Sans';
-  src: url('@gitlab/fonts/gitlab-sans/GitLabSans.woff2') format('woff2');
+  src: url('./fonts/GitLabSans-latin.woff2') format('woff2');
   font-style: normal;
   font-weight: 100 900;
   font-display: swap;
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 .gl-style-1 {
   --gl-bg: #1f1e24;
@@ -11,13 +17,10 @@
   --gl-border: #45424d;
   --gl-div: #3b3844;
   --gl-orange: #fc6d26;
-  --gl-orangeH: #fca326;
-  --gl-red: #e24329;
   --gl-text: #ececef;
   --gl-muted: #bfbcc8;
   --gl-faint: #aaa6b5;
   --gl-action: #7b58cf;
-  --gl-actionHover: #8f6ce1;
   --gl-accent: #cbb6ff;
   font-family:
     'GitLab Sans',
@@ -34,13 +37,10 @@
   --gl-border: #dcdcde;
   --gl-div: #ececef;
   --gl-orange: #fc6d26;
-  --gl-orangeH: #fca326;
-  --gl-red: #e24329;
   --gl-text: #333238;
   --gl-muted: #626168;
   --gl-faint: #626168;
   --gl-action: #6b4fbb;
-  --gl-actionHover: #5943a0;
   --gl-accent: #5943a0;
   color-scheme: light;
 }
@@ -79,7 +79,7 @@
   font-size: 12px;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
 }
 .gl-style-14 {
   font-size: 13px;
@@ -158,9 +158,6 @@
 
 .gl-style-16:hover {
   filter: brightness(1.1);
-}
-.gl-style-15 {
-  white-space: normal;
 }
 
 /* Wordmark — GitLab Sans semibold, matching gitlab.com's header. */

@@ -13,19 +13,17 @@ const GL = {
   border: 'var(--gl-border)',
   div: 'var(--gl-div)',
   orange: 'var(--gl-orange)',
-  orangeH: 'var(--gl-orangeH)',
-  red: 'var(--gl-red)',
   text: 'var(--gl-text)',
   muted: 'var(--gl-muted)',
   faint: 'var(--gl-faint)',
   action: 'var(--gl-action)',
-  actionHover: 'var(--gl-actionHover)',
   accent: 'var(--gl-accent)',
 };
 const GL_LEVELS = Array.from({ length: 5 }, (_, i) => `var(--gl-level-${i})`);
+const GL_GRAPH_THEME = { div: GL.div, faint: GL.faint, muted: GL.muted };
 const GL_ICON =
   'M23.955 13.587l-1.342-4.135-2.664-8.189c-.135-.423-.73-.423-.867 0L16.418 9.45H7.582L4.919 1.263C4.783.84 4.185.84 4.05 1.263L1.386 9.452.044 13.587c-.121.375.014.789.331 1.023L12 23.054l11.625-8.443c.318-.235.453-.647.33-1.024';
-export function GitLabCard({ username, url }) {
+export const GitLabCard = React.memo(function GitLabCard({ username, url }) {
   const [profile, setProfile] = useState(null);
   const [collapsed, toggleCollapse] = useCollapsed('gl_card_collapsed');
   const href = url || `https://gitlab.com/${username}`;
@@ -193,13 +191,9 @@ export function GitLabCard({ username, url }) {
           username={username}
           source="gitlab"
           levels={GL_LEVELS}
-          theme={{
-            div: GL.div,
-            faint: GL.faint,
-            muted: GL.muted,
-          }}
+          theme={GL_GRAPH_THEME}
         />
       </div>
     </div>
   );
-}
+});

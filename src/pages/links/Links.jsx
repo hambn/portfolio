@@ -173,7 +173,7 @@ export default function Links() {
 
           {config.telegram && (
             <TelegramCard
-              username={config.telegram.username || config.telegram.handle || config.telegram.url}
+              username={config.telegram.username}
               handle={config.telegram.handle}
               url={config.telegram.url}
               apiEndpoint={config.telegram.apiEndpoint || apiUrl('/telegram')}
@@ -191,17 +191,7 @@ export default function Links() {
           )}
 
           {config.linkedin && (
-            <LinkedInCard
-              handle={config.linkedin.handle}
-              url={config.linkedin.url}
-              name={config.linkedin.name}
-              headline={config.linkedin.headline}
-              location={config.linkedin.location}
-              connections={config.linkedin.connections}
-              followers={config.linkedin.followers}
-              banner={config.linkedin.banner}
-              avatar={config.linkedin.avatar}
-            />
+            <LinkedInCard handle={config.linkedin.handle} url={config.linkedin.url} />
           )}
 
           {config.spotify?.userId &&

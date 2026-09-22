@@ -36,6 +36,10 @@
   visibility: hidden;
   pointer-events: none;
 }
+/* ContribGraph day cell; --cg-ring is the card's muted colour. */
+.cg-day:hover {
+  box-shadow: 0 0 0 1.5px var(--cg-ring);
+}
 @media (max-width: 540px) {
   .sc-hdr-label {
     display: none;

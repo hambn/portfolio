@@ -20,8 +20,10 @@ const MESSAGES = {
   contact_not_configured: 'The form is offline right now — use your mail app instead.',
 };
 const FALLBACK = 'Couldn’t send that. Please use your mail app instead.';
+const ENV =
+  'M2.5 6.5A2.5 2.5 0 0 1 5 4h14a2.5 2.5 0 0 1 2.5 2.5v11A2.5 2.5 0 0 1 19 20H5a2.5 2.5 0 0 1-2.5-2.5v-11Zm2.2-.4 7.3 5.2 7.3-5.2A.9.9 0 0 0 19 6H5a.9.9 0 0 0-.3.1ZM20 8.1l-7.4 5.3a1 1 0 0 1-1.2 0L4 8.1v9.4c0 .55.45 1 1 1h14c.55 0 1-.45 1-1V8.1Z';
 
-export function EmailCard({ address }) {
+export const EmailCard = React.memo(function EmailCard({ address }) {
   const fromId = useId();
   const subjectId = useId();
   const to = address; // Links.jsx only mounts this card when config.email exists
@@ -97,8 +99,6 @@ export function EmailCard({ address }) {
     }
   };
 
-  const ENV =
-    'M2.5 6.5A2.5 2.5 0 0 1 5 4h14a2.5 2.5 0 0 1 2.5 2.5v11A2.5 2.5 0 0 1 19 20H5a2.5 2.5 0 0 1-2.5-2.5v-11Zm2.2-.4 7.3 5.2 7.3-5.2A.9.9 0 0 0 19 6H5a.9.9 0 0 0-.3.1ZM20 8.1l-7.4 5.3a1 1 0 0 1-1.2 0L4 8.1v9.4c0 .55.45 1 1 1h14c.55 0 1-.45 1-1V8.1Z';
   const initials = (to.split('@')[0] || 'me')[0].toUpperCase();
   return (
     <div
@@ -252,4 +252,4 @@ export function EmailCard({ address }) {
       </div>
     </div>
   );
-}
+});
