@@ -18,6 +18,7 @@ export function monthNumber(value) {
 // Graph geometry, in px.
 export const LANE_W = 20; // horizontal distance between lanes (tightened on phones)
 export const LANE_W_SM = 14;
+export const LANE_W_MIN = 7; // the tightest spacing a crowded graph packs down to
 export const LANE_X0 = 7; // centre of the life line
 export const CURVE = 18; // vertical run of a branch/merge curve
 export const NODE_DY = 10; // node centre, measured from the top of its row

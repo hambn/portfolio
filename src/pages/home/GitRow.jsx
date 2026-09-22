@@ -3,10 +3,8 @@ import React from 'react';
 // One line of the log: HEAD, a merge, the birth commit, or a commit.
 // Wide: the date sits in its own column, left of the graph. Narrow: there is no
 // room for it there, so it moves in above the message.
-export default function GitRow({ row, dim, rowRef, onHover }) {
+export default function GitRow({ row, dim, rowRef }) {
   const tone = row.lane ? row.lane.tone : '';
-  // hovering a row highlights its branch too, without opening the card
-  const lift = row.lane ? { onMouseEnter: () => onHover(row.lane.id) } : null;
 
   const lead = (date) => (
     <span className="git-meta">
@@ -41,7 +39,7 @@ export default function GitRow({ row, dim, rowRef, onHover }) {
 
   if (row.kind === 'merge')
     return (
-      <div className={`git-commit is-note ${tone}${dim ? ' is-dim' : ''}`} ref={rowRef} {...lift}>
+      <div className={`git-commit is-note ${tone}${dim ? ' is-dim' : ''}`} ref={rowRef}>
         {lead(row.lane.branch.end)}
         <span className="git-body">
           {when(row.lane.branch.end)}
@@ -62,7 +60,6 @@ export default function GitRow({ row, dim, rowRef, onHover }) {
     <div
       className={`git-commit ${opens ? 'is-open ' : ''}${tone}${dim ? ' is-dim' : ''}`}
       ref={rowRef}
-      {...lift}
     >
       {lead(commit.date)}
       <span className="git-body">

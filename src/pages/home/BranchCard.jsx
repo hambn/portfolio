@@ -2,21 +2,27 @@ import React, { useLayoutEffect, useRef, useState } from 'react';
 
 // The card shown while hovering a branch — the whole history of that company,
 // degree or project in one place.
-export default function BranchCard({ lane, x, y, maxY }) {
+export default function BranchCard({ lane, x, y, maxX, maxY }) {
   const { branch } = lane;
   const ref = useRef(null);
-  // keep the card inside the log, however far down the lane is hovered
-  const [top, setTop] = useState(y);
+  // Keep the card inside the log, however far down the lane is hovered and
+  // however wide a crowded graph has pushed it.
+  const [position, setPosition] = useState({ left: x, top: y });
   useLayoutEffect(() => {
-    const h = ref.current ? ref.current.offsetHeight : 0;
-    setTop(Math.max(0, Math.min(y, maxY - h)));
-  }, [y, maxY, lane]);
+    const card = ref.current;
+    const w = card ? card.offsetWidth : 0;
+    const h = card ? card.offsetHeight : 0;
+    setPosition({
+      left: Math.max(0, Math.min(x, maxX - w)),
+      top: Math.max(0, Math.min(y, maxY - h)),
+    });
+  }, [x, y, maxX, maxY, lane]);
 
   return (
     <div
       className={`git-branch-card ${lane.tone}`}
       ref={ref}
-      style={{ left: `${x}px`, top: `${top}px` }}
+      style={{ left: `${position.left}px`, top: `${position.top}px` }}
     >
       <div className="git-branch-card-head">{branch.name}</div>
       <div className="git-branch-card-meta">
