@@ -50,10 +50,10 @@ Custom domain `hgh.dev` is set via `public/CNAME` + DNS:
 Route and origin are env-driven; defaults target `hgh.dev` at root. Override to
 host elsewhere (e.g. a github.io project page):
 
-| var | default | purpose |
-|-----|---------|---------|
-| `BASE_PATH` | `/` | deploy route (asset base + link prefix) |
-| `SITE_URL` | `https://hgh.dev` | canonical origin (sitemap, robots, OG, canonical) |
+| var         | default           | purpose                                           |
+| ----------- | ----------------- | ------------------------------------------------- |
+| `BASE_PATH` | `/`               | deploy route (asset base + link prefix)           |
+| `SITE_URL`  | `https://hgh.dev` | canonical origin (sitemap, robots, OG, canonical) |
 
 ```bash
 # github.io project page under /portfolio/
@@ -89,17 +89,17 @@ wrangler kv namespace create SPOTIFY_KV   # → copy id into SPOTIFY_KV_ID
 `deploy.yml` runs `npm run api:deploy` on every push to `main`. Add these under
 **Settings → Secrets and variables → Actions → New repository secret**:
 
-| secret | what / where |
-|--------|--------------|
-| `CLOUDFLARE_API_TOKEN` | dash.cloudflare.com → My Profile → API Tokens → *Edit Cloudflare Workers* template |
-| `CLOUDFLARE_ACCOUNT_ID` | Workers & Pages dashboard → right sidebar |
-| `SPOTIFY_KV_ID` | `wrangler kv namespace create SPOTIFY_KV` → the printed id |
-| `SPOTIFY_CLIENT_ID` | developer.spotify.com/dashboard |
-| `SPOTIFY_REFRESH_TOKEN` | from `api/tools/spotify-auth.html` (PKCE flow) |
-| `STEAM_API_KEY` | steamcommunity.com/dev/apikey |
-| `STEAM_ID` | your 64-bit Steam ID (https://steamid.io) |
-| `DISCORD_ID` | your Discord user ID (right-click → Copy User ID) |
-| `LINKEDIN_URL` | optional public profile URL; overrides `links.json` |
+| secret                  | what / where                                                                       |
+| ----------------------- | ---------------------------------------------------------------------------------- |
+| `CLOUDFLARE_API_TOKEN`  | dash.cloudflare.com → My Profile → API Tokens → _Edit Cloudflare Workers_ template |
+| `CLOUDFLARE_ACCOUNT_ID` | Workers & Pages dashboard → right sidebar                                          |
+| `SPOTIFY_KV_ID`         | `wrangler kv namespace create SPOTIFY_KV` → the printed id                         |
+| `SPOTIFY_CLIENT_ID`     | developer.spotify.com/dashboard                                                    |
+| `SPOTIFY_REFRESH_TOKEN` | from `api/tools/spotify-auth.html` (PKCE flow)                                     |
+| `STEAM_API_KEY`         | steamcommunity.com/dev/apikey                                                      |
+| `STEAM_ID`              | your 64-bit Steam ID (https://steamid.io)                                          |
+| `DISCORD_ID`            | your Discord user ID (right-click → Copy User ID)                                  |
+| `LINKEDIN_URL`          | optional public profile URL; overrides `links.json`                                |
 
 Pages deploy needs no secrets — GitHub's `GITHUB_TOKEN` is automatic. `STEAM_ID`
 and `DISCORD_ID` are public on your profiles; kept as secrets only so nothing
@@ -118,18 +118,18 @@ echo '{"SPOTIFY_CLIENT_ID":"…","SPOTIFY_REFRESH_TOKEN":"…","STEAM_API_KEY":"
 npm run api:deploy
 ```
 
-| Route | Cache | Data |
-|-------|-------|------|
-| `GET /spotify` | none | aggregate: now-playing + profile + top + recent + playlists |
-| `GET /spotify?playback=1` | no-store | current playback only; forwards Spotify rate limits |
-| `GET /steam` | 5m | status, level, current/favorite game, recent activity |
-| `GET /discord` | 60s | presence + activities + Spotify (via Lanyard) |
-| `GET /discord/avatar` | 1h | proxied Discord avatar image |
-| `GET /linkedin[?username=<username>]` | hourly snapshot | public profile configured in `links.json` |
-| `GET /linkedin/avatar` and `GET /linkedin/banner` | 1h | image bytes stored with the profile snapshot |
-| `GET /telegram[?username=<username>]` | 1h | scheduled snapshot of the profile configured in `links.json` |
-| `GET /telegram/avatar[?username=<username>]` | 1h | photo bytes stored with the hourly profile snapshot |
-| `GET /health` | none | `{ ok: true }` liveness check |
+| Route                                             | Cache           | Data                                                         |
+| ------------------------------------------------- | --------------- | ------------------------------------------------------------ |
+| `GET /spotify`                                    | none            | aggregate: now-playing + profile + top + recent + playlists  |
+| `GET /spotify?playback=1`                         | no-store        | current playback only; forwards Spotify rate limits          |
+| `GET /steam`                                      | 5m              | status, level, current/favorite game, recent activity        |
+| `GET /discord`                                    | 60s             | presence + activities + Spotify (via Lanyard)                |
+| `GET /discord/avatar`                             | 1h              | proxied Discord avatar image                                 |
+| `GET /linkedin[?username=<username>]`             | hourly snapshot | public profile configured in `links.json`                    |
+| `GET /linkedin/avatar` and `GET /linkedin/banner` | 1h              | image bytes stored with the profile snapshot                 |
+| `GET /telegram[?username=<username>]`             | 1h              | scheduled snapshot of the profile configured in `links.json` |
+| `GET /telegram/avatar[?username=<username>]`      | 1h              | photo bytes stored with the hourly profile snapshot          |
+| `GET /health`                                     | none            | `{ ok: true }` liveness check                                |
 
 LinkedIn runs entirely inside the API. Node starts a refresh on startup and every
 hour; Workers use the hourly scheduled handler. Profile data and images are saved
@@ -178,7 +178,6 @@ and failure regression checks.
 The card's wallpaper asset comes from
 [Telegram's public profile background](https://telegram.org/img/tgme/pattern.svg?1).
 
-
 Full reference + Spotify re-auth flow: [`.claude/api.md`](.claude/api.md).
 
 ### Self-host on Node
@@ -194,18 +193,18 @@ SPOTIFY_CLIENT_ID=… STEAM_API_KEY=… DISCORD_ID=… STEAM_ID=… SPOTIFY_REFR
 
 Environment variables:
 
-| var | type | required |
-|-----|------|----------|
-| `SPOTIFY_CLIENT_ID` | secret | yes |
-| `SPOTIFY_REFRESH_TOKEN` | config | yes (fallback token) |
-| `STEAM_API_KEY` | secret | yes |
-| `STEAM_ID` | config | yes |
-| `DISCORD_ID` | config | yes |
-| `LINKEDIN_URL` | config | optional public profile URL; defaults to `links.json` |
-| `CACHE_VERSION` | config | no (Node default: `1`, stable across restarts) |
-| `API_DATA_DIR` | config | no (default: `.api-data`) |
-| `API_CACHE_MAX_BYTES` | config | no (default: `268435456`) |
-| `API_PUBLIC_ORIGIN` | config | external origin for direct Node access behind TLS |
+| var                     | type   | required                                              |
+| ----------------------- | ------ | ----------------------------------------------------- |
+| `SPOTIFY_CLIENT_ID`     | secret | yes                                                   |
+| `SPOTIFY_REFRESH_TOKEN` | config | yes (fallback token)                                  |
+| `STEAM_API_KEY`         | secret | yes                                                   |
+| `STEAM_ID`              | config | yes                                                   |
+| `DISCORD_ID`            | config | yes                                                   |
+| `LINKEDIN_URL`          | config | optional public profile URL; defaults to `links.json` |
+| `CACHE_VERSION`         | config | no (Node default: `1`, stable across restarts)        |
+| `API_DATA_DIR`          | config | no (default: `.api-data`)                             |
+| `API_CACHE_MAX_BYTES`   | config | no (default: `268435456`)                             |
+| `API_PUBLIC_ORIGIN`     | config | external origin for direct Node access behind TLS     |
 
 ## self-host (Docker)
 
@@ -278,12 +277,12 @@ Free remains subject to request, CPU and KV quotas; media traffic counts too.
 
 All content lives in `public/contents/` — no code changes needed.
 
-| What | File |
-|------|------|
-| name, handle, bio, avatar | `public/contents/home/profile.json` |
-| work / education / skills | `public/contents/home/resume.json` |
-| social links + API endpoints | `public/contents/links/links.json` |
-| blog posts | `public/contents/blogs/**/*.md` |
+| What                         | File                                |
+| ---------------------------- | ----------------------------------- |
+| name, handle, bio, avatar    | `public/contents/home/profile.json` |
+| work / education / skills    | `public/contents/home/resume.json`  |
+| social links + API endpoints | `public/contents/links/links.json`  |
+| blog posts                   | `public/contents/blogs/**/*.md`     |
 
 Identity meta (`author`, `og:image`, `twitter:creator`, JSON-LD) is injected at
 build from `profile.json` + `links.json` — `index.html` holds only fallbacks.
@@ -321,8 +320,8 @@ src/
   entry-server.jsx  render the same components at build time
   routes.js         route registry: path + head meta (also read by prerender)
   lib/              data.js (PortfolioData), router.js, markdown.js (marked+hljs)
-  hooks/            useWindowWidth, useCollapsed, useCopy, usePolledJSON
-  components/       Nav.jsx + card/ (HeaderButtons, cardStyles, ContribGraph)
+  hooks/            useMediaQuery, useCollapsed, useCopy, usePolledJSON
+  components/       Nav.jsx + card/ (HeaderButtons, cards.css, ContribGraph)
   pages/            index.js (lazy page map) + one folder per route:
     home/           Home.jsx
     projects/       Projects.jsx
@@ -332,6 +331,7 @@ src/
                     Email, Discord, Telegram, X, GitHub, GitLab,
                     LinkedIn, Spotify, Steam
   styles/           index.css → tokens/ + core.css, plus blog.css
+                    (page-only styles live next to their page: home.css, …)
 scripts/            Node build tooling (NOT bundled — root by convention)
   blog-index.mjs    build-time blog scanner (Vite plugin)
   prerender.mjs     static HTML/meta/JSON-LD/sitemap/feed generator (post-build)

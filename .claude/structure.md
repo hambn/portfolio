@@ -39,9 +39,9 @@ Static React portfolio, built with Vite, deployed to GitHub Pages at
 │  ├─ pages/               one folder per route (default exports)
 │  │  ├─ index.js          lazy page map (React.lazy) + preloadPage()
 │  │  ├─ home/             Home.jsx + Intro, Timeline/GitLog/GitRow (git-graph
-│  │  │                    timeline), Stack, SectionHead, FooterLinks
+│  │  │                    timeline), Stack, SectionHead, FooterLinks, home.css
 │  │  ├─ projects/         Projects.jsx (live GitHub repos) + projects.css
-│  │  ├─ resume/Resume.jsx
+│  │  ├─ resume/           Resume.jsx + resume.css (screen + @media print)
 │  │  ├─ blog/
 │  │  │  ├─ Blog.jsx       container: list ↔ post routing
 │  │  │  ├─ BlogList.jsx   search + tag filter + pagination
@@ -53,7 +53,8 @@ Static React portfolio, built with Vite, deployed to GitHub Pages at
 │  │     │                 (useCardFeed) so a fresh card needs no request
 │  │     ├─ link-fonts.css  brand faces the cards share (DM Sans, Roboto)
 │  │     └─ <provider>/    Email, Discord, Telegram, X, GitHub, GitLab,
-│  │                       LinkedIn, Spotify, Steam (JSX + CSS per folder)
+│  │                       LinkedIn, Spotify, Steam (JSX + CSS per folder;
+│  │                       gitlab/fonts/ holds a latin subset of GitLab Sans)
 │  └─ styles/
 │     ├─ index.css         imports fonts.css + tokens/ + core.css
 │     ├─ fonts.css         JetBrains Mono @font-face (latin subset only)
@@ -115,9 +116,17 @@ Static React portfolio, built with Vite, deployed to GitHub Pages at
   route chunk), not here. Nothing unused should survive in core.css.
 - **Styling lives in CSS, not in state.** Hover/active are `:hover` and
   `[aria-current]` selectors so pointer movement never re-renders React.
+  Page chrome uses classes, not inline `style={{…}}` objects — those are
+  rebuilt every render and serialized into every prerendered page. Inline
+  styles are kept for values computed at runtime (graph geometry, colours).
+- **In-app links are real `<a href>`s.** Use `routeHref(page)` for the href and
+  `followRoute(page)` for the click handler (`src/lib/router.js`): a plain click
+  routes in place, a modified or middle click opens a new tab as usual.
 - **Content is data, not code.** Edit `public/contents/`; never hardcode it.
 - **Blog is auto-discovered.** No manifest. The index is generated at build
-  (and served virtually in dev); raw `.md` are stripped from `dist/`.
+  (and served virtually in dev); raw `.md` are stripped from `dist/`. A body
+  that opens with `# <its own title>` has that line dropped — the page already
+  renders the title as its one `<h1>` (asserted by `test:site`).
 - **Self-hosted.** One variable font (JetBrains Mono) and markdown libs
   (`marked`, `highlight.js`, `mermaid`) are bundled/lazy-loaded — no
   third-party CDN.

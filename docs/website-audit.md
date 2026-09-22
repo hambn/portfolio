@@ -140,15 +140,15 @@ byte for byte against the previous build, with provider responses stubbed.
   declares itself `isPartOf`. The blog index and each post's `isPartOf` now
   share one `#blog` `@id` instead of describing two separate Blog entities.
 
-| Resource      | Before (raw / gzip) | After (raw / gzip) |
-| ------------- | ------------------: | -----------------: |
-| Shared CSS    |    18,741 / 6,637 B |   16,285 / 6,174 B |
-| Entry JS      |    14,879 / 5,851 B |   14,194 / 5,617 B |
-| Projects JS   |     3,890 / 1,699 B |    3,507 / 1,556 B |
-| Links CSS     |   47,233 / 10,543 B |  46,538 / 10,514 B |
-| Home HTML     |            18,742 B |           18,074 B |
-| Blog list     |            22,403 B |           21,856 B |
-| Welcome post  |            19,491 B |           18,778 B |
+| Resource     | Before (raw / gzip) | After (raw / gzip) |
+| ------------ | ------------------: | -----------------: |
+| Shared CSS   |    18,741 / 6,637 B |   16,285 / 6,174 B |
+| Entry JS     |    14,879 / 5,851 B |   14,194 / 5,617 B |
+| Projects JS  |     3,890 / 1,699 B |    3,507 / 1,556 B |
+| Links CSS    |   47,233 / 10,543 B |  46,538 / 10,514 B |
+| Home HTML    |            18,742 B |           18,074 B |
+| Blog list    |            22,403 B |           21,856 B |
+| Welcome post |            19,491 B |           18,778 B |
 
 Projects also gains a 409 B (256 B gzip) route stylesheet, loaded only with that
 page. Blog's route chunk grows 59 B for the memoized search index.
@@ -159,3 +159,63 @@ because the element renders with `fetchPriority="high"`.
 Validation: `npm run lint`, `npm run format:check`, `npm run build`, all 11
 static-site tests and all 8 browser tests pass. No Core Web Vitals or ranking
 improvement is claimed — these are local build measurements.
+
+## Cleanup pass: critical CSS, inline styles, fonts, re-renders, API dedupe
+
+Rendered output is unchanged apart from one intended fix. Full-page screenshots
+of `/`, `/projects/`, `/blog/`, `/blog/?tag=devops`, `/resume/` and `/links/`
+in dark and light themes at 1280px and 390px are pixel-identical against the
+previous commit, with provider requests stubbed and the GitLab placeholder
+grid's `Math.random` seeded. The fix: every post body opened with `# <title>`,
+so posts showed their title twice and had two `<h1>`s. The blog index now drops
+that one line when it repeats the frontmatter title, and `test:site` asserts
+exactly one `<h1>` per page.
+
+- Home-only rules (buttons, avatar, git-log timeline, stack chips) moved from
+  `core.css` to `pages/home/home.css`. The CSS inlined into every page
+  (tokens + core) went from 12.2 KB to 6.8 KB. Home still inlines its own sheet.
+- Blog, resume, projects and home chrome moved from inline style objects to
+  classes. Those objects were rebuilt every render and serialized into every
+  prerendered page. The resume print stylesheet is plain `@media print` CSS
+  instead of a `<style>` injected from an effect, so printing works before
+  hydration. Its hover (and the search box focus) no longer go through state.
+- GitLab Sans is a latin subset (325 KB → 67 KB, both variable axes kept) and
+  `@gitlab/fonts` is no longer a dependency.
+- In-app links share `routeHref()`/`followRoute()`. Ctrl/cmd/middle-click on
+  nav, intro, timeline and post links now open a new tab instead of being
+  swallowed by `preventDefault()`.
+- X card banner: the `height="500"` attribute pinned the banner at 500px tall
+  (a 710×500 crop instead of 3:1); `height: auto` lets `aspect-ratio` apply.
+- Home timeline hover: lanes had 16px-wide invisible hit strokes 14–20px
+  apart, layered over rows that belong to other branches, so small pointer
+  moves alternated between lanes and rows. One pointer handler on the log now
+  picks the nearest lane within half a lane spacing over the graph, and the row
+  under the pointer elsewhere. Lanes pack closer (down to 7px) when many
+  branches would push the graph past 30% of the log width, and the hover card
+  is clamped inside the log.
+- Nav theme toggle reads/writes `data-theme` directly instead of mirroring it
+  in state.
+- /links: every non-Discord card is `React.memo`, so Discord presence messages
+  no longer re-render all nine cards. The contribution grid is memoized and its
+  hover ring is CSS. The Discord clock stops while the card is collapsed.
+  Unused theme keys, CSS variables, props and rules were removed.
+- API: snapshot avatar/banner routes go through the response cache keyed by
+  snapshot version (they re-read and base64-decoded the snapshot every request),
+  the X/Telegram/LinkedIn host check, image schema, image download loop and
+  image path builder are shared, unreachable 404 branches were removed with a
+  narrowed `Handler` type, and expired Node state files are deleted on read.
+
+| Resource (raw)          |    Before |    After |
+| ----------------------- | --------: | -------: |
+| Inlined shared CSS      |  12,215 B |  6,793 B |
+| Projects HTML           |  21,311 B | 16,883 B |
+| Resume HTML             |  33,257 B | 25,540 B |
+| Blog list HTML          |  41,766 B | 37,805 B |
+| Links HTML              |  96,295 B | 90,771 B |
+| Blog route JS           |  14,530 B |  9,784 B |
+| Resume route JS         |   7,475 B |  3,576 B |
+| GitLab Sans (on /links) | 324,924 B | 66,936 B |
+
+Validation: `npm run check` (lint, both API type checks, 55 API + 5 runtime
+tests, Worker dry run, formatting, build, 11 static SEO tests) and all 8
+Playwright tests pass.
