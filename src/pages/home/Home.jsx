@@ -1,5 +1,6 @@
 // Home.jsx — landing page; each section lives in its own file beside this one.
 // Data: contents/home/profile.json, contents/home/resume.json, contents/links/links.json
+import './home.css';
 import React, { useEffect, useState } from 'react';
 import { PortfolioData } from '../../lib/data.js';
 import FooterLinks from './FooterLinks.jsx';
@@ -25,7 +26,7 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="home-page" style={{ maxWidth: '760px', margin: '0 auto' }}>
+    <main className="home-page">
       <Intro profile={profile} />
       <Timeline resume={resume} />
       <Stack skills={resume?.skills} />

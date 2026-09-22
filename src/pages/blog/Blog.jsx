@@ -46,17 +46,15 @@ export default function Blog({ route }) {
     };
   }, [attempt]);
 
-  const wrap = { maxWidth: '760px', margin: '0 auto', padding: '88px 24px 80px' };
-
   if (loading)
     return (
-      <main style={wrap}>
-        <p style={{ color: 'var(--foreground-muted)', fontSize: 'var(--text-sm)' }}>loading...</p>
+      <main className="blog-page">
+        <p className="blog-status">loading...</p>
       </main>
     );
   if (error)
     return (
-      <main style={wrap}>
+      <main className="blog-page">
         <ErrorState message="failed to load posts." onRetry={() => setAttempt((a) => a + 1)} />
       </main>
     );
@@ -65,27 +63,16 @@ export default function Blog({ route }) {
     const post = posts.find((p) => p.slug === slug);
     if (post) return <BlogPost key={post.slug} post={post} onBack={() => navigate('blog')} />;
     return (
-      <main style={wrap}>
-        <button
-          onClick={() => navigate('blog')}
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: '0 0 24px',
-            color: 'var(--foreground-muted)',
-            fontSize: 'var(--text-sm)',
-            fontFamily: 'var(--font-mono)',
-          }}
-        >
+      <main className="blog-page">
+        <button type="button" className="blog-back" onClick={() => navigate('blog')}>
           ← all posts
         </button>
-        <p style={{ color: 'var(--foreground-subtle)', fontSize: 'var(--text-base)' }}>
+        <p className="blog-missing">
           no post found at <InlineCode>/blog/{slug}</InlineCode>
         </p>
       </main>
     );
   }
 
-  return <BlogList posts={posts} onOpen={(s) => navigate('blog/' + s)} />;
+  return <BlogList posts={posts} />;
 }

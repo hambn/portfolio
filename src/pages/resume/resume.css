@@ -1,0 +1,238 @@
+/* resume.css — printable CV. Loads with the resume route chunk. */
+.resume-main {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 96px 24px 80px;
+  font-family: var(--font-mono);
+}
+
+/* Print / Save PDF — pinned below the nav bar */
+.resume-print-btn {
+  position: fixed;
+  top: 68px;
+  right: 20px;
+  z-index: 40;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--foreground-muted);
+  border-radius: 4px;
+  padding: 5px 12px;
+  font-size: 11px;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  transition:
+    border-color 150ms,
+    color 150ms;
+}
+.resume-print-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.resume-error {
+  margin-bottom: 28px;
+}
+
+.resume-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 36px;
+  gap: 24px;
+}
+.resume-name {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--foreground);
+  margin: 0 0 4px;
+}
+.resume-role {
+  font-size: 13px;
+  color: var(--foreground-muted);
+}
+.resume-contact {
+  text-align: right;
+  font-size: 11px;
+  color: var(--foreground-subtle);
+  line-height: 1.9;
+  flex-shrink: 0;
+}
+.resume-contact a {
+  color: var(--primary);
+}
+.resume-bio {
+  font-size: 12px;
+  color: var(--foreground-muted);
+  line-height: 1.75;
+  margin-bottom: 32px;
+  max-width: 520px;
+}
+.resume-rule {
+  height: 1px;
+  background: var(--border);
+}
+.resume-divider {
+  margin-bottom: 32px;
+}
+.resume-section {
+  margin-bottom: 32px;
+}
+.resume-section > .resume-rule {
+  margin-top: 4px;
+}
+.resume-section:last-child {
+  margin-bottom: 0;
+}
+
+.resume-section-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.resume-section-label h2 {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--foreground-subtle);
+  white-space: nowrap;
+}
+.resume-section-label .resume-rule {
+  flex: 1;
+}
+
+.resume-entry {
+  margin-bottom: 22px;
+}
+.resume-entry-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  margin-bottom: 4px;
+}
+.resume-entry-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--foreground);
+}
+.resume-entry-dates {
+  font-size: 11px;
+  color: var(--foreground-muted);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+.resume-entry-dates .is-active,
+.resume-entry-org.is-active {
+  color: var(--primary);
+}
+.resume-dash {
+  margin: 0 2px;
+}
+.resume-entry-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.resume-entry-meta:not(:last-child) {
+  margin-bottom: 8px;
+}
+.resume-entry-org {
+  font-size: 12px;
+  color: var(--foreground-muted);
+}
+.resume-entry-location {
+  font-size: 11px;
+  color: var(--foreground-subtle);
+}
+.resume-entry-employment {
+  font-size: 10px;
+  color: var(--foreground-subtle);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 0 5px;
+}
+.resume-entry-text {
+  font-size: 12px;
+  color: var(--foreground-muted);
+  line-height: 1.75;
+}
+.resume-entry-line {
+  padding-left: 12px;
+  position: relative;
+}
+.resume-entry-line::before {
+  content: '·';
+  position: absolute;
+  left: 0;
+  color: var(--foreground-subtle);
+}
+.resume-skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.resume-skill {
+  font-size: 11px;
+  color: var(--foreground-muted);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 2px 8px;
+}
+
+/* Print: hide the chrome and force a plain black-on-white page. The margin
+   lives on the content instead of @page so the browser has no room to print
+   its own title/date header above the resume. */
+@media print {
+  .site-nav,
+  .skip-link,
+  .resume-print-btn {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+    color: #0a0a0b !important;
+  }
+  .resume-main {
+    padding: 0.9cm 1.4cm;
+    max-width: none;
+  }
+  .resume-main,
+  .resume-main * {
+    color: #000 !important;
+    border-color: #000 !important;
+    background: transparent !important;
+  }
+  .resume-main a {
+    text-decoration: underline;
+  }
+  .resume-main .resume-rule {
+    background: #000 !important;
+    opacity: 0.3;
+  }
+  .resume-header {
+    margin-bottom: 18px;
+  }
+  .resume-bio {
+    margin-bottom: 16px;
+    max-width: none;
+  }
+  .resume-section {
+    margin-bottom: 14px;
+  }
+  .resume-section-label {
+    margin-bottom: 10px;
+  }
+  .resume-entry {
+    margin-bottom: 12px;
+  }
+  .resume-entry-text {
+    line-height: 1.45;
+  }
+  @page {
+    margin: 0;
+  }
+}

@@ -254,20 +254,6 @@
   overflow-x: auto;
 }
 
-/* ── Post list rows: stretched link keeps the whole row clickable ── */
-.post-row {
-  position: relative;
-}
-.post-row-link::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-}
-.post-row .post-tags {
-  position: relative;
-  z-index: 1;
-}
-
 /* ────────────────────────────────────────────────────────────────
    highlight.js token colors — dark (default)
    ──────────────────────────────────────────────────────────────── */
@@ -430,9 +416,292 @@
   opacity: 1;
 }
 
+/* ────────────────────────────────────────────────────────────────
+   Blog chrome — list, filters, pagination, post header
+   ──────────────────────────────────────────────────────────────── */
+.blog-page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: clamp(72px, 10vw, 88px) clamp(18px, 5vw, 24px) 80px;
+}
+.blog-status {
+  color: var(--foreground-muted);
+  font-size: var(--text-sm);
+}
+.blog-missing {
+  color: var(--foreground-subtle);
+  font-size: var(--text-base);
+}
+.blog-back {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 0 28px;
+  color: var(--foreground-muted);
+  font-size: var(--text-sm);
+  font-family: var(--font-mono);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.blog-head {
+  margin-bottom: 28px;
+}
+.blog-title {
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.blog-subtitle {
+  color: var(--foreground-muted);
+  font-size: var(--text-sm);
+}
+
+/* search + tag filter row */
+.blog-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.blog-toolbar.is-filtered {
+  margin-bottom: 10px;
+}
+.blog-search-field {
+  position: relative;
+  flex: 1;
+}
+.blog-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--foreground-subtle);
+  font-size: var(--text-sm);
+  pointer-events: none;
+}
+.blog-search {
+  width: 100%;
+  padding: 10px 12px 10px 32px;
+  background: var(--input);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  outline: none;
+}
+.blog-search:focus {
+  border-color: var(--primary);
+}
 .blog-search:focus-visible {
-  outline: 2px solid var(--ring) !important;
+  outline: 2px solid var(--ring);
   outline-offset: 2px;
+}
+.blog-filter {
+  position: relative;
+  flex-shrink: 0;
+}
+.blog-filter-toggle {
+  height: 100%;
+  padding: 0 14px;
+  background: var(--input);
+  color: var(--foreground-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: all var(--transition-base);
+}
+.blog-filter-toggle svg {
+  flex-shrink: 0;
+}
+.blog-filter-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 50;
+  background: var(--background-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 12px;
+  width: 272px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
+}
+.blog-filter-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+/* Small mono chips: filter options, active-tag pills, "clear all", pager. */
+.blog-chip {
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  padding: 3px 9px;
+  border-radius: var(--radius-sm);
+  background: var(--background-muted);
+  color: var(--foreground-subtle);
+  border: 1px solid var(--border);
+  transition: all var(--transition-base);
+}
+.blog-chip.is-on,
+.blog-filter-toggle.is-on {
+  background: var(--primary-subtle);
+  color: var(--primary);
+  border-color: var(--primary-ring);
+}
+.blog-filter-clear {
+  margin-top: 10px;
+  width: 100%;
+  padding: 5px;
+  background: none;
+  color: var(--foreground-muted);
+}
+.blog-active-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.blog-active-tags .blog-chip {
+  padding: 2px 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.blog-chip-remove {
+  opacity: 0.7;
+  font-size: 11px;
+  line-height: 1;
+}
+.blog-count {
+  font-size: var(--text-xs);
+  color: var(--foreground-faint);
+  margin: 0 0 18px;
+  font-family: var(--font-mono);
+}
+.blog-empty {
+  color: var(--foreground-subtle);
+  font-size: var(--text-sm);
+  padding: 24px 0;
+}
+
+/* Post list rows: a stretched link keeps the whole row clickable, and the tag
+   chips sit above it instead of being nested inside an interactive element. */
+.post-list {
+  display: flex;
+  flex-direction: column;
+}
+.post-row {
+  position: relative;
+  border-bottom: 1px solid var(--border);
+  padding: 18px 0;
+}
+.post-row-link {
+  cursor: pointer;
+  font-family: var(--font-mono);
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.post-row-link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+.post-row-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 14px;
+}
+.post-row-title {
+  font-weight: 600;
+  font-size: var(--text-base);
+  color: var(--foreground);
+}
+.post-row-date {
+  font-size: var(--text-xs);
+  color: var(--foreground-subtle);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.post-row-desc {
+  font-size: var(--text-sm);
+  color: var(--foreground-muted);
+  line-height: 1.55;
+}
+.post-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.post-row .post-tags {
+  position: relative;
+  z-index: 1;
+  margin-top: 7px;
+}
+
+.blog-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin-top: 36px;
+  font-family: var(--font-mono);
+}
+.blog-pager .blog-chip {
+  padding: 6px 10px;
+}
+.blog-pager .blog-chip.is-on {
+  font-weight: 600;
+}
+.blog-pager .blog-pager-step {
+  padding: 6px 12px;
+  color: var(--foreground-muted);
+}
+.blog-pager-step:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+/* Single post header */
+/* a <time>, so it needs to be told it is a block */
+.post-date {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--foreground-subtle);
+  margin-bottom: 8px;
+  font-family: var(--font-mono);
+}
+.post-title {
+  font-size: clamp(1.6rem, 6vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 14px;
+  line-height: 1.2;
+}
+.post-header-tags {
+  margin-bottom: 36px;
+}
+
+.blog-inline-code {
+  background: var(--background-muted);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  color: var(--foreground-muted);
+  border: 1px solid var(--border);
 }
 
 .blog-tag {

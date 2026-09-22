@@ -121,54 +121,17 @@ export default function PostView({ post, onBack }) {
   }, [html]);
 
   return (
-    <main
-      style={{
-        maxWidth: '760px',
-        margin: '0 auto',
-        padding: 'clamp(72px, 10vw, 88px) clamp(18px, 5vw, 24px) 80px',
-      }}
-    >
-      <button
-        onClick={onBack}
-        style={{
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          padding: '0 0 28px',
-          color: 'var(--foreground-muted)',
-          fontSize: 'var(--text-sm)',
-          fontFamily: 'var(--font-mono)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-        }}
-      >
+    <main className="blog-page">
+      <button type="button" className="blog-back" onClick={onBack}>
         ← all posts
       </button>
 
-      <p
-        style={{
-          fontSize: 'var(--text-xs)',
-          color: 'var(--foreground-subtle)',
-          marginBottom: '8px',
-          fontFamily: 'var(--font-mono)',
-        }}
-      >
+      <time className="post-date" dateTime={post.date || undefined}>
         {fmtDate(post.date)}
-      </p>
-      <h1
-        style={{
-          fontSize: 'clamp(1.6rem, 6vw, 2rem)',
-          fontWeight: 700,
-          letterSpacing: '-0.02em',
-          margin: '0 0 14px',
-          lineHeight: 1.2,
-        }}
-      >
-        {post.title}
-      </h1>
+      </time>
+      <h1 className="post-title">{post.title}</h1>
       {post.tags.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '36px' }}>
+        <div className="post-tags post-header-tags">
           {post.tags.map((t) => (
             <ClickableTag key={t} onClick={() => goToTag(t)}>
               {t}

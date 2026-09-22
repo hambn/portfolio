@@ -33,74 +33,26 @@ function RepoCard({ repo }) {
 
   return (
     <a href={repo.html_url} target="_blank" rel="noopener noreferrer" className="repo-card">
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          gap: '8px',
-          marginBottom: '8px',
-        }}
-      >
+      <div className="repo-card-head">
         <span className="repo-card-name">{repo.name}</span>
         {repo.stargazers_count > 0 && (
-          <span
-            style={{ fontSize: 'var(--text-xs)', color: 'var(--foreground-subtle)', flexShrink: 0 }}
-          >
-            ★ {repo.stargazers_count}
-          </span>
+          <span className="repo-card-stars">★ {repo.stargazers_count}</span>
         )}
       </div>
 
-      {repo.description && (
-        <p
-          style={{
-            fontSize: 'var(--text-xs)',
-            color: 'var(--foreground-muted)',
-            lineHeight: '1.55',
-            marginBottom: '14px',
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-          }}
-        >
-          {repo.description}
-        </p>
-      )}
+      {repo.description && <p className="repo-card-desc">{repo.description}</p>}
 
-      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+      <div className="repo-card-foot">
         {repo.language && (
-          <span
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px',
-              fontSize: 'var(--text-xs)',
-              color: 'var(--foreground-subtle)',
-            }}
-          >
+          <span className="repo-card-lang">
             <span
-              style={{
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                background: LANG_COLORS[repo.language] || '#888',
-                flexShrink: 0,
-              }}
-            ></span>
+              className="repo-card-dot"
+              style={{ background: LANG_COLORS[repo.language] || '#888' }}
+            />
             {repo.language}
           </span>
         )}
-        <span
-          style={{
-            fontSize: 'var(--text-xs)',
-            color: 'var(--foreground-faint)',
-            marginLeft: 'auto',
-          }}
-        >
-          {pushed}
-        </span>
+        <span className="repo-card-pushed">{pushed}</span>
       </div>
     </a>
   );
@@ -144,50 +96,37 @@ export default function Projects() {
     return () => ctrl.abort();
   }, [attempt]);
 
-  const wrap = { maxWidth: '900px', margin: '0 auto', padding: '88px 24px 80px' };
-
-  if (loading)
+  if (loading) {
+    const githubUrl = PortfolioData.peek('links')?.github?.url;
     return (
-      <main style={wrap}>
-        <h1 style={{ fontSize: 'var(--text-2xl)', marginBottom: '6px' }}>projects</h1>
-        <p style={{ marginBottom: '24px' }}>
-          <a href={PortfolioData.peek('links')?.github?.url || 'https://github.com/hambn'}>
-            view repositories on github ↗
-          </a>
-        </p>
-        <span
-          role="status"
-          style={{ color: 'var(--foreground-muted)', fontSize: 'var(--text-sm)' }}
-        >
+      <main className="projects-page">
+        <h1 className="projects-title">projects</h1>
+        {githubUrl && (
+          <p className="projects-github">
+            <a href={githubUrl}>view repositories on github ↗</a>
+          </p>
+        )}
+        <span role="status" className="projects-status">
           fetching repos...
         </span>
       </main>
     );
+  }
 
   if (error)
     return (
-      <main style={wrap}>
+      <main className="projects-page">
         <ErrorState message={error} onRetry={() => setAttempt((a) => a + 1)} />
       </main>
     );
 
   return (
-    <main style={wrap}>
-      <div style={{ marginBottom: '40px' }}>
-        <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: '700', marginBottom: '6px' }}>
-          projects
-        </h1>
-        <p style={{ color: 'var(--foreground-muted)', fontSize: 'var(--text-sm)' }}>
-          {repos.length} public repositories on github
-        </p>
+    <main className="projects-page">
+      <div className="projects-head">
+        <h1 className="projects-title">projects</h1>
+        <p className="projects-status">{repos.length} public repositories on github</p>
       </div>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-          gap: '10px',
-        }}
-      >
+      <div className="repo-grid">
         {repos.map((r) => (
           <RepoCard key={r.id} repo={r} />
         ))}

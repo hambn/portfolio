@@ -1,6 +1,6 @@
 import React from 'react';
 import { avatarImage } from '../../lib/api.js';
-import { navigate } from '../../lib/router.js';
+import { followRoute, routeHref } from '../../lib/router.js';
 
 const AVATAR_SIZE = 72;
 
@@ -12,6 +12,7 @@ const ROUTES = [
 
 // Avatar, name, handle, the bio paragraphs and the three route buttons.
 export default function Intro({ profile }) {
+  // falls back to the one-line bio used for meta/cards
   const paragraphs = profile?.intro?.length ? profile.intro : [profile?.bio].filter(Boolean);
   const avatarSource =
     profile?.avatarSource ||
@@ -19,7 +20,7 @@ export default function Intro({ profile }) {
 
   return (
     <React.Fragment>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '32px' }}>
+      <div className="home-hero">
         {/* fetchPriority high: this is the home page's LCP candidate, and React
             hoists a matching <link rel="preload"> into the prerendered <head>. */}
         <img
@@ -32,52 +33,20 @@ export default function Intro({ profile }) {
           className="home-avatar"
         />
         <div>
-          <h1
-            style={{
-              fontSize: 'var(--text-3xl)',
-              fontWeight: '700',
-              letterSpacing: '-0.025em',
-              marginBottom: '4px',
-              lineHeight: 1.2,
-            }}
-          >
-            {profile?.name || ''}
-          </h1>
-          <p style={{ fontSize: 'var(--text-sm)', fontWeight: '500', color: 'var(--primary)' }}>
-            @{profile?.handle || ''}
-          </p>
+          <h1 className="home-name">{profile?.name || ''}</h1>
+          <p className="home-handle">@{profile?.handle || ''}</p>
         </div>
       </div>
 
-      {/* intro paragraphs — falls back to the one-line bio used for meta/cards */}
-      <div
-        style={{
-          color: 'var(--foreground-muted)',
-          fontSize: 'var(--text-base)',
-          lineHeight: '1.85',
-          // ~70 characters per line — comfortable for multi-sentence paragraphs.
-          maxWidth: '620px',
-          marginBottom: '36px',
-          display: 'grid',
-          gap: '18px',
-        }}
-      >
+      <div className="home-intro">
         {paragraphs.map((p, i) => (
           <p key={i}>{p}</p>
         ))}
       </div>
 
-      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '56px' }}>
+      <div className="home-actions">
         {ROUTES.map(({ route, label, className }) => (
-          <a
-            key={route}
-            href={import.meta.env.BASE_URL + route + '/'}
-            onClick={(e) => {
-              e.preventDefault();
-              navigate(route);
-            }}
-            className={className}
-          >
+          <a key={route} href={routeHref(route)} onClick={followRoute(route)} className={className}>
             {label}
           </a>
         ))}

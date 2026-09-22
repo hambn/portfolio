@@ -6,9 +6,9 @@ export default function Stack({ skills }) {
   if (!skills?.length) return null;
 
   return (
-    <div style={{ marginBottom: '56px' }}>
+    <div className="home-section">
       <SectionHead command="stack --list" />
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+      <div className="stack-list">
         {skills.map((s) => (
           <span className="stack-chip" key={s}>
             {s}

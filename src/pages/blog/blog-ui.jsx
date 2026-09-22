@@ -10,24 +10,11 @@ export const fmtDate = (d) => {
   return date.toLocaleDateString('en', { year: 'numeric', month: 'long', day: 'numeric' });
 };
 
-export const InlineCode = ({ children }) => (
-  <code
-    style={{
-      background: 'var(--background-muted)',
-      padding: '1px 6px',
-      borderRadius: 'var(--radius-sm)',
-      fontSize: 'var(--text-xs)',
-      color: 'var(--foreground-muted)',
-      border: '1px solid var(--border)',
-    }}
-  >
-    {children}
-  </code>
-);
+export const InlineCode = ({ children }) => <code className="blog-inline-code">{children}</code>;
 
 // A tag chip that navigates to the blog list filtered by that tag.
 export const ClickableTag = ({ children, onClick }) => (
-  <button className="blog-tag" onClick={onClick}>
+  <button type="button" className="blog-tag" onClick={onClick}>
     {children}
   </button>
 );
