@@ -1,5 +1,5 @@
 import type { Services } from '../contracts.js';
-import { DAY } from '../lib/ttl.js';
+import { DAY, HOUR } from '../lib/ttl.js';
 import { readJSON } from '../lib/http.js';
 import { z } from 'zod';
 
@@ -35,7 +35,7 @@ const DISPOSABLE = new Set([
   'inboxkitten.com',
 ]);
 
-export interface AddressParts {
+interface AddressParts {
   address: string;
   local: string;
   domain: string;
@@ -103,7 +103,7 @@ export async function domainAcceptsMail(services: Services, domain: string): Pro
   // Negative answers expire sooner: a domain being set up should not stay
   // blocked for a day after its records appear.
   await services.state.put(key, deliverable ? '1' : '0', {
-    expirationTtl: deliverable ? DAY : 3600,
+    expirationTtl: deliverable ? DAY : HOUR,
   });
   return deliverable;
 }

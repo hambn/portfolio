@@ -27,10 +27,8 @@ export async function handle(request: Request, services: Services) {
       schema: repositories,
     },
   };
-  const route = Object.hasOwn(routes, url.pathname)
-    ? routes[url.pathname as keyof typeof routes]
-    : undefined;
-  if (!route) return null;
+  // routes.ts only dispatches the three paths above here.
+  const route = routes[url.pathname as keyof typeof routes];
   return withCache(services, request, async () => {
     const response = await fetchWithTimeout(services, route.url, {
       headers: { 'User-Agent': 'portfolio-api', Accept: 'application/json' },

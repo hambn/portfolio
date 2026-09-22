@@ -41,11 +41,10 @@ export async function handleRequest(request: Request, services: Services): Promi
       const body = request.method === 'POST' ? await readBytes(request, MAX_REQUEST_BYTES) : null;
       if (request.method === 'POST' && !body) response = json({ error: 'payload_too_large' }, 413);
       else {
-        response =
-          (await route!.handler(
-            new Request(url, { method: request.method, headers: request.headers, body }),
-            services,
-          )) ?? json({ error: 'not found' }, 404);
+        response = await route!.handler(
+          new Request(url, { method: request.method, headers: request.headers, body }),
+          services,
+        );
         if (response.headers.get('Content-Type')?.includes('application/json')) {
           const text = await response.text();
           if (mayCarryMedia(text)) {

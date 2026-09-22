@@ -1,18 +1,17 @@
+const ENTITIES: Record<string, string> = {
+  '&amp;': '&',
+  '&lt;': '<',
+  '&gt;': '>',
+  '&quot;': '"',
+  '&apos;': "'",
+  '&nbsp;': ' ',
+};
+
 export function decodeHtml(value: unknown) {
   return String(value ?? '')
     .replace(
       /&(?:amp|lt|gt|quot|apos|nbsp);/gi,
-      (entity) =>
-        (
-          ({
-            '&amp;': '&',
-            '&lt;': '<',
-            '&gt;': '>',
-            '&quot;': '"',
-            '&apos;': "'",
-            '&nbsp;': ' ',
-          }) as Record<string, string>
-        )[entity.toLowerCase()] ?? entity,
+      (entity) => ENTITIES[entity.toLowerCase()] ?? entity,
     )
     .replace(/&#(x[\da-f]+|\d+);/gi, (_, code) => {
       const value =

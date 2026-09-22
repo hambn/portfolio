@@ -77,6 +77,18 @@ export async function readJSON<T extends z.ZodType>(
   return schema.parse(JSON.parse(new TextDecoder().decode(bytes)));
 }
 
+/** An HTTPS URL on one of `hosts`, with no port or credentials. */
+export const allowedHost = (hosts: string[]) => (source: string) => {
+  const url = new URL(source);
+  return (
+    url.protocol === 'https:' &&
+    hosts.includes(url.hostname) &&
+    !url.port &&
+    !url.username &&
+    !url.password
+  );
+};
+
 // Check every redirect before fetching it, rather than validating only the final URL.
 export async function fetchAllowed(
   services: Services,

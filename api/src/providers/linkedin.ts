@@ -1,18 +1,20 @@
 import { linkedinUsername } from '../../../shared/linkedin.js';
 import { identities } from '../identities.js';
 import type { Services } from '../contracts.js';
-import { json, readBytes, fetchAllowed } from '../lib/http.js';
+import { allowedHost, json, readBytes, fetchAllowed } from '../lib/http.js';
 import {
-  downloadImage,
+  cachedImage,
+  downloadImages,
+  imagePath,
   imageResponse,
   parseSnapshot,
   pendingResponse,
   refreshWithCooldown,
   snapshotExpired,
+  storedImage,
 } from '../lib/snapshot.js';
 import { HOUR } from '../lib/ttl.js';
 import { linkedinProfileSchema, parseLinkedInProfile } from './linkedin-html.js';
-import { allowedMedia } from '../media/sources.js';
 import { z } from 'zod';
 
 // Public guest navigation headers, reproduced from a working logged-out request.
@@ -42,19 +44,19 @@ const IMAGE_HEADERS = {
   Accept: 'image/avif,image/webp,image/*',
 };
 export const configuredLinkedInUsername = identities.linkedin;
-export const linkedInUsernameFor = (services: Services) =>
+const linkedInUsernameFor = (services: Services) =>
   services.config.LINKEDIN_URL
     ? linkedinUsername(services.config.LINKEDIN_URL)
     : configuredLinkedInUsername;
 const cacheKey = (username: string) => `linkedin:profile:v1:${username}`;
-const imageSchema = z.object({ contentType: z.string(), data: z.string() }).nullable();
+const imageSchema = storedImage.nullable();
 const snapshotSchema = z.object({
   profile: linkedinProfileSchema,
   images: z.object({ avatar: imageSchema, banner: imageSchema }),
   updatedAt: z.string().datetime(),
 });
 type Snapshot = z.infer<typeof snapshotSchema>;
-const failureKey = (services: Services) => `linkedin:failure:${linkedInUsernameFor(services)}`;
+const failureKey = (username: string) => `linkedin:failure:${username}`;
 const failureSchema = z.object({
   error: z.enum([
     'linkedin_upstream_blocked',
@@ -69,43 +71,37 @@ class LinkedInFetchError extends Error {
     super(failure.error);
   }
 }
-const allowedProfile = (source: string) => {
-  const url = new URL(source);
-  return (
-    url.protocol === 'https:' &&
-    ['linkedin.com', 'www.linkedin.com'].includes(url.hostname) &&
-    !url.port &&
-    !url.username &&
-    !url.password
-  );
-};
+const allowedProfile = allowedHost(['linkedin.com', 'www.linkedin.com']);
 
-export async function readLinkedInSnapshot(services: Services): Promise<Snapshot | null> {
-  const username = linkedInUsernameFor(services);
-  if (!username) return null;
+async function readLinkedInSnapshot(
+  services: Services,
+  username: string,
+): Promise<Snapshot | null> {
   const snapshot = parseSnapshot(await services.state.get(cacheKey(username)), snapshotSchema);
   return snapshot?.profile.username === username ? snapshot : null;
 }
 
-export async function refreshLinkedIn(services: Services): Promise<Snapshot | undefined> {
+export async function refreshLinkedIn(
+  services: Services,
+  username = linkedInUsernameFor(services),
+): Promise<Snapshot | undefined> {
+  if (!username) return;
   try {
-    const snapshot = await fetchAndCacheLinkedIn(services);
-    if (snapshot) await services.state.delete(failureKey(services));
+    const snapshot = await fetchAndCacheLinkedIn(services, username);
+    await services.state.delete(failureKey(username));
     return snapshot;
   } catch (error) {
     const failure: Failure =
       error instanceof LinkedInFetchError ? error.failure : { error: 'linkedin_fetch_failed' };
     console.warn('LinkedIn refresh failed', failure);
-    await services.state.put(failureKey(services), JSON.stringify(failure), {
+    await services.state.put(failureKey(username), JSON.stringify(failure), {
       expirationTtl: HOUR,
     });
     throw error;
   }
 }
 
-async function fetchAndCacheLinkedIn(services: Services): Promise<Snapshot | undefined> {
-  const username = linkedInUsernameFor(services);
-  if (!username) return;
+async function fetchAndCacheLinkedIn(services: Services, username: string): Promise<Snapshot> {
   const profileUrl = `https://www.linkedin.com/in/${username}/`;
   let response = await fetchAllowed(services, profileUrl, allowedProfile, { headers: HEADERS });
   // A public guest response can issue cookies before serving the profile.
@@ -131,23 +127,10 @@ async function fetchAndCacheLinkedIn(services: Services): Promise<Snapshot | und
   const bytes = await readBytes(response, 2 * 1024 * 1024);
   const profile = bytes && parseLinkedInProfile(new TextDecoder().decode(bytes), username);
   if (!profile) throw new LinkedInFetchError({ error: 'linkedin_profile_unavailable' });
-  const previous = await readLinkedInSnapshot(services);
-  const images: Snapshot['images'] = { avatar: null, banner: null };
-  for (const kind of ['avatar', 'banner'] as const) {
-    const source = profile[kind];
-    if (!source || !allowedMedia('linkedin', source)) continue;
-    // Keep a previously downloaded image when the CDN is temporarily unavailable.
-    images[kind] =
-      (await downloadImage(
-        services,
-        'linkedin',
-        source,
-        { headers: IMAGE_HEADERS },
-        2 * 1024 * 1024,
-      )) ??
-      previous?.images[kind] ??
-      null;
-  }
+  const previous = await readLinkedInSnapshot(services, username);
+  const images = await downloadImages(services, 'linkedin', profile, previous?.images, {
+    headers: IMAGE_HEADERS,
+  });
   const snapshot = { profile, images, updatedAt: new Date(services.now()).toISOString() };
   await services.state.put(cacheKey(username), JSON.stringify(snapshot));
   return snapshot;
@@ -155,32 +138,43 @@ async function fetchAndCacheLinkedIn(services: Services): Promise<Snapshot | und
 
 export async function handle(request: Request, services: Services): Promise<Response> {
   const url = new URL(request.url);
-  const match = url.pathname.match(/^\/linkedin(?:\/(avatar|banner))?\/?$/);
-  if (!match) return json({ error: 'not_found' }, 404);
   const username = linkedInUsernameFor(services);
   if (!username) return json({ error: 'linkedin_not_configured' }, 503);
   const requested = url.searchParams.get('username');
   if (requested && linkedinUsername(requested) !== username)
     return json({ error: 'linkedin_username_not_configured' }, 400);
+  const kind = url.pathname.match(/\/(avatar|banner)\/?$/)?.[1] as 'avatar' | 'banner' | undefined;
+  return kind
+    ? cachedImage(services, request, `/linkedin/${username}/${kind}`, () =>
+        respond(services, username, kind),
+      )
+    : respond(services, username);
+}
+
+async function respond(
+  services: Services,
+  username: string,
+  kind?: 'avatar' | 'banner',
+): Promise<Response> {
   const snapshot =
-    (await readLinkedInSnapshot(services)) ??
+    (await readLinkedInSnapshot(services, username)) ??
     (await refreshWithCooldown(services, `linkedin:retry:${username}`, () =>
-      refreshLinkedIn(services),
+      refreshLinkedIn(services, username),
     ));
   if (!snapshot || snapshotExpired(services, snapshot.updatedAt)) {
     // A missing or invalid failure record is still just a pending cache.
-    const failure = parseSnapshot(await services.state.get(failureKey(services)), failureSchema);
+    const failure = parseSnapshot(await services.state.get(failureKey(username)), failureSchema);
     return pendingResponse(failure || { error: 'linkedin_cache_pending' });
   }
-  const { profile, images, updatedAt } = snapshot;
-  if (match[1]) {
-    const image = images[match[1] as 'avatar' | 'banner'];
+  if (kind) {
+    const image = snapshot.images[kind];
     if (!image) return json({ error: 'linkedin_image_unavailable' }, 404);
     return imageResponse(image);
   }
-  const imagePath = (kind: 'avatar' | 'banner') =>
-    images[kind]
-      ? `/linkedin/${kind}?username=${profile.username}&v=${encodeURIComponent(updatedAt)}`
-      : null;
-  return json({ ...profile, avatar: imagePath('avatar'), banner: imagePath('banner'), updatedAt });
+  return json({
+    ...snapshot.profile,
+    avatar: imagePath('linkedin', snapshot, 'avatar'),
+    banner: imagePath('linkedin', snapshot, 'banner'),
+    updatedAt: snapshot.updatedAt,
+  });
 }

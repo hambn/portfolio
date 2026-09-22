@@ -11,7 +11,7 @@ import { handle as media } from './media/handler.js';
 import { handle as links } from './links.js';
 import { handle as contact } from './mail/contact.js';
 
-export type Handler = (request: Request, services: Services) => Promise<Response | null>;
+export type Handler = (request: Request, services: Services) => Promise<Response>;
 export interface Route {
   handler: Handler;
   // Methods beyond the read-only set every route answers. Only the contact
@@ -19,9 +19,8 @@ export interface Route {
   writes?: boolean;
 }
 
-// Every path the API answers, in one place. Handlers no longer have to be
-// reached by guessing a provider from the first path segment and then
-// re-matching their own pathname, so an unroutable path is decided here once.
+// Every path the API answers, in one place, so an unroutable path is decided
+// here once and a handler never sees one.
 const exact: Record<string, Route> = {
   '/links': { handler: links },
   '/contact': { handler: contact, writes: true },

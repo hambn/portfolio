@@ -5,6 +5,14 @@ import { DISCORD_TTL, PROFILE_TTL } from '../lib/ttl.js';
 import { lanyardData } from '../lib/schemas.js';
 import { fetchMedia } from '../media/handler.js';
 
+async function lanyard(services: Services) {
+  const response = await fetchWithTimeout(
+    services,
+    `https://api.lanyard.rest/v1/users/${services.config.DISCORD_ID}`,
+  );
+  return readJSON(response, lanyardData);
+}
+
 export async function handle(request: Request, services: Services) {
   const { pathname } = new URL(request.url);
   if (!/^\d+$/.test(services.config.DISCORD_ID))
@@ -12,11 +20,7 @@ export async function handle(request: Request, services: Services) {
   if (pathname === '/discord/avatar') {
     // proxied through our own domain + edge cache, so the browser never hits discordapp.com
     return withCache(services, request, async () => {
-      const res = await fetchWithTimeout(
-        services,
-        `https://api.lanyard.rest/v1/users/${services.config.DISCORD_ID}`,
-      );
-      const { success, data } = await readJSON(res, lanyardData);
+      const { success, data } = await lanyard(services);
       if (!success || !data) return new Response(null, { status: 502 });
 
       const user = data.discord_user;
@@ -31,11 +35,7 @@ export async function handle(request: Request, services: Services) {
   }
 
   return withCache(services, request, async () => {
-    const res = await fetchWithTimeout(
-      services,
-      `https://api.lanyard.rest/v1/users/${services.config.DISCORD_ID}`,
-    );
-    const { success, data } = await readJSON(res, lanyardData);
+    const { success, data } = await lanyard(services);
 
     if (!success || !data) return json({ error: 'lanyard_failed' }, 200, DISCORD_TTL);
 
@@ -47,8 +47,8 @@ export async function handle(request: Request, services: Services) {
         displayName: user.global_name ?? user.username,
         id: user.id,
         avatar: '/discord/avatar',
-        status: data.discord_status, // online | idle | dnd | offline
-        activities: data.activities, // games, custom status, etc.
+        status: data.discord_status,
+        activities: data.activities,
       },
       200,
       DISCORD_TTL,

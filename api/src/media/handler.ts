@@ -30,14 +30,14 @@ export async function fetchMedia(
 }
 
 export async function handle(request: Request, services: Services): Promise<Response> {
-  const match = new URL(request.url).pathname.match(/^\/media\/([a-z]+)\/([A-Za-z0-9_-]{1,4096})$/);
-  if (!match) return json({ error: 'not_found' }, 404);
+  // routes.ts only sends `/media/<provider>/<id>` with a base64url id.
+  const [, , provider, id] = new URL(request.url).pathname.split('/');
   let source: string;
   try {
-    source = atob(match[2].replace(/-/g, '+').replace(/_/g, '/'));
+    source = atob(id.replace(/-/g, '+').replace(/_/g, '/'));
   } catch {
     return json({ error: 'invalid_media' }, 400);
   }
-  if (!allowedMedia(match[1], source)) return json({ error: 'invalid_media' }, 400);
-  return withCache(services, request, () => fetchMedia(services, match[1], source));
+  if (!allowedMedia(provider, source)) return json({ error: 'invalid_media' }, 400);
+  return withCache(services, request, () => fetchMedia(services, provider, source));
 }

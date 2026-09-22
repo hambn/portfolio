@@ -16,7 +16,8 @@ time, and background tasks. Keep platform globals in adapters and entrypoints.
   holds the form token and the send limits, `contact.ts` is the route.
 - `src/lib/`: bounded HTTP reads, HTML parsing, schemas, cache policy, presence protocol.
   `lib/ttl.ts` holds the named cache lifetimes; `lib/snapshot.ts` holds the shared
-  persisted-snapshot serving (retry cooldown, 7-day stale limit, image download).
+  persisted-snapshot serving (retry cooldown, 7-day stale limit, image download, image responses cached per
+  snapshot version).
 - `src/media/`: allowlisted image sources, asset URLs, and cached image responses.
 - `src/adapters/`: Cloudflare KV/Cache API and persistent Node disk storage; WebSocket relays.
 - `src/entrypoints/`: Worker handlers and Node HTTP startup/shutdown.
@@ -109,7 +110,8 @@ images, data requests, and the live presence socket go through the API.
 | `/discord` | 60 seconds |
 | `/discord/avatar` | 1 hour |
 | `/discord/socket` | WebSocket relay, subscription pinned to configured Discord ID |
-| `/linkedin` | 1 hour; last good snapshot for up to 7 days on upstream failure |
+| `/linkedin`, `/x` | Uncached JSON from hourly persisted snapshot; stale limit 7 days |
+| `/linkedin/avatar`, `/linkedin/banner`, `/x/avatar`, `/x/banner` | 1 hour, persisted snapshot image |
 | `/telegram` | Uncached JSON from hourly persisted snapshot; stale limit 7 days |
 | `/telegram/avatar` | 1 hour, persisted snapshot image |
 | `/github`, `/github/repos`, `/github/contributions` | 1 hour, configured GitHub account only |
@@ -122,9 +124,9 @@ it. A card that fails carries `{ maxAge: 0, error }` and never fails the envelop
 a card that succeeds carries its route's `Cache-Control` max-age, which the client
 uses to decide whether an expanded card still needs its own request.
 
-Cloudflare Cron refreshes Telegram hourly. Node refreshes on startup and hourly
+Cloudflare Cron refreshes the Telegram, X and LinkedIn snapshots hourly. Node refreshes on startup and hourly
 without blocking HTTP startup; overlapping Node refresh jobs share one promise.
-Cold Telegram requests can bootstrap the snapshot. A one-minute persisted retry
+Cold requests can bootstrap a snapshot. A one-minute persisted retry
 cooldown reduces retries, but KV is eventually consistent and cannot guarantee
 one global fetch across data centers. Failed refreshes retain previous metadata;
 a failed avatar download retains the previous image. No stale playback is served.

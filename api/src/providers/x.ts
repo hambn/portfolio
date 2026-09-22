@@ -1,23 +1,25 @@
 import { xUsername } from '../../../shared/x.js';
 import { identities } from '../identities.js';
 import type { Services } from '../contracts.js';
-import { json, readBytes, fetchAllowed } from '../lib/http.js';
+import { allowedHost, json, readBytes, fetchAllowed } from '../lib/http.js';
 import {
-  downloadImage,
+  PROFILE_HEADERS,
+  cachedImage,
+  downloadImages,
+  imagePath,
   imageResponse,
   parseSnapshot,
   pendingResponse,
   refreshWithCooldown,
   snapshotExpired,
+  storedImage,
 } from '../lib/snapshot.js';
 import { stripHtml, metaContent, htmlAttributes, decodeHtml } from '../lib/html.js';
-import { allowedMedia } from '../media/sources.js';
 import { z } from 'zod';
 
-const HEADERS = { 'User-Agent': 'Mozilla/5.0', 'Accept-Language': 'en-US,en;q=0.9' };
 export const configuredXUsername = identities.x;
 const cacheKey = (username: string) => `x:profile:v1:${username}`;
-const imageSchema = z.object({ contentType: z.string(), data: z.string() }).nullable();
+const imageSchema = storedImage.nullable();
 const profileSchema = z.object({
   username: z.string(),
   name: z.string(),
@@ -38,16 +40,7 @@ const snapshotSchema = z.object({
   updatedAt: z.string().datetime(),
 });
 type Snapshot = z.infer<typeof snapshotSchema>;
-const allowedProfile = (source: string) => {
-  const url = new URL(source);
-  return (
-    url.protocol === 'https:' &&
-    ['x.com', 'www.x.com', 'twitter.com', 'www.twitter.com'].includes(url.hostname) &&
-    !url.port &&
-    !url.username &&
-    !url.password
-  );
-};
+const allowedProfile = allowedHost(['x.com', 'www.x.com', 'twitter.com', 'www.twitter.com']);
 
 // Parse the public, server-rendered profile. Never evaluate X's hydration scripts.
 export function parseXProfile(html: string, username: string) {
@@ -91,7 +84,7 @@ export function parseXProfile(html: string, username: string) {
   };
 }
 
-export async function readXSnapshot(services: Services): Promise<Snapshot | null> {
+async function readXSnapshot(services: Services): Promise<Snapshot | null> {
   if (!configuredXUsername) return null;
   const snapshot = parseSnapshot(
     await services.state.get(cacheKey(configuredXUsername)),
@@ -106,7 +99,7 @@ export async function refreshX(services: Services): Promise<Snapshot | undefined
     services,
     `https://x.com/${configuredXUsername}`,
     allowedProfile,
-    { headers: HEADERS },
+    { headers: PROFILE_HEADERS },
   );
   if (!response.ok) {
     await response.body?.cancel();
@@ -116,16 +109,9 @@ export async function refreshX(services: Services): Promise<Snapshot | undefined
   const profile = bytes && parseXProfile(new TextDecoder().decode(bytes), configuredXUsername);
   if (!profile) throw new Error('X profile HTML unavailable');
   const previous = await readXSnapshot(services);
-  const images: Snapshot['images'] = { avatar: null, banner: null };
-  for (const kind of ['avatar', 'banner'] as const) {
-    const source = profile[kind];
-    if (!source || !allowedMedia('x', source)) continue;
-    // Keep a previously downloaded image when the CDN is temporarily unavailable.
-    images[kind] =
-      (await downloadImage(services, 'x', source, { headers: HEADERS }, 2 * 1024 * 1024)) ??
-      previous?.images[kind] ??
-      null;
-  }
+  const images = await downloadImages(services, 'x', profile, previous?.images, {
+    headers: PROFILE_HEADERS,
+  });
   const snapshot = { profile, images, updatedAt: new Date(services.now()).toISOString() };
   await services.state.put(cacheKey(configuredXUsername), JSON.stringify(snapshot));
   return snapshot;
@@ -133,12 +119,17 @@ export async function refreshX(services: Services): Promise<Snapshot | undefined
 
 export async function handle(request: Request, services: Services): Promise<Response> {
   const url = new URL(request.url);
-  const match = url.pathname.match(/^\/x(?:\/(avatar|banner))?\/?$/);
-  if (!match) return json({ error: 'not_found' }, 404);
   if (!configuredXUsername) return json({ error: 'x_not_configured' }, 503);
   const requested = url.searchParams.get('username');
   if (requested && xUsername(requested) !== configuredXUsername)
     return json({ error: 'x_username_not_configured' }, 400);
+  const kind = url.pathname.match(/\/(avatar|banner)\/?$/)?.[1] as 'avatar' | 'banner' | undefined;
+  return kind
+    ? cachedImage(services, request, `/x/${kind}`, () => respond(services, kind))
+    : respond(services);
+}
+
+async function respond(services: Services, kind?: 'avatar' | 'banner'): Promise<Response> {
   const snapshot =
     (await readXSnapshot(services)) ??
     (await refreshWithCooldown(services, `x:retry:${configuredXUsername}`, () =>
@@ -146,15 +137,15 @@ export async function handle(request: Request, services: Services): Promise<Resp
     ));
   if (!snapshot || snapshotExpired(services, snapshot.updatedAt))
     return pendingResponse({ error: 'x_cache_pending' });
-  const { profile, images, updatedAt } = snapshot;
-  if (match[1]) {
-    const image = images[match[1] as 'avatar' | 'banner'];
+  if (kind) {
+    const image = snapshot.images[kind];
     if (!image) return json({ error: 'x_image_unavailable' }, 404);
     return imageResponse(image);
   }
-  const imagePath = (kind: 'avatar' | 'banner') =>
-    images[kind]
-      ? `/x/${kind}?username=${profile.username}&v=${encodeURIComponent(updatedAt)}`
-      : null;
-  return json({ ...profile, avatar: imagePath('avatar'), banner: imagePath('banner'), updatedAt });
+  return json({
+    ...snapshot.profile,
+    avatar: imagePath('x', snapshot, 'avatar'),
+    banner: imagePath('x', snapshot, 'banner'),
+    updatedAt: snapshot.updatedAt,
+  });
 }

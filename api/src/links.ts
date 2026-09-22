@@ -1,4 +1,5 @@
 import type { Services } from './contracts.js';
+import type { Handler } from './routes.js';
 import { json } from './lib/http.js';
 import { DISCORD_TTL, PROFILE_TTL, STEAM_TTL } from './lib/ttl.js';
 import { handle as spotify } from './providers/spotify.js';
@@ -9,8 +10,6 @@ import { handle as x } from './providers/x.js';
 import { handle as telegram } from './providers/telegram.js';
 import { handle as gitlab } from './providers/gitlab.js';
 import { handle as github } from './providers/github.js';
-
-type Handler = (request: Request, services: Services) => Promise<Response | null>;
 
 // One request that answers every card on the links page. Each entry delegates
 // to the provider handler that already serves its single-card route, so
@@ -59,7 +58,6 @@ async function loadCard(
     // it is configured for, so a batch cannot be steered at another account.
     const url = new URL(path, request.url);
     const response = await handler(new Request(url, { headers: request.headers }), services);
-    if (!response) return [key, { maxAge: 0, error: 'not_found' }];
     const body = await response.text();
     let parsed: unknown = null;
     try {

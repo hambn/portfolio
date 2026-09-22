@@ -1,7 +1,7 @@
 // Response cache lifetimes, in seconds. Kept together so the route table in
 // routes.ts and the `maxAge` a batch response reports per card cannot drift
 // from the Cache-Control a single-card route actually sends.
-export const MINUTE = 60;
+const MINUTE = 60;
 export const HOUR = 3600;
 export const DAY = 86400;
 

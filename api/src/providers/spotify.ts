@@ -70,9 +70,8 @@ async function spotifyGet(services: Services, path: string, accessToken: string 
 }
 
 export async function handle(request: Request, services: Services) {
-  const { pathname } = new URL(request.url);
   // Playback is intentionally uncached and independent of slower library requests.
-  if (pathname === '/spotify' && new URL(request.url).searchParams.get('playback') === '1') {
+  if (new URL(request.url).searchParams.get('playback') === '1') {
     const token = await getSpotifyToken(services);
     if (token.error) return json(token, 401);
     const response = await fetchWithTimeout(
@@ -104,82 +103,74 @@ export async function handle(request: Request, services: Services) {
         : await readJSON(response, spotifyData);
     return new Response(JSON.stringify({ status, playbackOnly: true }), { headers });
   }
+
   // GET /spotify — everything in one request, all fetched in parallel
-  if (pathname === '/spotify') {
-    const token = await getSpotifyToken(services);
-    if (token.error) return json(token, 401);
+  const token = await getSpotifyToken(services);
+  if (token.error) return json(token, 401);
 
-    const endpointResults = await Promise.all(
-      [
-        ['status', '/me/player/currently-playing'] as const,
-        ['profile', '/me'] as const,
-        ['topTracks', '/me/top/tracks?time_range=medium_term&limit=10'] as const,
-        ['topArtists', '/me/top/artists?time_range=medium_term&limit=10'] as const,
-        ['recent', '/me/player/recently-played?limit=10'] as const,
-        ['playlists', '/me/playlists?limit=50'] as const,
-      ].map(async ([name, path]) => ({
-        name,
-        result: await spotifyGet(services, path, token.access_token),
-      })),
-    );
+  const endpointResults = await Promise.all(
+    [
+      ['status', '/me/player/currently-playing'] as const,
+      ['profile', '/me'] as const,
+      ['topTracks', '/me/top/tracks?time_range=medium_term&limit=10'] as const,
+      ['topArtists', '/me/top/artists?time_range=medium_term&limit=10'] as const,
+      ['recent', '/me/player/recently-played?limit=10'] as const,
+      ['playlists', '/me/playlists?limit=50'] as const,
+    ].map(async ([name, path]) => ({
+      name,
+      result: await spotifyGet(services, path, token.access_token),
+    })),
+  );
 
-    const unauthorized = endpointResults.find(({ result }) => result.status === 401);
-    if (unauthorized) {
-      await services.state.delete('access_token');
-      return json({ error: 'spotify_unauthorized' }, 401);
-    }
-
-    for (const { name, result } of endpointResults) {
-      if (result.error || ![200, 204].includes(result.status)) {
-        console.warn('Spotify endpoint unavailable', name, result.status || 'network');
-      }
-    }
-
-    const values = Object.fromEntries(
-      endpointResults.map(({ name, result }) => [name, result.data]),
-    ) as Record<string, Awaited<ReturnType<typeof spotifyGet>>['data']>;
-    const status = values.status;
-    const profile = values.profile;
-    const topTracks = values.topTracks;
-    const topArtists = values.topArtists;
-    const recent = values.recent;
-    const playlists = values.playlists;
-
-    // Fetch context playlist details if currently playing from one
-    const contextId =
-      status?.context?.type === 'playlist' && typeof status.context.uri === 'string'
-        ? status.context.uri.split(':').pop()
-        : null;
-
-    const contextRaw = contextId
-      ? (
-          await spotifyGet(
-            services,
-            `/playlists/${encodeURIComponent(contextId)}?fields=id,name,images,external_urls,tracks(total),items(total)`,
-            token.access_token,
-          )
-        ).data
-      : null;
-
-    const contextPlaylist = contextRaw
-      ? {
-          id: contextRaw.id,
-          name: contextRaw.name,
-          images: contextRaw.images,
-          url: contextRaw.external_urls?.spotify,
-          totalTracks: contextRaw.tracks?.total ?? 0,
-        }
-      : null;
-
-    return json({
-      status: { ...(status ?? { playing: false }), contextPlaylist },
-      profile,
-      topTracks,
-      topArtists,
-      recent,
-      playlists: playlists?.items?.filter((p) => p.owner?.id === profile?.id && p.public) ?? [],
-    });
+  const unauthorized = endpointResults.find(({ result }) => result.status === 401);
+  if (unauthorized) {
+    await services.state.delete('access_token');
+    return json({ error: 'spotify_unauthorized' }, 401);
   }
 
-  return null;
+  for (const { name, result } of endpointResults) {
+    if (result.error || ![200, 204].includes(result.status)) {
+      console.warn('Spotify endpoint unavailable', name, result.status || 'network');
+    }
+  }
+
+  const values = Object.fromEntries(
+    endpointResults.map(({ name, result }) => [name, result.data]),
+  ) as Record<string, Awaited<ReturnType<typeof spotifyGet>>['data']>;
+  const { status, profile, topTracks, topArtists, recent, playlists } = values;
+
+  // Fetch context playlist details if currently playing from one
+  const contextId =
+    status?.context?.type === 'playlist' && typeof status.context.uri === 'string'
+      ? status.context.uri.split(':').pop()
+      : null;
+
+  const contextRaw = contextId
+    ? (
+        await spotifyGet(
+          services,
+          `/playlists/${encodeURIComponent(contextId)}?fields=id,name,images,external_urls,tracks(total),items(total)`,
+          token.access_token,
+        )
+      ).data
+    : null;
+
+  const contextPlaylist = contextRaw
+    ? {
+        id: contextRaw.id,
+        name: contextRaw.name,
+        images: contextRaw.images,
+        url: contextRaw.external_urls?.spotify,
+        totalTracks: contextRaw.tracks?.total ?? 0,
+      }
+    : null;
+
+  return json({
+    status: { ...(status ?? { playing: false }), contextPlaylist },
+    profile,
+    topTracks,
+    topArtists,
+    recent,
+    playlists: playlists?.items?.filter((p) => p.owner?.id === profile?.id && p.public) ?? [],
+  });
 }

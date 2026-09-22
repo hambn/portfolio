@@ -87,10 +87,6 @@ function resolveMedia(source: string): { provider: string; url: URL } | undefine
   return provider ? { provider, url } : undefined;
 }
 
-export function mediaProvider(source: string): string | undefined {
-  return resolveMedia(source)?.provider;
-}
-
 export function mediaPath(source: string): string | null {
   const resolved = resolveMedia(source);
   if (!resolved) return null;

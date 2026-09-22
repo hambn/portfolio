@@ -1,35 +1,28 @@
 import { telegramUsername } from '../../../shared/telegram.js';
 import { identities } from '../identities.js';
 import type { Services } from '../contracts.js';
-import { json, readBytes, fetchAllowed } from '../lib/http.js';
+import { allowedHost, json, readBytes, fetchAllowed } from '../lib/http.js';
 import {
+  PROFILE_HEADERS,
+  cachedImage,
   downloadImage,
   imageResponse,
   parseSnapshot,
   pendingResponse,
   refreshWithCooldown,
   snapshotExpired,
+  storedImage,
 } from '../lib/snapshot.js';
 import { stripHtml, metaContent, htmlAttributes, decodeHtml } from '../lib/html.js';
 import { allowedMedia } from '../media/sources.js';
 import { z } from 'zod';
 
-const HEADERS = { 'User-Agent': 'Mozilla/5.0', 'Accept-Language': 'en-US,en;q=0.9' };
 export const configuredTelegramUsername = identities.telegram;
 const cacheKey = (username: string) => `telegram:profile:v1:${username}`;
-const allowedProfile = (source: string) => {
-  const url = new URL(source);
-  return (
-    url.protocol === 'https:' &&
-    url.hostname === 't.me' &&
-    !url.port &&
-    !url.username &&
-    !url.password
-  );
-};
+const allowedProfile = allowedHost(['t.me']);
 const snapshotSchema = z.object({
   profile: z.looseObject({ username: z.string(), photo: z.string().nullable() }),
-  image: z.object({ contentType: z.string(), data: z.string() }).nullable(),
+  image: storedImage.nullable(),
   updatedAt: z.string().datetime(),
 });
 type Snapshot = z.infer<typeof snapshotSchema>;
@@ -63,7 +56,9 @@ async function fetchTelegramProfile(services: Services, username: string) {
   const profileUrl = `https://t.me/${username}`;
   let response;
   try {
-    response = await fetchAllowed(services, profileUrl, allowedProfile, { headers: HEADERS });
+    response = await fetchAllowed(services, profileUrl, allowedProfile, {
+      headers: PROFILE_HEADERS,
+    });
   } catch {
     return null;
   }
@@ -75,14 +70,9 @@ async function fetchTelegramProfile(services: Services, username: string) {
     return null;
   }
 
-  let html;
-  try {
-    const bytes = await readBytes(response, 256 * 1024);
-    html = bytes ? new TextDecoder().decode(bytes) : null;
-  } catch {
-    return null;
-  }
-  if (html == null) return null;
+  const bytes = await readBytes(response, 256 * 1024);
+  if (!bytes) return null;
+  const html = new TextDecoder().decode(bytes);
 
   const title =
     telegramElementText(html, 'tgme_page_title') ||
@@ -96,12 +86,11 @@ async function fetchTelegramProfile(services: Services, username: string) {
     metaContent(html, 'og:description') ||
     metaContent(html, 'twitter:description');
   const photo = telegramPhoto(html);
-  const displayUsername = username;
   const contact = telegramElementText(html, 'tgme_page_additional');
 
   return {
-    username: displayUsername,
-    handle: displayUsername,
+    username,
+    handle: username,
     name: title,
     displayName: title,
     description,
@@ -112,11 +101,11 @@ async function fetchTelegramProfile(services: Services, username: string) {
     contact,
     extra: pageExtra,
     siteName: metaContent(html, 'og:site_name') || 'Telegram',
-    title: htmlTitle(html) || `Telegram: Contact @${displayUsername}`,
+    title: htmlTitle(html) || `Telegram: Contact @${username}`,
   };
 }
 
-export async function readTelegramSnapshot(services: Services): Promise<Snapshot | null> {
+async function readTelegramSnapshot(services: Services): Promise<Snapshot | null> {
   if (!configuredTelegramUsername) return null;
   return parseSnapshot(
     await services.state.get(cacheKey(configuredTelegramUsername)),
@@ -138,7 +127,7 @@ export async function refreshTelegram(services: Services): Promise<Snapshot | un
         services,
         'telegram',
         profile.photo,
-        { headers: HEADERS },
+        { headers: PROFILE_HEADERS },
         1024 * 1024,
       )) ??
       previous?.image ??
@@ -151,12 +140,16 @@ export async function refreshTelegram(services: Services): Promise<Snapshot | un
 
 export async function handle(request: Request, services: Services): Promise<Response> {
   const url = new URL(request.url);
-  const match = url.pathname.match(/^\/telegram(?:\/(avatar))?\/?$/);
-  if (!match) return json({ error: 'not_found' }, 404);
   if (!configuredTelegramUsername) return json({ error: 'telegram_not_configured' }, 503);
   const requested = url.searchParams.get('username');
   if (requested && telegramUsername(requested) !== configuredTelegramUsername)
     return json({ error: 'telegram_username_not_configured' }, 400);
+  return /\/avatar\/?$/.test(url.pathname)
+    ? cachedImage(services, request, '/telegram/avatar', () => respond(services, true))
+    : respond(services, false);
+}
+
+async function respond(services: Services, avatar: boolean): Promise<Response> {
   const snapshot =
     (await readTelegramSnapshot(services)) ??
     (await refreshWithCooldown(services, `telegram:retry:${configuredTelegramUsername}`, () =>
@@ -165,7 +158,7 @@ export async function handle(request: Request, services: Services): Promise<Resp
   if (!snapshot || snapshotExpired(services, snapshot.updatedAt))
     return pendingResponse({ error: 'telegram_cache_pending' });
   const { profile, image, updatedAt } = snapshot;
-  if (match[1]) {
+  if (avatar) {
     if (!image) return json({ error: 'telegram_photo_unavailable' }, 404);
     return imageResponse(image);
   }

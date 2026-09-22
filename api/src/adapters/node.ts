@@ -31,7 +31,10 @@ export async function diskState(directory: string, now = Date.now): Promise<Stat
         const parsed = stateEntry.safeParse(JSON.parse(await readFile(path(key), 'utf8')));
         if (!parsed.success) return null;
         const entry = parsed.data;
-        if (entry.expires && entry.expires <= now()) return null;
+        if (entry.expires && entry.expires <= now()) {
+          await unlink(path(key)).catch(() => {});
+          return null;
+        }
         return entry.value;
       } catch (error) {
         if (error instanceof SyntaxError || (error as NodeJS.ErrnoException).code === 'ENOENT')

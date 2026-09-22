@@ -1,4 +1,5 @@
 import type { Services } from '../contracts.js';
+import { DAY, HOUR } from '../lib/ttl.js';
 
 // Limits sized under the provider's own 100/day and 3000/month plan allowance,
 // so a burst can never consume the whole quota and lock out the real senders.
@@ -33,7 +34,7 @@ async function digest(secret: string, value: string): Promise<string> {
   return base64url(await crypto.subtle.sign('HMAC', key, encoder.encode(value)));
 }
 
-export async function hashed(value: string): Promise<string> {
+async function hashed(value: string): Promise<string> {
   return base64url(await crypto.subtle.digest('SHA-256', encoder.encode(value))).slice(0, 22);
 }
 
@@ -79,7 +80,7 @@ function periods(now: number) {
   };
 }
 
-export type QuotaVerdict = { ok: true } | { ok: false; reason: 'ip_rate_limited' | 'mail_paused' };
+type QuotaVerdict = { ok: true } | { ok: false; reason: 'ip_rate_limited' | 'mail_paused' };
 
 // Checked before the message is sent; the counters are only advanced once the
 // provider has accepted it, so a failed send does not burn anyone's allowance.
@@ -109,10 +110,10 @@ export async function recordSend(
   const bump = async (key: string, ttl: number) =>
     services.state.put(key, String((await counter(services, key)) + 1), { expirationTtl: ttl });
   await Promise.all([
-    bump(`mail:count:day:${day}`, 2 * 86400),
-    bump(`mail:count:month:${month}`, 40 * 86400),
-    bump(`mail:ip:hour:${who}:${hour}`, 3600),
-    bump(`mail:ip:day:${who}:${day}`, 86400),
+    bump(`mail:count:day:${day}`, 2 * DAY),
+    bump(`mail:count:month:${month}`, 40 * DAY),
+    bump(`mail:ip:hour:${who}:${hour}`, HOUR),
+    bump(`mail:ip:day:${who}:${day}`, DAY),
     services.state.put(`mail:dup:${await hashed(fingerprint)}`, '1', { expirationTtl: 600 }),
   ]);
 }

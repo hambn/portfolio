@@ -35,6 +35,8 @@ test('disk state and binary cache survive restart; TTL and eviction spare tokens
   );
   now += 61000;
   assert.equal(await state.get('access_token'), null);
+  // Reading an expired entry removes it, leaving only the long-lived token.
+  assert.equal((await readdir(join(root, 'state'))).length, 1);
   assert.equal(await cache.match(key), undefined);
   for (let i = 0; i < 8; i++)
     await cache.put(

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-export const image = z.looseObject({ url: z.string() });
-export const spotifyItem = z.looseObject({
+const image = z.looseObject({ url: z.string() });
+const spotifyItem = z.looseObject({
   id: z.string().optional(),
   images: z.array(image).nullable().optional(),
   owner: z.looseObject({ id: z.string().optional() }).optional(),
@@ -31,7 +31,7 @@ export const tokenData = z.looseObject({
   access_token: z.string().optional(),
   refresh_token: z.string().optional(),
 });
-export const game = z.object({
+const game = z.object({
   appid: z.number(),
   name: z.string().optional(),
   playtime_forever: z.number().default(0),

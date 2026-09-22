@@ -82,6 +82,31 @@ test('X snapshots cache profile and images, retain data on failure, and expire',
   assert.equal((await request()).status, 503);
 });
 
+test('versioned snapshot images are served from the response cache', async () => {
+  let offline = false;
+  const services = testServices({
+    fetch: async (url) =>
+      offline
+        ? new Response(null, { status: 503 })
+        : String(url).startsWith('https://x.com/')
+          ? new Response(html)
+          : new Response(new Uint8Array([4, 5, 6]), { headers: { 'Content-Type': 'image/png' } }),
+  });
+  await refreshX(services);
+  const request = (path: string) =>
+    handleRequest(new Request(new URL(path, 'https://api.test')), services);
+  const { avatar } = await (await request('/x')).json();
+  const first = await request(avatar);
+  assert.equal(first.headers.get('Cache-Control'), 'public, max-age=3600');
+  assert.deepEqual(new Uint8Array(await first.arrayBuffer()), new Uint8Array([4, 5, 6]));
+  // Neither the stored snapshot nor the network is needed for a repeat request.
+  offline = true;
+  await services.state.delete(`x:profile:v1:${username}`);
+  const cached = await request(avatar);
+  assert.equal(cached.headers.get('Content-Type'), 'image/png');
+  assert.deepEqual(new Uint8Array(await cached.arrayBuffer()), new Uint8Array([4, 5, 6]));
+});
+
 test('failed cold fetches use cooldown and reject redirects outside X', async () => {
   let calls = 0;
   const services = testServices({

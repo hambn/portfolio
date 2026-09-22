@@ -3,7 +3,7 @@ import { fetchWithTimeout } from '../lib/http.js';
 
 // A message is already validated and pinned to the configured inbox by the time
 // it reaches a provider: nothing here chooses a recipient.
-export interface MailMessage {
+interface MailMessage {
   from: string;
   to: string;
   replyTo: string;
@@ -42,17 +42,14 @@ const resend: MailProvider = {
       },
       10000,
     );
-    if (!response.ok) {
-      await response.body?.cancel();
-      throw new Error(`resend_rejected_${response.status}`);
-    }
     await response.body?.cancel();
+    if (!response.ok) throw new Error(`resend_rejected_${response.status}`);
   },
 };
 
-// Same shape, different vendor: Mailchannels-style SMTP-over-HTTP APIs and
-// Resend differ only in the envelope, so swapping MAIL_PROVIDER is the whole
-// migration. Add a provider here; nothing else in the API changes.
+// Same shape, different vendor: providers differ only in the envelope, so
+// switching is a change to `email.provider` in links.json. Add a provider
+// here; nothing else in the API changes.
 const postmark: MailProvider = {
   name: 'postmark',
   configured: (services) => Boolean(services.config.MAIL_API_KEY),
@@ -78,11 +75,8 @@ const postmark: MailProvider = {
       },
       10000,
     );
-    if (!response.ok) {
-      await response.body?.cancel();
-      throw new Error(`postmark_rejected_${response.status}`);
-    }
     await response.body?.cancel();
+    if (!response.ok) throw new Error(`postmark_rejected_${response.status}`);
   },
 };
 
