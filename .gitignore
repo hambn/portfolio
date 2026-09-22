@@ -10,11 +10,11 @@ dist/
 
 # secrets / env
 .env
-deployment/.env
+deploy/.env
 
 # cloudflare wrangler
 .wrangler/
-api/wrangler.gen.toml
+apps/api/wrangler.gen.jsonc
 
 # local tool config
 .claude/settings.local.json
@@ -24,6 +24,5 @@ api/wrangler.gen.toml
 
 # API runtime state and test output
 .api-data/
-api/dist/
 playwright-report/
 test-results/

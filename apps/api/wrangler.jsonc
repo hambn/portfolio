@@ -1,0 +1,29 @@
+// This file is a template — deploy via `npm run api:deploy`, not raw wrangler.
+// `npm run api:config` fills in the SPOTIFY_KV_ID placeholder with envsubst and
+// writes wrangler.gen.jsonc (gitignored), which is what gets deployed.
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "portfolio",
+  "main": "src/entrypoints/worker.ts",
+  "compatibility_date": "2026-06-23",
+
+  // No secrets/IDs are committed here. Public config is injected at deploy via
+  // --var where needed (see `deploy` in package.json).
+  "vars": {
+    "CACHE_VERSION": "0",
+  },
+
+  "triggers": {
+    "crons": ["0 * * * *"],
+  },
+
+  // KV id is injected at deploy from the SPOTIFY_KV_ID env var (envsubst →
+  // wrangler.gen.jsonc).
+  // Create the namespace once: wrangler kv namespace create SPOTIFY_KV
+  "kv_namespaces": [
+    {
+      "binding": "SPOTIFY_KV",
+      "id": "${SPOTIFY_KV_ID}",
+    },
+  ],
+}

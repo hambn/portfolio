@@ -1,4 +1,4 @@
-# API (`api/`)
+# API (`apps/api/`, `@portfolio/api`)
 
 The TypeScript application in `src/app.ts` runs on Cloudflare Workers and Node 24.
 Provider modules receive typed services for configuration, state, cache, fetch,
@@ -18,11 +18,18 @@ time, and background tasks. Keep platform globals in adapters and entrypoints.
   `lib/ttl.ts` holds the named cache lifetimes; `lib/snapshot.ts` holds the shared
   persisted-snapshot serving (retry cooldown, 7-day stale limit, image download, image responses cached per
   snapshot version).
-- `src/media/`: allowlisted image sources, asset URLs, and cached image responses.
+- `src/media/`: cached image responses. The allowlisted image sources and asset
+  URL encoding live in `packages/shared/media.ts` (`@portfolio/shared/media`),
+  shared with the site.
 - `src/adapters/`: Cloudflare KV/Cache API and persistent Node disk storage; WebSocket relays.
 - `src/entrypoints/`: Worker handlers and Node HTTP startup/shutdown.
 - `src/scheduled.ts`: Telegram refresh and Node overlap prevention.
-- `tests/`: network-free provider, storage, and HTTP regressions.
+- `tests/`: network-free provider, storage, and HTTP regressions (`*.test.ts`),
+  the Miniflare Worker smoke test (`worker.test.mjs`), and the Docker restart
+  check (`container.mjs`, run only by `test:container`).
+- `scripts/build.mjs`: esbuild bundle of the Node entrypoint → `dist/server.mjs`.
+- `wrangler.jsonc`: Worker config template; `api:config` writes the gitignored
+  `wrangler.gen.jsonc` that deploys use.
 - `worker-configuration.d.ts`: Wrangler-generated bindings and runtime types.
 - `tools/spotify-auth.html`: Spotify PKCE helper.
 
@@ -33,6 +40,7 @@ generates deployment configuration and deploys the Worker. `npm run api:types`
 regenerates Cloudflare types after binding changes. `npm run api:check` runs
 both type checks, API tests, the Node build, and a Worker dry run.
 `npm run check` also lints/formats API code and builds the frontend.
+Root `api:*` scripts delegate to `apps/api` (`npm run <script> -w @portfolio/api`).
 `npm run test:browser` builds a same-origin frontend and checks that rendered
 provider content and the Discord socket use the configured API host.
 `npm run test:container` builds the Docker image and verifies cached profile/image
@@ -52,7 +60,8 @@ Free Workers are supported without R2 or another paid service. Traffic, media
 requests, CPU, and KV operations remain subject to Cloudflare quotas. The Cache
 API is an evictable per-data-center cache, not permanent storage.
 
-Node uses `.api-data/` by default. Docker mounts `/data` using the `api-data`
+Node uses `.api-data/` by default, relative to the working directory
+(`apps/api/.api-data/` under `npm run api:serve`). Docker mounts `/data` using the `api-data`
 named volume. State and cache occupy separate directories. State includes
 rotating Spotify tokens and profile snapshots; eviction never removes tokens.
 Cache writes are atomic and serialized, and oldest entries are pruned to the
@@ -65,7 +74,7 @@ remove the Docker volume unless you intend to discard it.
 
 | Variable | Purpose |
 | --- | --- |
-| `SPOTIFY_KV_ID` | Cloudflare KV namespace ID, substituted into generated TOML |
+| `SPOTIFY_KV_ID` | Cloudflare KV namespace ID, substituted into generated `wrangler.gen.jsonc` |
 | `SPOTIFY_CLIENT_ID` | Spotify PKCE client ID |
 | `SPOTIFY_REFRESH_TOKEN` | Initial/fallback token; stored rotated token takes precedence |
 | `STEAM_API_KEY`, `STEAM_ID` | Steam credentials and account |
@@ -81,7 +90,7 @@ remove the Docker volume unless you intend to discard it.
 | `VITE_API_BASE_URL` | Frontend build setting; default production Worker, Docker default `/api` |
 
 Telegram, GitHub, GitLab and contact-form identities come from
-`public/contents/links/links.json`. There is no `TELEGRAM_USERNAME` variable,
+`content/links/links.json`. There is no `TELEGRAM_USERNAME` variable,
 and no `MAIL_FROM`/`MAIL_TO`/`MAIL_PROVIDER` variable.
 Rebuild/redeploy after changing identities. Credentials stay in Worker secrets
 or container environment variables. The Node container has no Cloudflare dependency.
@@ -162,7 +171,7 @@ register it, and name it in `email.provider`. Nothing else in the API changes.
 
 ## Spotify re-authentication
 
-Open `api/tools/spotify-auth.html` and run PKCE with the required scopes. Update
+Open `apps/api/tools/spotify-auth.html` and run PKCE with the required scopes. Update
 `SPOTIFY_REFRESH_TOKEN` in deployment secrets. If a rotated token already exists
 in persistent state, remove the `refresh_token` state entry as part of an explicit
 credential reset; changing the fallback alone does not replace the stored token.

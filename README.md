@@ -3,25 +3,30 @@
 Personal portfolio for **hamed ghasempour** (@hambn). Static React site built
 with Vite, prerendered for SEO, deployed to GitHub Pages at https://hgh.dev.
 
-All content is data — edit `public/contents/`, never the code.
+All content is data — edit `content/`, never the code.
+
+An npm-workspaces monorepo: the site is `apps/web`, the API is `apps/api`, code
+they share is `packages/shared`. Run every command from the repo root. Layout and
+conventions: [`.claude/structure.md`](.claude/structure.md).
 
 ## develop
 
 ```bash
-npm install
+npm ci
 npm run dev        # http://localhost:5173/
-npm run build      # → dist/  (prerender + 404.html + .nojekyll)
+npm run build      # → apps/web/dist/  (prerender + 404.html + .nojekyll)
 npm run preview    # serve the production build locally
 ```
 
 ## Code checks
 
-Use Node.js 22 or newer and `npm ci` to install the locked dependencies.
+Use Node.js 24 (see `.nvmrc`) and `npm ci` to install the locked dependencies.
 
 ```bash
 npm run format        # format frontend, API, styles, and build scripts
 npm run lint          # check JavaScript, TypeScript, JSX, and React hooks
-npm run check         # lint, type-check/test/build the API, verify formatting, build the site
+npm run check         # lint, type-check/test/build the API, web unit tests, verify formatting, build the site
+npm run test:browser  # Playwright regressions (npx playwright install chromium once)
 ```
 
 Prettier uses two-space indentation, single quotes, and a 100-column print width.
@@ -30,9 +35,10 @@ React rules preserve the classic JSX transform and explicit React imports.
 ESLint stays on version 9 for compatibility with eslint-plugin-react's peer
 dependency range.
 
-These checks cover `src/`, `api/src/`, `api/tests/`, `shared/`, `scripts/`, and root
-JavaScript configuration. Editable content stays outside the formatting scope.
-Pull requests run the checks; the Pages build runs them before deployment.
+These checks cover every workspace (`apps/web`, `apps/api`, `packages/shared`) and
+root JavaScript configuration. Editable content stays outside the formatting scope.
+Pull requests run `npm run check` and the Playwright suite
+(`.github/workflows/ci.yml`); the Pages build runs the checks before deployment.
 
 ## deploy
 
@@ -40,7 +46,7 @@ Pushing to `main` builds and deploys automatically
 (`.github/workflows/deploy.yml`). One-time: set repo **Settings → Pages →
 Source** to **GitHub Actions**.
 
-Custom domain `hgh.dev` is set via `public/CNAME` + DNS:
+Custom domain `hgh.dev` is set via `apps/web/public/CNAME` + DNS:
 
 - apex `A` → `185.199.108.153`, `.109.153`, `.110.153`, `.111.153`
 - `www` `CNAME` → `hambn.github.io`
@@ -62,7 +68,7 @@ BASE_PATH=/portfolio/ SITE_URL=https://hambn.github.io/portfolio npm run build
 
 ## API (link cards)
 
-The TypeScript backend in `api/src/` serves provider data and cached images for
+The TypeScript backend in `apps/api/src/` serves provider data and cached images for
 the portfolio. Shared provider code runs through Cloudflare and Node adapters.
 The browser loads provider content through the API host, including GitHub/GitLab
 profiles and Discord live presence. External navigation links remain external.
@@ -77,8 +83,8 @@ once as **Worker secrets** with `wrangler secret bulk` (the CI job does this on
 every deploy).
 
 **KV namespace** (`SPOTIFY_KV`, stores rotating tokens and profile snapshots) — create once,
-its id goes in the `SPOTIFY_KV_ID` secret/env (injected into `wrangler.toml` at
-deploy via `envsubst`, never committed):
+its id goes in the `SPOTIFY_KV_ID` secret/env (injected into `apps/api/wrangler.jsonc`
+at deploy via `envsubst`, never committed):
 
 ```bash
 wrangler kv namespace create SPOTIFY_KV   # → copy id into SPOTIFY_KV_ID
@@ -89,17 +95,17 @@ wrangler kv namespace create SPOTIFY_KV   # → copy id into SPOTIFY_KV_ID
 `deploy.yml` runs `npm run api:deploy` on every push to `main`. Add these under
 **Settings → Secrets and variables → Actions → New repository secret**:
 
-| secret                  | what / where                                                                       |
-| ----------------------- | ---------------------------------------------------------------------------------- |
-| `CLOUDFLARE_API_TOKEN`  | dash.cloudflare.com → My Profile → API Tokens → _Edit Cloudflare Workers_ template |
-| `CLOUDFLARE_ACCOUNT_ID` | Workers & Pages dashboard → right sidebar                                          |
-| `SPOTIFY_KV_ID`         | `wrangler kv namespace create SPOTIFY_KV` → the printed id                         |
-| `SPOTIFY_CLIENT_ID`     | developer.spotify.com/dashboard                                                    |
-| `SPOTIFY_REFRESH_TOKEN` | from `api/tools/spotify-auth.html` (PKCE flow)                                     |
-| `STEAM_API_KEY`         | steamcommunity.com/dev/apikey                                                      |
-| `STEAM_ID`              | your 64-bit Steam ID (https://steamid.io)                                          |
-| `DISCORD_ID`            | your Discord user ID (right-click → Copy User ID)                                  |
-| `LINKEDIN_URL`          | optional public profile URL; overrides `links.json`                                |
+| secret                  | what / where                                                                        |
+| ----------------------- | ----------------------------------------------------------------------------------- |
+| `CLOUDFLARE_API_TOKEN`  | dash.cloudflare.com → My Profile → API Tokens → _Edit Cloudflare Workers_ template  |
+| `CLOUDFLARE_ACCOUNT_ID` | Workers & Pages dashboard → right sidebar                                           |
+| `SPOTIFY_KV_ID`         | `wrangler kv namespace create SPOTIFY_KV` → the printed id                          |
+| `SPOTIFY_CLIENT_ID`     | developer.spotify.com/dashboard                                                     |
+| `SPOTIFY_REFRESH_TOKEN` | from `apps/api/tools/spotify-auth.html` (PKCE flow)                                 |
+| `STEAM_API_KEY`         | steamcommunity.com/dev/apikey                                                       |
+| `STEAM_ID`              | your 64-bit Steam ID (https://steamid.io)                                           |
+| `DISCORD_ID`            | your Discord user ID (right-click → Copy User ID)                                   |
+| `LINKEDIN_URL`          | optional public profile URL; overrides `links.json`                                 |
 
 Pages deploy needs no secrets — GitHub's `GITHUB_TOKEN` is automatic. `STEAM_ID`
 and `DISCORD_ID` are public on your profiles; kept as secrets only so nothing
@@ -112,9 +118,9 @@ in once, as Worker secrets:
 
 ```bash
 export SPOTIFY_KV_ID=… STEAM_ID=… DISCORD_ID=… LINKEDIN_URL=…
-npm run api:config   # writes api/wrangler.gen.toml from wrangler.toml
+npm run api:config   # writes apps/api/wrangler.gen.jsonc from wrangler.jsonc
 echo '{"SPOTIFY_CLIENT_ID":"…","SPOTIFY_REFRESH_TOKEN":"…","STEAM_API_KEY":"…"}' \
-  | npx wrangler secret bulk --config api/wrangler.gen.toml
+  | npx wrangler secret bulk --config apps/api/wrangler.gen.jsonc
 npm run api:deploy
 ```
 
@@ -138,7 +144,7 @@ the last successful snapshot for up to seven days.
 
 Set `LINKEDIN_URL` to choose a public profile at runtime without rebuilding the
 container. If omitted, the API uses `linkedin.handle` from
-`public/contents/links/links.json`. Invalid URLs are rejected. Requests can only
+`content/links/links.json`. Invalid URLs are rejected. Requests can only
 read the configured profile, so the API does not become an arbitrary URL proxy.
 No GitHub Actions job or external snapshot upload is needed.
 
@@ -155,7 +161,7 @@ Deploy the API update with the frontend to enable playback-only responses. Older
 API deployments still work, but return the slower aggregate response.
 Run `npm run test:spotify` for the playback clock and API regression checks.
 
-Telegram reads `telegram.url` in `public/contents/links/links.json`, with
+Telegram reads `telegram.url` in `content/links/links.json`, with
 `username` or `handle` as fallbacks. Redeploy the API and frontend after changing
 this file. Only that configured profile is served; the optional `username` query
 must match it.
@@ -183,7 +189,7 @@ Full reference + Spotify re-auth flow: [`.claude/api.md`](.claude/api.md).
 ### Self-host on Node
 
 `npm run api:serve` compiles the TypeScript entrypoint and runs it on Node 24.
-State and cache persist in `.api-data/`, or the directory set by `API_DATA_DIR`.
+State and cache persist in `apps/api/.api-data/`, or the directory set by `API_DATA_DIR`.
 The response/media cache defaults to 256 MiB; tokens are stored separately.
 Use one API process per data directory.
 
@@ -202,17 +208,17 @@ Environment variables:
 | `DISCORD_ID`            | config | yes                                                   |
 | `LINKEDIN_URL`          | config | optional public profile URL; defaults to `links.json` |
 | `CACHE_VERSION`         | config | no (Node default: `1`, stable across restarts)        |
-| `API_DATA_DIR`          | config | no (default: `.api-data`)                             |
+| `API_DATA_DIR`          | config | no (default: `.api-data`, relative to the cwd)        |
 | `API_CACHE_MAX_BYTES`   | config | no (default: `268435456`)                             |
 | `API_PUBLIC_ORIGIN`     | config | external origin for direct Node access behind TLS     |
 
 ## self-host (Docker)
 
-`deployment/` runs the **whole stack** — static site (nginx) + API (Node) — from
+`deploy/compose.yaml` runs the **whole stack** — static site (nginx) + API (Node) — from
 the repo root:
 
 ```bash
-docker compose -f deployment/docker-compose.yml up -d --build
+docker compose -f deploy/compose.yaml up -d --build
 # web → http://localhost:8080   api → http://localhost:8787
 ```
 
@@ -226,7 +232,7 @@ refresh through their existing request caches and polling intervals.
 To run only the API:
 
 ```bash
-docker build -f deployment/Dockerfile.api -t portfolio-api .
+docker build -f apps/api/Dockerfile -t portfolio-api .
 docker run -d --name portfolio-api --restart unless-stopped \
   -p 8787:8787 -v portfolio-api-data:/data \
   -e LINKEDIN_URL=https://www.linkedin.com/in/hambn/ \
@@ -240,7 +246,7 @@ address, for example `https://api.home.example`. A private HTTP address works to
 API environment variables (from host env or `.env` file beside compose):
 
 ```bash
-# deployment/.env
+# deploy/.env
 SPOTIFY_CLIENT_ID=…
 SPOTIFY_REFRESH_TOKEN=…
 STEAM_API_KEY=…
@@ -252,7 +258,7 @@ Override the site's deploy target via env (compose passes them as build args):
 
 ```bash
 BASE_PATH=/ SITE_URL=https://my.domain \
-  docker compose -f deployment/docker-compose.yml up -d --build
+  docker compose -f deploy/compose.yaml up -d --build
 ```
 
 Nginx forwards `/api/` and the Discord WebSocket to the API container. The frontend
@@ -275,21 +281,21 @@ Free remains subject to request, CPU and KV quotas; media traffic counts too.
 
 ## editing content
 
-All content lives in `public/contents/` — no code changes needed.
+All content lives in `content/` — no code changes needed.
 
-| What                         | File                                |
-| ---------------------------- | ----------------------------------- |
-| name, handle, bio, avatar    | `public/contents/home/profile.json` |
-| work / education / skills    | `public/contents/home/resume.json`  |
-| social links + API endpoints | `public/contents/links/links.json`  |
-| blog posts                   | `public/contents/blogs/**/*.md`     |
+| What                         | File                        |
+| ---------------------------- | --------------------------- |
+| name, handle, bio, avatar    | `content/home/profile.json` |
+| work / education / skills    | `content/home/resume.json`  |
+| social links + API endpoints | `content/links/links.json`  |
+| blog posts                   | `content/blogs/**/*.md`     |
 
 Identity meta (`author`, `og:image`, `twitter:creator`, JSON-LD) is injected at
-build from `profile.json` + `links.json` — `index.html` holds only fallbacks.
+build from `profile.json` + `links.json` — `apps/web/index.html` holds only fallbacks.
 
 ### adding a blog post
 
-Drop a Markdown file anywhere under `public/contents/blogs/` (sub-folders are
+Drop a Markdown file anywhere under `content/blogs/` (sub-folders are
 fine). Start it with frontmatter:
 
 ```markdown
@@ -309,64 +315,6 @@ your post body in GitHub-flavored markdown…
 
 ## structure
 
-```
-index.html          static shell + fallback meta
-vite.config.js      base path (env), classic-JSX, blog-index plugin,
-                    build manifest + react vendor chunk
-
-src/
-  main.jsx          client entry: load the entry route and hydrate static HTML
-  App.jsx           app shell behavior and history router
-  entry-server.jsx  render the same components at build time
-  routes.js         route registry: path + head meta (also read by prerender)
-  lib/              data.js (PortfolioData), router.js, markdown.js (marked+hljs)
-  hooks/            useMediaQuery, useCollapsed, useCopy, usePolledJSON
-  components/       Nav.jsx + card/ (HeaderButtons, cards.css, ContribGraph)
-  pages/            index.js (lazy page map) + one folder per route:
-    home/           Home.jsx
-    projects/       Projects.jsx
-    resume/         Resume.jsx
-    blog/           Blog.jsx + BlogList.jsx + BlogPost.jsx + blog-ui.jsx
-    links/          Links.jsx + one file per card:
-                    Email, Discord, Telegram, X, GitHub, GitLab,
-                    LinkedIn, Spotify, Steam
-  styles/           index.css → tokens/ + core.css, plus blog.css
-                    (page-only styles live next to their page: home.css, …)
-scripts/            Node build tooling (NOT bundled — root by convention)
-  blog-index.mjs    build-time blog scanner (Vite plugin)
-  prerender.mjs     static HTML/meta/JSON-LD/sitemap/feed generator (post-build)
-public/contents/    all editable content
-api/                Backend for the link cards. See .claude/api.md
-  src/              shared TypeScript app, providers, media, adapters, entrypoints
-  tests/            provider, storage, and runtime regression tests
-  tsconfig*.json    separate Node and Worker type checking
-  wrangler.toml     Cloudflare config
-  tools/            spotify-auth.html — one-off PKCE helper
-deployment/         self-host the stack (run from repo root)
-  Dockerfile.web    site build → nginx
-  Dockerfile.api    Node 24 → compiled api/dist/server.mjs
-  nginx.conf        SPA fallback
-  docker-compose.yml  web :8080 + api :8787
-```
-
-Notes:
-
-- Blog index is generated in memory by the Vite plugin: served virtually in
-  dev, emitted as `blog-data.json` at build. Raw `.md` are stripped from `dist/`.
-- Fonts and markdown libs (`marked`, `highlight.js`, `mermaid`) are
-  self-hosted/lazy-loaded — no third-party CDN. One variable font file covers
-  every weight.
-- Every JSX file imports `React` explicitly and pages are default exports wired
-  in `src/pages/index.js`. Vite uses the **classic JSX transform** — keep the
-  `React` import; don't switch to the automatic runtime. Routes are `React.lazy`
-  chunks. The entry route is preloaded via the build manifest; other routes load on demand.
-- Route titles/descriptions live in `src/routes.js`, shared by the SPA and
-  `scripts/prerender.mjs` so head tags can't drift. The prerenderer also writes
-  per-page JSON-LD, `sitemap.xml` (with lastmod) and `feed.xml`.
-
-- Static HTML uses the same React components as the client, including responsive
-  CSS. Public content is embedded as escaped JSON and seeds the data cache before
-  hydration. Keep first-render state deterministic across Node and the browser;
-  read browser-only preferences in effects. Live API data loads after hydration.
-- Card styles are extracted into `src/styles/cards.css`, imported by the links
-  route. Avoid injecting layout styles during rendering, which causes reload flashes.
+The repo layout, workspace boundaries and code conventions are documented in
+[`.claude/structure.md`](.claude/structure.md); the API has its own guide in
+[`.claude/api.md`](.claude/api.md).

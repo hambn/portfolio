@@ -6,13 +6,20 @@ import hooks from 'eslint-plugin-react-hooks';
 
 export default [
   {
-    ignores: ['dist/**', 'api/dist/**', 'api/worker-configuration.d.ts', '.tmp/**', '.wrangler/**'],
+    ignores: [
+      '**/dist/**',
+      '**/.wrangler/**',
+      '**/test-results/**',
+      '**/playwright-report/**',
+      '.tmp/**',
+      'apps/api/worker-configuration.d.ts',
+    ],
   },
   js.configs.recommended,
-  { files: ['tests/browser/**/*.js'], languageOptions: { globals: globals.browser } },
+  { files: ['apps/web/tests/browser/**/*.js'], languageOptions: { globals: globals.browser } },
   ...tseslint.configs.recommended.map((config) => ({ ...config, files: ['**/*.ts'] })),
   {
-    files: ['api/**/*.ts', 'shared/**/*.ts'],
+    files: ['apps/api/**/*.ts', 'packages/shared/**/*.ts'],
     languageOptions: {
       globals: {
         ...globals.node,
@@ -24,7 +31,7 @@ export default [
     },
   },
   {
-    files: ['src/**/*.{js,jsx}'],
+    files: ['apps/web/src/**/*.{js,jsx}'],
     languageOptions: {
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
@@ -40,7 +47,14 @@ export default [
     },
   },
   {
-    files: ['*.js', 'scripts/**/*.mjs', 'shared/**/*.js', 'tests/browser/**/*.js'],
+    files: [
+      '*.js',
+      'apps/*/*.js',
+      'apps/*/scripts/**/*.mjs',
+      'apps/*/tests/**/*.mjs',
+      'packages/shared/**/*.js',
+      'apps/web/tests/browser/**/*.js',
+    ],
     languageOptions: { globals: globals.node },
   },
   {
