@@ -39,6 +39,17 @@ function parseFrontmatter(raw) {
   return { meta, body };
 }
 
+/**
+ * The post page renders the frontmatter title as its <h1>. A body that opens
+ * by repeating it as `# Title` would show the heading twice and give the page
+ * two <h1>s, so that one line is dropped. Any other opening heading stays.
+ */
+function dropRepeatedTitle(body, title) {
+  return body.replace(/^\s*#[ \t]+(.+?)[ \t#]*(?:\r?\n|$)/, (line, text) =>
+    text.trim() === title.trim() ? '' : line,
+  );
+}
+
 /** Recursively collect every .md path under dir. */
 function walkMarkdown(dir, base = dir) {
   const out = [];
@@ -68,7 +79,7 @@ export function buildBlogIndex(blogsDir) {
         date: meta.date || '',
         description: meta.description || meta.excerpt || '',
         tags: Array.isArray(meta.tags) ? meta.tags : [],
-        body,
+        body: dropRepeatedTitle(body, meta.title),
       };
     })
     .filter(Boolean)

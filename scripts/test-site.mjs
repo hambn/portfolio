@@ -68,6 +68,9 @@ for (const route of [
       );
     }
     assert.ok(nodes.some((node) => node.tagName === 'main'));
+    // One top-level heading per page: a post body repeating its title as `# Title`
+    // would otherwise add a second one.
+    assert.equal(nodes.filter((node) => node.tagName === 'h1').length, 1);
     assert.ok(nodes.some((node) => node.tagName === 'h1'));
     const script = nodes.find((node) => attr(node, 'type') === 'application/ld+json');
     const graph = JSON.parse(script.childNodes[0].value)['@graph'];
