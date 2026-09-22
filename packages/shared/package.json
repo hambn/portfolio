@@ -1,0 +1,21 @@
+{
+  "name": "@portfolio/shared",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./linkedin": {
+      "types": "./linkedin.d.ts",
+      "default": "./linkedin.js"
+    },
+    "./telegram": {
+      "types": "./telegram.d.ts",
+      "default": "./telegram.js"
+    },
+    "./x": {
+      "types": "./x.d.ts",
+      "default": "./x.js"
+    },
+    "./media": "./media.ts"
+  }
+}

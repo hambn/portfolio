@@ -1,0 +1,32 @@
+{
+  "name": "@portfolio/web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node scripts/prerender.mjs && touch dist/.nojekyll",
+    "preview": "vite preview",
+    "test:site": "node --test tests/site.test.mjs",
+    "test:unit": "node --test tests/spotify-clock.test.mjs tests/api-urls.test.mjs",
+    "test:spotify": "node --test tests/spotify-clock.test.mjs",
+    "test:browser": "playwright test"
+  },
+  "dependencies": {
+    "@fontsource-variable/dm-sans": "^5.3.0",
+    "@fontsource-variable/jetbrains-mono": "5.3.0",
+    "@fontsource-variable/roboto": "^5.3.0",
+    "@portfolio/shared": "*",
+    "highlight.js": "^11.12.0",
+    "marked": "^18.0.13",
+    "mermaid": "^12.0.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "esbuild": "^0.28.2",
+    "parse5": "^8.0.1",
+    "vite": "^8.3.0"
+  }
+}

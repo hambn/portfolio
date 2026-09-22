@@ -1,9 +1,11 @@
-node_modules
-dist
+**/node_modules
+**/dist
 .git
 
-.api-data
-api/dist
-.wrangler
+**/.api-data
+**/.wrangler
+**/test-results
+**/playwright-report
 .env
-deployment/.env
+deploy/.env
+apps/api/wrangler.gen.jsonc

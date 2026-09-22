@@ -125,7 +125,7 @@ byte for byte against the previous build, with provider responses stubbed.
   styles. The active route is expressed as `aria-current="page"`, which CSS and
   assistive technology now read from the same attribute.
 - Repo card hover moved from React state to `:hover` in a new
-  `src/pages/projects/projects.css`, so moving the pointer across the grid no
+  `apps/web/src/pages/projects/projects.css`, so moving the pointer across the grid no
   longer re-renders a component.
 - The blog search corpus is lowercased once per post list instead of once per
   post per keystroke.

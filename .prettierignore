@@ -1,0 +1,18 @@
+# Generated / vendored
+package-lock.json
+**/dist/
+apps/api/worker-configuration.d.ts
+apps/api/wrangler.gen.jsonc
+
+# Editable content (JSON, Markdown posts) is data, not code
+content/
+
+# Binary / asset files
+**/fonts/
+apps/web/public/
+
+# Out of the formatting scope: docs, markup, YAML (workflows, compose)
+*.md
+*.html
+*.yml
+*.yaml
