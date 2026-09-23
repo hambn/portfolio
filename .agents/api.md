@@ -162,8 +162,14 @@ field is answered as success and sends nothing. Beyond that: 2 messages per
 sender per hour, 4 per day, 60 per day and 1200 per month overall (`MAIL_LIMITS`
 in `src/mail/quota.ts`), all held under a 100/day, 3000/month vendor plan. The
 same message from the same sender is refused for ten minutes. Bodies are capped
-at 16 KiB. Counters only advance after the vendor accepts the message, so a
-failed send costs nobody their allowance.
+at 16 KiB. Validation, the token signature and a quota read run first and write
+nothing, so a rejected submission costs no storage. Then, one submission at a
+time, the quota is re-checked, the token is spent and the counters are
+reserved; a failed send releases them, so it costs nobody their allowance. That
+section is atomic on Node and within one Worker isolate. KV is eventually
+consistent, so two Worker locations can still race; strict limits there would
+need a Durable Object. Sender-domain lookups are cached in the evictable
+response cache, not in state.
 
 Sender validation runs without any verification service: an RFC-shaped syntax
 check, a throwaway-domain list, and a DNS-over-HTTPS MX/A lookup of the domain

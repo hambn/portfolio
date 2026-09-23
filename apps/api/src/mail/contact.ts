@@ -9,12 +9,24 @@ import {
   clientAddress,
   isDuplicate,
   mintToken,
-  recordSend,
-  redeemToken,
+  reserveSend,
+  spendToken,
   tokenSecret,
+  verifyToken,
 } from './quota.js';
 
 const MAX_BODY_BYTES = 16 * 1024;
+
+// State reads and writes are separate calls, so the check-then-write steps run
+// one submission at a time. This makes them atomic on Node (one process per
+// data directory) and within one Worker isolate; KV is eventually consistent
+// across locations, so two Workers elsewhere can still race.
+let critical: Promise<unknown> = Promise.resolve();
+function exclusive<T>(task: () => Promise<T>): Promise<T> {
+  const run = critical.then(task);
+  critical = run.catch(() => {});
+  return run;
+}
 
 const submission = z.object({
   from: z.string().max(254),
@@ -64,7 +76,9 @@ export async function handle(request: Request, services: Services): Promise<Resp
   // nothing, but nothing is sent and no quota is spent.
   if (parsed.website.trim()) return json({ ok: true });
 
-  if (!(await redeemToken(services, secret, parsed.token)))
+  // Everything up to the critical section only reads, so a rejected submission
+  // writes nothing.
+  if (!(await verifyToken(services, secret, parsed.token)))
     return json({ error: 'invalid_token' }, 403);
 
   const sender = parseAddress(parsed.from);
@@ -75,14 +89,21 @@ export async function handle(request: Request, services: Services): Promise<Resp
   if (message.length < 10) return json({ error: 'message_too_short', field: 'message' }, 400);
 
   const ip = clientAddress(request);
-  const quota = await checkQuota(services, ip);
-  if (!quota.ok) return json({ error: quota.reason }, 429);
+  const early = await checkQuota(services, ip);
+  if (!early.ok) return json({ error: early.reason }, 429);
 
-  if (!(await domainAcceptsMail(services, sender.domain)))
+  if (!(await domainAcceptsMail(services, sender.domain, new URL(request.url).origin)))
     return json({ error: 'undeliverable_from', field: 'from' }, 400);
 
   const fingerprint = `${sender.address}|${subject}|${message}`;
-  if (await isDuplicate(services, fingerprint)) return json({ error: 'duplicate_message' }, 429);
+  const claim = await exclusive(async () => {
+    const quota = await checkQuota(services, ip);
+    if (!quota.ok) return json({ error: quota.reason }, 429);
+    if (await isDuplicate(services, fingerprint)) return json({ error: 'duplicate_message' }, 429);
+    if (!(await spendToken(services, parsed.token))) return json({ error: 'invalid_token' }, 403);
+    return reserveSend(services, ip, fingerprint);
+  });
+  if (claim instanceof Response) return claim;
 
   try {
     await provider.send(services, {
@@ -96,8 +117,8 @@ export async function handle(request: Request, services: Services): Promise<Resp
     });
   } catch (error) {
     console.error('Contact send failed', error instanceof Error ? error.message : 'unknown');
+    await exclusive(claim);
     return json({ error: 'send_failed' }, 502);
   }
-  await recordSend(services, ip, fingerprint);
   return json({ ok: true });
 }
