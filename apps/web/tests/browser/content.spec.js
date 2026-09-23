@@ -166,3 +166,26 @@ test('the contact form waits out a new token and retries a refused one', async (
   // The retried token was only used once it was old enough for the API.
   expect(posts[1].at - minted[1]).toBeGreaterThanOrEqual(3000);
 });
+
+test('a card with malformed provider data is hidden without blanking the page', async ({
+  page,
+}) => {
+  const errors = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.routeWebSocket('**/discord/socket', () => {});
+  await page.route('https://api.portfolio.hgh.dev/**', (route) =>
+    route.fulfill({ status: 503, json: { error: 'unavailable' } }),
+  );
+  await page.route('**/api/**', (route) => {
+    if (new URL(route.request().url()).pathname === '/api/links')
+      return route.fulfill({
+        json: { cards: { steam: { maxAge: 300, data: { recentActivity: 'not a list' } } } },
+      });
+    return route.fulfill({ status: 503, json: { error: 'unavailable' } });
+  });
+  await page.goto('/links/');
+  await expect(page.getByRole('heading', { name: 'links', level: 1 })).toBeVisible();
+  await expect(page.locator('.em-style-1')).toBeVisible();
+  await expect(page.getByRole('navigation')).toBeVisible();
+  expect(errors).toEqual([]);
+});

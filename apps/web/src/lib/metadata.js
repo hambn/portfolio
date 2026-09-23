@@ -2,6 +2,32 @@ import { routes } from '../routes.js';
 
 export const isoDate = (date) => /^\d{4}-\d{2}-\d{2}/.exec(date || '')?.[0] || '';
 
+// Defaults are conservative: ask explicitly for full-size image previews and
+// untruncated snippets so results aren't capped at a thumbnail and 160 chars.
+export const INDEX_ROBOTS =
+  'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
+
+export const notFoundTitle = (profile) => `not found — ${profile.name}`;
+
+function setMeta(attribute, name, content) {
+  let element = document.head.querySelector(`meta[${attribute}="${name}"]`);
+  if (!element) {
+    element = document.createElement('meta');
+    element.setAttribute(attribute, name);
+    document.head.appendChild(element);
+  }
+  element.content = content;
+}
+
+/** Client navigation to a URL with no page or post: keep it out of the index. */
+export function updateNotFoundMetadata(profile) {
+  document.title = notFoundTitle(profile);
+  setMeta('name', 'robots', 'noindex');
+  document.head
+    .querySelectorAll('meta[property^="article:"]')
+    .forEach((element) => element.remove());
+}
+
 export function routeMetadata(route, profile, posts = []) {
   const [page, ...segments] = route.split('/');
   const entry = routes.find((item) => item.page === page);
@@ -105,15 +131,8 @@ export function pageGraph(meta, person, siteRoot, posts = []) {
 
 export function updateDocumentMetadata(meta, profile, posts) {
   document.title = meta.title;
-  const setMeta = (attribute, name, content) => {
-    let element = document.head.querySelector(`meta[${attribute}="${name}"]`);
-    if (!element) {
-      element = document.createElement('meta');
-      element.setAttribute(attribute, name);
-      document.head.appendChild(element);
-    }
-    element.content = content;
-  };
+  // A 404 view earlier in the session may have set noindex.
+  setMeta('name', 'robots', INDEX_ROBOTS);
   let canonical = document.head.querySelector('link[rel="canonical"]');
   const siteRoot = new URL(
     import.meta.env.BASE_URL,
