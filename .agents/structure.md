@@ -180,8 +180,8 @@ with `apps/`, `packages/` or `content/`.
   renders the title as its one `<h1>` (asserted by `test:site`).
 - **node_modules is hoisted to the repo root**, outside the Vite root, so
   `index.html` never references `/node_modules/` paths. Package assets are
-  imported from CSS/JS (Vite resolves them); the body-font preload is added by
-  `prerender.mjs` from the fingerprinted URL in the inlined stylesheet.
+  imported from CSS/JS (Vite resolves them). There is deliberately no font
+  preload: Chrome holds the first paint for a preloaded font.
 - **Self-hosted.** One variable font (JetBrains Mono) and markdown libs
   (`marked`, `highlight.js`, `mermaid`) are bundled/lazy-loaded — no
   third-party CDN.
@@ -199,7 +199,10 @@ with `apps/`, `packages/` or `content/`.
   touching head markup.
 - **Prerender inlines the entry stylesheet** as `<style>` so the first paint
   costs no extra round-trip, and records it so `assetLinks()` doesn't link the
-  same file again. Route-scoped CSS (e.g. blog.css) still loads as a link.
+  same file again. The route's own CSS is inlined the same way on its
+  prerendered pages; on client navigation it loads as a link. Each inlined file
+  also gets a script-created disabled `<link>`, so Vite's preload helper sees
+  it as present and does not download it again before rendering a route.
 - **Canonical URLs end in a slash** (`/blog/`); `navigate()` pushes that form and
   the prerendered links match it.
 - **GitHub Pages.** Known routes are real 200 HTML files; `404.html` is the SPA
