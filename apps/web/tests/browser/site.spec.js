@@ -177,3 +177,23 @@ test('opening a post from the prerendered list keeps the page mounted', async ({
   await expect(page.locator('main h1')).toBeVisible();
   expect(await page.evaluate(() => window.sawFallback)).toBe(false);
 });
+
+test('inlined stylesheets are not downloaded again after hydration', async ({ page }) => {
+  const stylesheets = [];
+  page.on('request', (request) => {
+    if (request.url().endsWith('.css')) stylesheets.push(new URL(request.url()).pathname);
+  });
+  for (const path of ['/', '/blog/', '/links/', '/blog/gitops-with-argocd/']) {
+    await page.goto(path);
+    await page.waitForLoadState('networkidle');
+  }
+  if (await page.locator('.mermaid svg, pre.mermaid svg').count())
+    await expect(page.locator('svg').first()).toBeVisible();
+  expect(stylesheets).toEqual([]);
+
+  // A route that was not inlined still gets its stylesheet on navigation.
+  await page.goto('/');
+  await page.locator('nav a[href="/blog/"]').click();
+  await expect(page.locator('main h1')).toBeVisible();
+  expect(stylesheets.some((path) => /\/Blog-[^/]+\.css$/.test(path))).toBe(true);
+});

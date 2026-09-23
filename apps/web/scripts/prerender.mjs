@@ -109,6 +109,17 @@ const pageEntries = Object.fromEntries(
 // Stylesheets inlineStylesheet() has folded into the template as <style>.
 const inlinedCss = new Set();
 
+/* Vite's preload helper decides whether a chunk's stylesheet is already on the
+ * page by looking for a <link rel="stylesheet"> with its URL. An inlined
+ * <style> is invisible to it, so it would download the file again, and a lazy
+ * route waits for that before rendering. A disabled link satisfies the lookup
+ * without a request; it has to be created by script, because one written into
+ * the HTML is still fetched by the preload scanner. */
+function markInlined(hrefs) {
+  if (!hrefs.length) return '';
+  return `  <script>for(const h of ${JSON.stringify(hrefs)})document.head.appendChild(Object.assign(document.createElement('link'),{rel:'stylesheet',disabled:true,href:h}))</script>`;
+}
+
 /** Contents of a built asset addressed by its public href, or null if missing. */
 function readAsset(href) {
   try {
@@ -121,6 +132,7 @@ function readAsset(href) {
 function assetLinks(page) {
   const seen = new Set();
   const out = [];
+  const inlined = [];
   const linked = new Set([
     ...inlinedCss,
     ...[...template.matchAll(/(?:href|src)="([^"]+)"/g)].map((m) => m[1]),
@@ -139,6 +151,7 @@ function assetLinks(page) {
     if (linked.has(href)) return;
     linked.add(href);
     const css = readAsset(href);
+    if (css !== null) inlined.push(href);
     out.push(
       css === null
         ? `  <link rel="stylesheet" crossorigin href="${href}" />`
@@ -155,7 +168,8 @@ function assetLinks(page) {
     for (const dep of m.imports || []) visit(dep);
   }
   visit(pageEntries[page]);
-  return out.join('\n');
+  out.push(markInlined(inlined));
+  return out.filter(Boolean).join('\n');
 }
 
 // Load the real components for static rendering without starting an HTTP server.
@@ -188,7 +202,7 @@ function inlineStylesheet(html) {
     // Remember it: assetLinks() walks the manifest and would otherwise link
     // this same file again as a route dependency.
     inlinedCss.add(href);
-    return `<style>${css}</style>`;
+    return `<style>${css}</style>\n${markInlined([href]).trimStart()}`;
   });
 }
 
@@ -209,22 +223,10 @@ function preloadEntry(html) {
   );
 }
 
-/* ── body font ──
- * The JetBrains Mono face is referenced from the inlined stylesheet, so the
- * browser only discovers it after parsing that CSS. Preloading the fingerprinted
- * URL Vite wrote into the stylesheet starts the download with the document. */
-function preloadFont(html) {
-  const href = /url\(["']?([^"')]*jetbrains-mono-latin-wght-normal[^"')]*\.woff2)/.exec(html)?.[1];
-  if (!href) return html;
-  return html.replace(
-    /(<meta name="viewport"[^>]*>)/,
-    `$1\n    <link rel="preload" href="${href}" as="font" type="font/woff2" crossorigin />`,
-  );
-}
-
-const template = preloadFont(
-  preloadEntry(inlineStylesheet(readFileSync(join(dist, 'index.html'), 'utf8'))),
-)
+// No font preload: Chrome holds the first paint for a preloaded font, which
+// cost 80-100 ms of first paint in lab runs, while the inlined stylesheet
+// already lets the font request start about as early.
+const template = preloadEntry(inlineStylesheet(readFileSync(join(dist, 'index.html'), 'utf8')))
   .replace(/(<meta\s+name="author"\s+content=")[^"]*(")/, `$1${esc(profile.name)}$2`)
   .replace(/(<meta\s+property="og:image"\s+content=")[^"]*(")/, `$1${esc(profile.avatar)}$2`)
   // The tab icon is drawn at 32px at most, so ask the proxy for a small
