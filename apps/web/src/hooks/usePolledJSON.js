@@ -7,7 +7,8 @@ import { useEffect, useRef, useState } from 'react';
  * for a collapsed card so a card nobody is looking at costs no requests.
  *
  * Requests are also suspended while the tab is hidden: a backgrounded tab does
- * nothing until it comes back, then catches up with one immediate fetch.
+ * nothing until it comes back, then fetches at once only if a poll came due
+ * while it was away (an hourly card seen a minute ago just re-arms its timer).
  *
  * `seed` (from useCardFeed) lets the one batch /links response stand in for the
  * initial request. While it is 'pending' the hook waits rather than racing the
@@ -39,6 +40,7 @@ export function usePolledJSON(url, intervalMs, onData, seed) {
     let controller = null;
     let timer = null;
     let pending = false;
+    let lastSuccess = 0;
 
     const load = () => {
       if (pending) return;
@@ -67,6 +69,7 @@ export function usePolledJSON(url, intervalMs, onData, seed) {
           if (!alive || requestController.signal.aborted) return;
           cb.current(data, isInitial);
           firstRequest = false;
+          lastSuccess = Date.now();
           if (isInitial) setLoading(false);
           setError(null);
         })
@@ -90,6 +93,7 @@ export function usePolledJSON(url, intervalMs, onData, seed) {
     if (usable) {
       cb.current(fresh.data, true);
       firstRequest = false;
+      lastSuccess = fresh.receivedAt;
       setLoading(false);
       setError(null);
       // Live cards still poll, just starting one interval out instead of now.
@@ -102,8 +106,16 @@ export function usePolledJSON(url, intervalMs, onData, seed) {
         clearTimeout(timer);
         return;
       }
+      if (firstRequest) {
+        load();
+        return;
+      }
       // A one-shot fetch that already succeeded has nothing to catch up on.
-      if (intervalMs > 0 || firstRequest) load();
+      if (intervalMs <= 0 || pending) return;
+      const due = lastSuccess + intervalMs - Date.now();
+      clearTimeout(timer);
+      if (due <= 0) load();
+      else timer = setTimeout(load, due);
     };
     window.addEventListener('online', resume);
     document.addEventListener('visibilitychange', resume);

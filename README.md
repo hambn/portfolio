@@ -154,7 +154,7 @@ validation. The API reports that block and retains cached data; it cannot
 guarantee access from every hosting network or read private profiles without
 authorized account access.
 
-The Spotify card checks playback every 3 seconds while the page is visible and
+The Spotify card checks playback every 10 seconds while the page is visible and
 refreshes immediately on return. The timeline uses elapsed time between samples;
 profile and library data refresh every minute and after track/context changes.
 Deploy the API update with the frontend to enable playback-only responses. Older

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { playbackProgress } from './playbackClock.js';
 
 const POLL_MS = 10000;
+const FOCUS_REFRESH_MS = 2000;
 const LIBRARY_MS = 60000;
 
 export function useSpotifyPlayback(endpoint, seed) {
@@ -25,6 +26,7 @@ export function useSpotifyPlayback(endpoint, seed) {
     let controller;
     let timer;
     let busy = false;
+    let lastPollAt = -Infinity;
     let sample;
     let library;
     let libraryAt = -Infinity;
@@ -42,6 +44,7 @@ export function useSpotifyPlayback(endpoint, seed) {
         return;
       }
       busy = true;
+      lastPollAt = performance.now();
       controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 12000);
       const full = !library || refreshLibrary || performance.now() - libraryAt >= LIBRARY_MS;
@@ -133,9 +136,15 @@ export function useSpotifyPlayback(endpoint, seed) {
           timer = setTimeout(poll, Math.max(delay, retryAt - Date.now()));
       }
     }
-    function resume() {
-      if (document.hidden) clearTimeout(timer);
-      else void poll();
+    function resume(event) {
+      if (document.hidden) {
+        clearTimeout(timer);
+        return;
+      }
+      // Focus fires on every click back into the window; a check that started
+      // a moment ago is as fresh as a new one would be.
+      if (event?.type === 'focus' && performance.now() - lastPollAt < FOCUS_REFRESH_MS) return;
+      void poll();
     }
     // Stop extrapolating a stale response after a connection failure.
     const clock = setInterval(() => {
