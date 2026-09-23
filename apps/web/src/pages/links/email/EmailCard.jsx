@@ -170,7 +170,7 @@ export const EmailCard = React.memo(function EmailCard({ address }) {
         </div>
       </div>
       {/* Body — compose window */}
-      <div className={`sc-body ${collapsed ? 'closed' : 'open'}`}>
+      <div data-card="email" className={`sc-body ${collapsed ? 'closed' : 'open'}`}>
         <div className="em-compose-bar">New message</div>
         <form onSubmit={send} className="em-style-7" noValidate>
           <div className="em-row em-field-row">

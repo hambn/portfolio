@@ -320,6 +320,7 @@ export const SpotifyCard = React.memo(function SpotifyCard({ userId, apiEndpoint
         </div>
       </header>
       <div
+        data-card="sp"
         className={`sc-body ${collapsed ? 'closed' : 'open'}`}
         inert={collapsed ? '' : undefined}
       >

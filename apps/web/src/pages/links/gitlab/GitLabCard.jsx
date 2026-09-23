@@ -98,6 +98,7 @@ export const GitLabCard = React.memo(function GitLabCard({ username, url }) {
       </div>
       {/* Body */}
       <div
+        data-card="gl"
         className={`sc-body ${collapsed ? 'closed' : 'open'}`}
         inert={collapsed ? '' : undefined}
       >

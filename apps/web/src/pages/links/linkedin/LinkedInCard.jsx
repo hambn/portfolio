@@ -78,6 +78,7 @@ function LinkedInProfile({ username, apiEndpoint }) {
         </div>
       </div>
       <div
+        data-card="li"
         className={`sc-body ${collapsed ? 'closed' : 'open'}`}
         inert={collapsed ? '' : undefined}
       >
