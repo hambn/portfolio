@@ -368,6 +368,16 @@ test('the route accepts POST and preflight while other routes still do not', asy
   );
   assert.equal(wrongType.status, 415);
 
+  // An empty body is a bad request, not an oversized one.
+  const empty = await handleRequest(
+    new Request('https://api.test/contact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    }),
+    services,
+  );
+  assert.equal(empty.status, 400);
+
   const put = await handleRequest(
     new Request('https://api.test/contact', { method: 'PUT' }),
     services,

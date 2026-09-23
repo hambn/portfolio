@@ -169,7 +169,7 @@ async function respond(
   if (kind) {
     const image = snapshot.images[kind];
     if (!image) return json({ error: 'linkedin_image_unavailable' }, 404);
-    return imageResponse(image);
+    return imageResponse(image, snapshot.updatedAt);
   }
   return json({
     ...snapshot.profile,

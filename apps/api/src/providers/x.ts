@@ -140,7 +140,7 @@ async function respond(services: Services, kind?: 'avatar' | 'banner'): Promise<
   if (kind) {
     const image = snapshot.images[kind];
     if (!image) return json({ error: 'x_image_unavailable' }, 404);
-    return imageResponse(image);
+    return imageResponse(image, snapshot.updatedAt);
   }
   return json({
     ...snapshot.profile,

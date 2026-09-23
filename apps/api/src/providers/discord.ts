@@ -21,7 +21,7 @@ export async function handle(request: Request, services: Services) {
     // proxied through our own domain + edge cache, so the browser never hits discordapp.com
     return withCache(services, request, async () => {
       const { success, data } = await lanyard(services);
-      if (!success || !data) return new Response(null, { status: 502 });
+      if (!success || !data) return json({ error: 'discord_unavailable' }, 502);
 
       const user = data.discord_user;
       const cdnUrl = user.avatar

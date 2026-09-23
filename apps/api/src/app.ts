@@ -38,7 +38,12 @@ export async function handleRequest(request: Request, services: Services): Promi
     } else if (url.pathname === '/health') response = json({ ok: true });
     else {
       // Handlers build the GET representation so HEAD never poisons a cache entry.
-      const body = request.method === 'POST' ? await readBytes(request, MAX_REQUEST_BYTES) : null;
+      const body =
+        request.method === 'POST'
+          ? request.body
+            ? await readBytes(request, MAX_REQUEST_BYTES)
+            : new Uint8Array()
+          : null;
       if (request.method === 'POST' && !body) response = json({ error: 'payload_too_large' }, 413);
       else {
         response = await route!.handler(

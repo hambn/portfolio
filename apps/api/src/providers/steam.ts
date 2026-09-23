@@ -35,7 +35,10 @@ async function steamGet(
   // failures resolve to null and the caller degrades that section instead.
   try {
     const res = await fetchWithTimeout(services, url);
-    if (!res.ok) return null;
+    if (!res.ok) {
+      await res.body?.cancel();
+      return null;
+    }
     return await readJSON(res, steamData);
   } catch (error) {
     console.warn(

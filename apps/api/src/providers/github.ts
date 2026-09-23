@@ -33,7 +33,10 @@ export async function handle(request: Request, services: Services) {
     const response = await fetchWithTimeout(services, route.url, {
       headers: { 'User-Agent': 'portfolio-api', Accept: 'application/json' },
     });
-    if (!response.ok) return json({ error: 'github_unavailable' }, 502);
+    if (!response.ok) {
+      await response.body?.cancel();
+      return json({ error: 'github_unavailable' }, 502);
+    }
     return json(await readJSON(response, route.schema), 200, PROFILE_TTL);
   });
 }

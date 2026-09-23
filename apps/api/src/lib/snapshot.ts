@@ -133,12 +133,17 @@ export function imagePath(provider: string, snapshot: ImageSnapshot, kind: Image
     : null;
 }
 
+// Carries the serving snapshot's version from imageResponse to cachedImage.
+const VERSION_HEADER = 'X-Snapshot-Version';
+
 /**
  * Serve a snapshot image through the response cache. Pages link to it with the
  * snapshot's `updatedAt` as `v`, so that version keys the entry: a refreshed
  * snapshot is a new key, and a repeat request skips reading and decoding the
  * whole stored snapshot. Without a live version the image is served uncached,
- * which keeps the stale limit exact.
+ * which keeps the stale limit exact. A `v` that is not the stored snapshot's
+ * (checked on the miss, which reads the snapshot anyway) is served uncached
+ * too, so made-up versions cannot fill the cache with copies.
  */
 export function cachedImage(
   services: Services,
@@ -147,12 +152,31 @@ export function cachedImage(
   create: () => Promise<Response>,
 ): Promise<Response> {
   const version = new URL(request.url).searchParams.get('v');
-  if (!version || snapshotExpired(services, version)) return create();
-  return withCache(services, request, create, `${path}/${encodeURIComponent(version)}`);
+  if (!version || snapshotExpired(services, version)) return create().then(withoutVersion);
+  return withCache(
+    services,
+    request,
+    async () => {
+      const response = withoutVersion(await create());
+      if (response.version === version) return response;
+      response.headers.set('Cache-Control', 'no-store');
+      return response;
+    },
+    `${path}/${encodeURIComponent(version)}`,
+  );
+}
+
+function withoutVersion(response: Response): Response & { version?: string } {
+  const version = response.headers.get(VERSION_HEADER) ?? undefined;
+  if (!version) return response;
+  const copy: Response & { version?: string } = new Response(response.body, response);
+  copy.headers.delete(VERSION_HEADER);
+  copy.version = version;
+  return copy;
 }
 
 /** Serve an image held inside a snapshot. */
-export function imageResponse(image: StoredImage): Response {
+export function imageResponse(image: StoredImage, version: string): Response {
   const binary = atob(image.data);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
@@ -162,6 +186,7 @@ export function imageResponse(image: StoredImage): Response {
       'Content-Type': image.contentType,
       'Cache-Control': `public, max-age=${PROFILE_TTL}`,
       'X-Content-Type-Options': 'nosniff',
+      [VERSION_HEADER]: version,
     },
   });
 }
