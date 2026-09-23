@@ -1,5 +1,5 @@
 # Static site → nginx. Build context is the repo root.
-FROM node:24-alpine AS build
+FROM node:25-alpine AS build
 WORKDIR /app
 COPY package*.json ./
 COPY apps/api/package.json ./apps/api/package.json
