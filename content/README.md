@@ -1,95 +1,76 @@
 # content/
 
-All portfolio content lives here (served at `<base>/contents/`). Edit these files to update your site — no code changes needed.
-
-## Structure
+Everything the site shows is edited here; no code changes needed. The site
+serves these files at `<base>/contents/`, and the API reads `links/links.json`
+for the accounts it may serve. Rebuild and redeploy the site (and the API, for
+`links.json`) after editing.
 
 ```
 content/
 ├── home/
-│   ├── profile.json   — name, handle, title, bio, avatar URL
-│   └── resume.json    — work experience[], education[], skills[]
+│   ├── profile.json   name, handle, title, bio, intro paragraphs, avatar URL
+│   └── resume.json    CV entries, the home-page git graph, skills
 ├── links/
-│   └── links.json     — social profiles (discord, github, spotify, steam, x, telegram, linkedin)
+│   └── links.json     one block per card on the links page
 └── blogs/
-    ├── manifest.json  — auto-generated list of every .md path (any depth)
-    └── **/*.md         — posts; metadata lives in frontmatter
+    └── **/*.md        posts; metadata in frontmatter, any folder depth
 ```
 
-## Editing your profile
+## Profile
 
-Open `home/profile.json` and update the fields:
+`home/profile.json` holds `name`, `handle`, `title`, `bio` (also the site
+description), `intro` (paragraphs on the home page) and `avatar`.
 
-```json
-{
-  "name": "your full name",
-  "handle": "yourusername",
-  "title": "your role",
-  "bio": "one or two lines about yourself.",
-  "avatar": "https://avatars.githubusercontent.com/yourusername"
-}
-```
+## Resume and timeline
 
-## Editing work / education
+`home/resume.json`:
 
-Open `home/resume.json`. Add or remove entries in `experience[]` and `education[]`.
-Set `"end": "present"` for your current role — it renders as active in the timeline.
+- `items[]` is the CV (resume page and structured data). Each entry has a
+  `type` (`work` or `education`), dates as `Mon YYYY`, and `"end": "present"`
+  for a current role.
+- `branches[]` drives the git graph on the home page: one branch per company,
+  degree or project, whose `commits[]` are its roles or stages (`text` is the
+  subject line, `body[]` the message). `milestone: true` draws a hollow dot.
+- `skills[]` and `born` round it out. The file's own `_comment` explains the
+  graph in more detail.
 
-## Editing social links
+## Links
 
-Open `links/links.json`. Each platform has its own block:
+`links/links.json` has one block per card. Remove a block to hide that card.
 
-- `discord.userId` — your numeric Discord ID (enables live Lanyard presence)
-- `spotify.userId` — your Spotify user ID (shows now-playing via Lanyard)
-- `github.username` — drives the repo list on the Projects page
-- `steam.handle` — your Steam vanity URL handle
-- `x / telegram / linkedin` — handle + url. Telegram also accepts an
-  `apiEndpoint` (normally `https://api.portfolio.hgh.dev/telegram`) and loads
-  the public profile metadata once per hour. The API defaults to this Telegram
-  handle when the endpoint is opened without a username, and serves the photo
-  through its own one-hour Cloudflare cache.
+- `email` — `address` (the only inbox the contact form sends to), `from` (the
+  vendor-verified sending identity) and `provider`.
+- `discord.userId`, `spotify.userId`, `github.username`, `gitlab.username`,
+  `steam.handle`, and `handle` + `url` for `x`, `telegram` and `linkedin`.
+- `apiEndpoint` points a card at the API route that serves it.
 
-Remove any block to hide that card from the Links page.
+The API only serves the accounts named here; a request cannot ask it for any
+other.
 
-## Adding a blog post
+## Blog posts
 
-No registry to edit — the blog is fully file-driven.
-
-1. Create a `.md` file **anywhere** under `contents/blogs/` (any folder depth works,
-   e.g. `blogs/devops/kubernetes/my-post.md`).
-2. Put the metadata in a frontmatter block at the very top:
+Drop a `.md` file anywhere under `blogs/` (e.g. `blogs/devops/my-post.md`):
 
 ```yaml
 ---
 title: My Post Title
 date: 2026-06-21
-description: Short description shown in the post list.
+description: One line shown in the post list, search results and meta tags.
 tags: [devops, linux]
 ---
 
-# My Post
-
-Write in Markdown...
+Write the post in Markdown…
 ```
 
-- The **slug / route** is the filename without `.md` — `my-post.md` → `/blog/my-post`.
-  Keep filenames unique across folders.
-- Posts are **sorted by `date`**, newest first.
-- The list shows `title`, `description`, and `tags`; the blog page has search + tag filters.
-- Rendering is GitHub-flavored: fenced code with syntax highlighting, tables, task
-  lists, blockquotes, and **mermaid** diagrams (use a ```` ```mermaid ```` block).
-
-### manifest.json
-
-Browsers can't list a directory, so `blogs/manifest.json` holds every `.md` path.
-Regenerate it after adding/removing files (a recursive listing of `*.md` paths).
-In Next.js this is replaced by `fs.readdirSync(..., { recursive: true })` at build time.
-
-## Next.js migration
-
-| This prototype        | Next.js equivalent                              |
-|-----------------------|-------------------------------------------------|
-| `fetch profile.json`  | `import` or `getStaticProps`                    |
-| `fetch resume.json`   | `import` or `getStaticProps`                    |
-| `fetch links.json`    | `import` or `getStaticProps`                    |
-| `fetch *.md`          | `fs.readdirSync(recursive)` + `gray-matter` + `remark` |
+- The route is the file name: `my-post.md` → `/blog/my-post/`. File names
+  are lowercase letters, digits and hyphens, unique across folders.
+- `date` is a real `YYYY-MM-DD` date; posts are listed newest first.
+- Frontmatter is one `key: value` per line, with tags as `[a, b]`. The build
+  stops and names the file if it finds anything else.
+- A post without a `title`, or with `draft: true`, is a draft and is not
+  published.
+- Don't repeat the title as a `# heading` at the top; the page already shows
+  it (a repeated one is dropped).
+- Markdown is GitHub-flavored: fenced code with syntax highlighting and a copy
+  button, tables, task lists, and Mermaid diagrams in a ```` ```mermaid ````
+  block.

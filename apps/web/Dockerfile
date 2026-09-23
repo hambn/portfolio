@@ -9,11 +9,10 @@ RUN npm ci --workspace @portfolio/web
 COPY packages/shared ./packages/shared
 COPY content ./content
 COPY apps/web ./apps/web
-# Deploy target — override at build for a different route/domain.
-ARG BASE_PATH=/
+# Deploy target. nginx serves the site at the web root, so BASE_PATH stays /.
 ARG SITE_URL=https://hgh.dev
 ARG VITE_API_BASE_URL=/api
-ENV BASE_PATH=$BASE_PATH SITE_URL=$SITE_URL VITE_API_BASE_URL=$VITE_API_BASE_URL
+ENV SITE_URL=$SITE_URL VITE_API_BASE_URL=$VITE_API_BASE_URL
 RUN npm run build --workspace @portfolio/web
 
 FROM nginx:1.31-alpine

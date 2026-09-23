@@ -61,9 +61,12 @@ host elsewhere (e.g. a github.io project page):
 | `BASE_PATH` | `/`               | deploy route (asset base + link prefix)           |
 | `SITE_URL`  | `https://hgh.dev` | canonical origin (sitemap, robots, OG, canonical) |
 
+`SITE_URL` is an origin only; the path belongs in `BASE_PATH` (the build stops
+if `SITE_URL` has one).
+
 ```bash
 # github.io project page under /portfolio/
-BASE_PATH=/portfolio/ SITE_URL=https://hambn.github.io/portfolio npm run build
+BASE_PATH=/portfolio/ SITE_URL=https://hambn.github.io npm run build
 ```
 
 ## API (link cards)
@@ -78,7 +81,8 @@ profiles and Discord live presence. External navigation links remain external.
 Served at `https://api.portfolio.hgh.dev`. Nothing sensitive is committed —
 `npm run api:deploy` passes public config (`STEAM_ID`, `DISCORD_ID`,
 `LINKEDIN_URL`, `CACHE_VERSION`) via `wrangler --var`, while credentials
-(`SPOTIFY_CLIENT_ID`, `SPOTIFY_REFRESH_TOKEN`, `STEAM_API_KEY`) are uploaded
+(`SPOTIFY_CLIENT_ID`, `SPOTIFY_REFRESH_TOKEN`, `STEAM_API_KEY`, `MAIL_API_KEY`,
+`MAIL_TOKEN_SECRET`) are uploaded
 once as **Worker secrets** with `wrangler secret bulk` (the CI job does this on
 every deploy).
 
@@ -106,6 +110,8 @@ wrangler kv namespace create SPOTIFY_KV   # → copy id into SPOTIFY_KV_ID
 | `STEAM_ID`              | your 64-bit Steam ID (https://steamid.io)                                           |
 | `DISCORD_ID`            | your Discord user ID (right-click → Copy User ID)                                   |
 | `LINKEDIN_URL`          | optional public profile URL; overrides `links.json`                                 |
+| `MAIL_API_KEY`          | contact-form mail vendor API key                                                    |
+| `MAIL_TOKEN_SECRET`     | HMAC secret for contact-form tokens (any long random string)                        |
 
 Pages deploy needs no secrets — GitHub's `GITHUB_TOKEN` is automatic. `STEAM_ID`
 and `DISCORD_ID` are public on your profiles; kept as secrets only so nothing
@@ -119,23 +125,13 @@ in once, as Worker secrets:
 ```bash
 export SPOTIFY_KV_ID=… STEAM_ID=… DISCORD_ID=… LINKEDIN_URL=…
 npm run api:config   # writes apps/api/wrangler.gen.jsonc from wrangler.jsonc
-echo '{"SPOTIFY_CLIENT_ID":"…","SPOTIFY_REFRESH_TOKEN":"…","STEAM_API_KEY":"…"}' \
+echo '{"SPOTIFY_CLIENT_ID":"…","SPOTIFY_REFRESH_TOKEN":"…","STEAM_API_KEY":"…","MAIL_API_KEY":"…","MAIL_TOKEN_SECRET":"…"}' \
   | npx wrangler secret bulk --config apps/api/wrangler.gen.jsonc
 npm run api:deploy
 ```
 
-| Route                                             | Cache           | Data                                                         |
-| ------------------------------------------------- | --------------- | ------------------------------------------------------------ |
-| `GET /spotify`                                    | none            | aggregate: now-playing + profile + top + recent + playlists  |
-| `GET /spotify?playback=1`                         | no-store        | current playback only; forwards Spotify rate limits          |
-| `GET /steam`                                      | 5m              | status, level, current/favorite game, recent activity        |
-| `GET /discord`                                    | 60s             | presence + activities + Spotify (via Lanyard)                |
-| `GET /discord/avatar`                             | 1h              | proxied Discord avatar image                                 |
-| `GET /linkedin[?username=<username>]`             | hourly snapshot | public profile configured in `links.json`                    |
-| `GET /linkedin/avatar` and `GET /linkedin/banner` | 1h              | image bytes stored with the profile snapshot                 |
-| `GET /telegram[?username=<username>]`             | 1h              | scheduled snapshot of the profile configured in `links.json` |
-| `GET /telegram/avatar[?username=<username>]`      | 1h              | photo bytes stored with the hourly profile snapshot          |
-| `GET /health`                                     | none            | `{ ok: true }` liveness check                                |
+Every route, its cache lifetime and behaviour is listed in the API guide:
+[`.agents/api.md`](.agents/api.md#routes-and-cache-policy).
 
 LinkedIn runs entirely inside the API. Node starts a refresh on startup and every
 hour; Workers use the hourly scheduled handler. Profile data and images are saved
@@ -197,15 +193,18 @@ Use one API process per data directory.
 SPOTIFY_CLIENT_ID=… STEAM_API_KEY=… DISCORD_ID=… STEAM_ID=… SPOTIFY_REFRESH_TOKEN=… npm run api:serve   # → http://localhost:8787
 ```
 
-Environment variables:
+Environment variables (a card whose variables are unset reports itself as not
+configured; the rest of the API still runs):
 
 | var                     | type   | required                                              |
 | ----------------------- | ------ | ----------------------------------------------------- |
-| `SPOTIFY_CLIENT_ID`     | secret | yes                                                   |
-| `SPOTIFY_REFRESH_TOKEN` | config | yes (fallback token)                                  |
-| `STEAM_API_KEY`         | secret | yes                                                   |
-| `STEAM_ID`              | config | yes                                                   |
-| `DISCORD_ID`            | config | yes                                                   |
+| `SPOTIFY_CLIENT_ID`     | secret | for the Spotify card                                  |
+| `SPOTIFY_REFRESH_TOKEN` | config | for the Spotify card (fallback token)                 |
+| `STEAM_API_KEY`         | secret | for the Steam card                                    |
+| `STEAM_ID`              | config | for the Steam card                                    |
+| `DISCORD_ID`            | config | for the Discord card and its live socket              |
+| `MAIL_API_KEY`          | secret | for the contact form                                  |
+| `MAIL_TOKEN_SECRET`     | secret | for the contact form (falls back to `MAIL_API_KEY`)   |
 | `LINKEDIN_URL`          | config | optional public profile URL; defaults to `links.json` |
 | `CACHE_VERSION`         | config | no (Node default: `1`, stable across restarts)        |
 | `API_DATA_DIR`          | config | no (default: `.api-data`, relative to the cwd)        |
@@ -253,13 +252,15 @@ SPOTIFY_REFRESH_TOKEN=…
 STEAM_API_KEY=…
 STEAM_ID=…
 DISCORD_ID=…
+MAIL_API_KEY=…
+MAIL_TOKEN_SECRET=…
 ```
 
-Override the site's deploy target via env (compose passes them as build args):
+Set the site's canonical origin via env (compose passes it as a build arg). The
+container serves the site at `/`; `BASE_PATH` is for GitHub project pages.
 
 ```bash
-BASE_PATH=/ SITE_URL=https://my.domain \
-  docker compose -f deploy/compose.yaml up -d --build
+SITE_URL=https://my.domain docker compose -f deploy/compose.yaml up -d --build
 ```
 
 Nginx forwards `/api/` and the Discord WebSocket to the API container. The frontend

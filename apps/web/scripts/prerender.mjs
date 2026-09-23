@@ -28,6 +28,10 @@ const contents = fileURLToPath(new URL('../../../content', import.meta.url));
 // SITE = canonical origin (sitemap/OG/canonical). BASE = route prefix, '' at root.
 // Both env-overridable; keep in sync with vite's base (BASE_PATH).
 const SITE = (process.env.SITE_URL || 'https://hgh.dev').replace(/\/+$/, '');
+// A path here would be doubled by BASE (…/portfolio/portfolio/) in every
+// canonical, sitemap and feed URL; it belongs in BASE_PATH.
+if (new URL(SITE).pathname !== '/')
+  throw new Error(`SITE_URL must be an origin, e.g. https://hambn.github.io; got ${SITE}`);
 const BASE = (process.env.BASE_PATH || '/').replace(/\/+$/, '');
 
 // `_`-prefixed keys document the schema for whoever edits content/ by hand.

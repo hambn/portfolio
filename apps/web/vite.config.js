@@ -72,7 +72,10 @@ function contentPlugin() {
       // blog-data.json there.
       cpSync(contentDir, join(outDir, CONTENTS), {
         recursive: true,
-        filter: (src) => src !== blogsDir && !src.startsWith(blogsDir + sep),
+        filter: (src) =>
+          src !== blogsDir &&
+          !src.startsWith(blogsDir + sep) &&
+          src !== join(contentDir, 'README.md'),
       });
     },
   };
