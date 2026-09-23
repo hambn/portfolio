@@ -116,6 +116,7 @@ export default function Projects() {
   if (error)
     return (
       <main className="projects-page">
+        <h1 className="projects-title">projects</h1>
         <ErrorState message={error} onRetry={() => setAttempt((a) => a + 1)} />
       </main>
     );

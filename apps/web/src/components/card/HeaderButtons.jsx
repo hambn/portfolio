@@ -83,7 +83,7 @@ export function HeaderButtons({
 }) {
   return (
     <>
-      <button onClick={onCopy} className={btnClass} title={copyTitle}>
+      <button type="button" onClick={onCopy} className={btnClass} title={copyTitle}>
         {copied ? <CheckIcon color={accent} /> : <CopyIcon />}
         <span className={labelClass} style={{ color: copied ? accent : 'inherit' }}>
           {copied ? 'copied!' : copyLabel}
@@ -91,6 +91,7 @@ export function HeaderButtons({
       </button>
       {href && (
         <button
+          type="button"
           className={btnClass}
           title={openTitle}
           onClick={() =>
@@ -105,9 +106,11 @@ export function HeaderButtons({
         </button>
       )}
       <button
+        type="button"
         onClick={onToggle}
         className={btnClass}
         title={collapsed ? 'Expand' : 'Collapse'}
+        aria-expanded={!collapsed}
         style={{ padding: '4px 5px' }}
       >
         <ChevronIcon collapsed={collapsed} />
