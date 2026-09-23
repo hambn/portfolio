@@ -267,6 +267,49 @@ test('the Node server decides the sender address; forged headers do not reset th
   assert.deepEqual(await through('x-real-ip', proxied), [200, 200, 200]);
 });
 
+test('parallel submissions cannot replay a token or overrun the limits', async () => {
+  const { services, sent, advance } = mailServices();
+  const form = await token(services);
+  advance(5000);
+  const replays = await Promise.all(
+    Array.from({ length: 10 }, (_, i) =>
+      handleRequest(
+        post({ from: 'visitor@example.com', message: `Replay number ${i}.`, token: form }),
+        services,
+      ),
+    ),
+  );
+  assert.deepEqual(replays.map((response) => response.status).sort(), [200, ...Array(9).fill(403)]);
+
+  // Fresh tokens from one sender, all at once: only the hourly allowance goes out.
+  const forms = await Promise.all(Array.from({ length: 10 }, () => token(services)));
+  advance(5000);
+  const burst = await Promise.all(
+    forms.map((form, i) =>
+      handleRequest(
+        post({ from: 'visitor@example.com', message: `Burst number ${i}.`, token: form }),
+        services,
+      ),
+    ),
+  );
+  assert.equal(burst.filter((response) => response.status === 200).length, MAIL_LIMITS.ipHour - 1);
+  assert.equal(sent.length, MAIL_LIMITS.ipHour);
+});
+
+test('a rejected submission writes no state', async () => {
+  const { services, advance } = mailServices();
+  const writes: string[] = [];
+  const put = services.state.put.bind(services.state);
+  services.state.put = async (key, value, options) => {
+    writes.push(key);
+    return put(key, value, options);
+  };
+  assert.equal((await send(services, advance, { from: 'nope' })).status, 400);
+  assert.equal((await send(services, advance, { message: 'short' })).status, 400);
+  assert.equal((await send(services, advance, { token: '1700000000000.abc' })).status, 403);
+  assert.deepEqual(writes, []);
+});
+
 test('a provider failure reports an error and spends no quota', async () => {
   const { services, advance } = mailServices({
     fetch: async (input: RequestInfo | URL) => {

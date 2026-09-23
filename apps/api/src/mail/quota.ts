@@ -23,15 +23,29 @@ function base64url(bytes: ArrayBuffer): string {
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-async function digest(secret: string, value: string): Promise<string> {
-  const key = await crypto.subtle.importKey(
+function hmacKey(secret: string): Promise<CryptoKey> {
+  return crypto.subtle.importKey(
     'raw',
     encoder.encode(secret),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
-    ['sign'],
+    ['sign', 'verify'],
   );
-  return base64url(await crypto.subtle.sign('HMAC', key, encoder.encode(value)));
+}
+
+async function digest(secret: string, value: string): Promise<string> {
+  return base64url(await crypto.subtle.sign('HMAC', await hmacKey(secret), encoder.encode(value)));
+}
+
+function fromBase64url(value: string): Uint8Array<ArrayBuffer> | null {
+  try {
+    const binary = atob(value.replace(/-/g, '+').replace(/_/g, '/'));
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  } catch {
+    return null;
+  }
 }
 
 async function hashed(value: string): Promise<string> {
@@ -49,19 +63,30 @@ export async function mintToken(services: Services, secret: string): Promise<str
   return `${issued}.${await digest(secret, issued)}`;
 }
 
-// Single-use: the signature is remembered for as long as the token could still
-// be replayed, so the same token cannot send twice.
-export async function redeemToken(
+// Signature and age only; nothing is written, so a rejected submission costs
+// no storage. crypto.subtle.verify compares in constant time.
+export async function verifyToken(
   services: Services,
   secret: string,
   token: string,
 ): Promise<boolean> {
   const [issued, signature] = token.split('.');
   if (!issued || !signature || !/^\d{10,15}$/.test(issued)) return false;
-  if ((await digest(secret, issued)) !== signature) return false;
+  const bytes = fromBase64url(signature);
+  if (
+    !bytes ||
+    !(await crypto.subtle.verify('HMAC', await hmacKey(secret), bytes, encoder.encode(issued)))
+  )
+    return false;
   const age = services.now() - Number(issued);
-  if (age < TOKEN_MIN_AGE_MS || age > TOKEN_MAX_AGE_MS) return false;
-  const key = `mail:token:${signature.slice(0, 32)}`;
+  return age >= TOKEN_MIN_AGE_MS && age <= TOKEN_MAX_AGE_MS;
+}
+
+// Single-use: the signature is remembered for as long as the token could still
+// be replayed, so the same token cannot send twice. Call only after
+// verifyToken, inside the contact route's critical section.
+export async function spendToken(services: Services, token: string): Promise<boolean> {
+  const key = `mail:token:${token.split('.')[1].slice(0, 32)}`;
   if (await services.state.get(key)) return false;
   await services.state.put(key, '1', { expirationTtl: Math.ceil(TOKEN_MAX_AGE_MS / 1000) });
   return true;
@@ -82,8 +107,9 @@ function periods(now: number) {
 
 type QuotaVerdict = { ok: true } | { ok: false; reason: 'ip_rate_limited' | 'mail_paused' };
 
-// Checked before the message is sent; the counters are only advanced once the
-// provider has accepted it, so a failed send does not burn anyone's allowance.
+// Checked before the message is sent. The counters are reserved before the
+// send and released if the provider refuses it, so concurrent submissions
+// cannot all pass the check and a failed send still costs no allowance.
 export async function checkQuota(services: Services, ip: string): Promise<QuotaVerdict> {
   const { day, month, hour } = periods(services.now());
   const who = await hashed(ip);
@@ -100,22 +126,40 @@ export async function checkQuota(services: Services, ip: string): Promise<QuotaV
   return { ok: true };
 }
 
-export async function recordSend(
+async function counters(services: Services, ip: string, now: number) {
+  const { day, month, hour } = periods(now);
+  const who = await hashed(ip);
+  return [
+    [`mail:count:day:${day}`, 2 * DAY],
+    [`mail:count:month:${month}`, 40 * DAY],
+    [`mail:ip:hour:${who}:${hour}`, HOUR],
+    [`mail:ip:day:${who}:${day}`, DAY],
+  ] as const;
+}
+
+// Returns the release for this reservation; periods are fixed at reservation
+// time so a send that crosses an hour boundary releases what it took.
+export async function reserveSend(
   services: Services,
   ip: string,
   fingerprint: string,
-): Promise<void> {
-  const { day, month, hour } = periods(services.now());
-  const who = await hashed(ip);
-  const bump = async (key: string, ttl: number) =>
-    services.state.put(key, String((await counter(services, key)) + 1), { expirationTtl: ttl });
+): Promise<() => Promise<void>> {
+  const keys = await counters(services, ip, services.now());
+  const duplicate = `mail:dup:${await hashed(fingerprint)}`;
+  const shift = (key: string, ttl: number, by: number) =>
+    counter(services, key).then((value) =>
+      services.state.put(key, String(Math.max(0, value + by)), { expirationTtl: ttl }),
+    );
   await Promise.all([
-    bump(`mail:count:day:${day}`, 2 * DAY),
-    bump(`mail:count:month:${month}`, 40 * DAY),
-    bump(`mail:ip:hour:${who}:${hour}`, HOUR),
-    bump(`mail:ip:day:${who}:${day}`, DAY),
-    services.state.put(`mail:dup:${await hashed(fingerprint)}`, '1', { expirationTtl: 600 }),
+    ...keys.map(([key, ttl]) => shift(key, ttl, 1)),
+    services.state.put(duplicate, '1', { expirationTtl: 600 }),
   ]);
+  return async () => {
+    await Promise.all([
+      ...keys.map(([key, ttl]) => shift(key, ttl, -1)),
+      services.state.delete(duplicate),
+    ]);
+  };
 }
 
 // The same message twice in ten minutes is a double-click or a retry loop. Only

@@ -88,10 +88,20 @@ async function lookup(services: Services, domain: string, type: 'MX' | 'A'): Pro
 // Can this domain receive mail at all? A domain with neither an MX nor an A
 // record has nowhere to deliver, so the reply address would be dead on arrival.
 // Resolver outages fail open — a flaky lookup must not silently eat a message.
-export async function domainAcceptsMail(services: Services, domain: string): Promise<boolean> {
-  const key = `mail:domain:${domain}`;
-  const cached = await services.state.get(key);
-  if (cached) return cached === '1';
+// Answers live in the evictable response cache, not in state: any visitor can
+// name any domain, so they must not add durable entries (or KV writes).
+export async function domainAcceptsMail(
+  services: Services,
+  domain: string,
+  origin: string,
+): Promise<boolean> {
+  const key = new Request(new URL(`/__mail/domain/${encodeURIComponent(domain)}`, origin));
+  try {
+    const cached = await services.cache.match(key);
+    if (cached) return (await cached.text()) === '1';
+  } catch (error) {
+    console.warn('DNS cache read failed', error instanceof Error ? error.message : 'unknown');
+  }
   let deliverable: boolean;
   try {
     deliverable = (await lookup(services, domain, 'MX')) > 0;
@@ -102,8 +112,15 @@ export async function domainAcceptsMail(services: Services, domain: string): Pro
   }
   // Negative answers expire sooner: a domain being set up should not stay
   // blocked for a day after its records appear.
-  await services.state.put(key, deliverable ? '1' : '0', {
-    expirationTtl: deliverable ? DAY : HOUR,
-  });
+  try {
+    await services.cache.put(
+      key,
+      new Response(deliverable ? '1' : '0', {
+        headers: { 'Cache-Control': `public, max-age=${deliverable ? DAY : HOUR}` },
+      }),
+    );
+  } catch (error) {
+    console.warn('DNS cache write failed', error instanceof Error ? error.message : 'unknown');
+  }
   return deliverable;
 }
