@@ -105,6 +105,36 @@ test('versioned snapshot images are served from the response cache', async () =>
   const cached = await request(avatar);
   assert.equal(cached.headers.get('Content-Type'), 'image/png');
   assert.deepEqual(new Uint8Array(await cached.arrayBuffer()), new Uint8Array([4, 5, 6]));
+  assert.equal(cached.headers.get('X-Snapshot-Version'), null);
+});
+
+test('a snapshot image version that is not the stored one is never cached', async () => {
+  const services = testServices({
+    fetch: async (url) =>
+      String(url).startsWith('https://x.com/')
+        ? new Response(html)
+        : new Response(new Uint8Array([4, 5, 6]), { headers: { 'Content-Type': 'image/png' } }),
+  });
+  const stored: string[] = [];
+  const put = services.cache.put.bind(services.cache);
+  services.cache.put = async (key, response) => {
+    stored.push(new URL(key.url).pathname);
+    return put(key, response);
+  };
+  await refreshX(services);
+  const request = (path: string) =>
+    handleRequest(new Request(new URL(path, 'https://api.test')), services);
+  const { avatar } = await (await request('/x')).json();
+  const made = new URL(avatar, 'https://api.test');
+  for (const version of ['not-a-date', new Date(services.now() - 1000).toISOString()]) {
+    made.searchParams.set('v', version);
+    const response = await request(made.pathname + made.search);
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('Cache-Control'), 'no-store');
+  }
+  assert.deepEqual(stored, []);
+  await request(avatar);
+  assert.equal(stored.length, 1);
 });
 
 test('failed cold fetches use cooldown and reject redirects outside X', async () => {

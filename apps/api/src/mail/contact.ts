@@ -37,8 +37,9 @@ const submission = z.object({
   website: z.string().max(200).optional().default(''),
 });
 
-// CR/LF can never reach a header field, so a subject is flattened to one line.
-const singleLine = (value: string) => value.replace(/\p{Cc}+/gu, ' ').trim();
+// CR/LF can never reach a header field, so a subject is flattened to one line
+// (Unicode line and paragraph separators included).
+const singleLine = (value: string) => value.replace(/[\p{Cc}\u2028\u2029]+/gu, ' ').trim();
 // A message keeps its paragraphs and loses every other control character.
 const multiLine = (value: string) =>
   value

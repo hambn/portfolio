@@ -14,7 +14,10 @@ export async function handle(request: Request, services: Services) {
       services,
       `https://gitlab.com/api/v4/users?username=${encodeURIComponent(username)}`,
     );
-    if (!response.ok) return json({ error: 'gitlab_unavailable' }, 502);
+    if (!response.ok) {
+      await response.body?.cancel();
+      return json({ error: 'gitlab_unavailable' }, 502);
+    }
     return json(await readJSON(response, users), 200, PROFILE_TTL);
   });
 }

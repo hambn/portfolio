@@ -61,13 +61,11 @@ export function createServer(services: Services) {
       headers.set('CF-Connecting-IP', clientAddress(incoming, trustedHeader));
       // Relative URLs use the public origin only when explicitly configured.
       const origin =
-        process.env.API_PUBLIC_ORIGIN || `http://${incoming.headers.host || 'localhost:8787'}`;
-      // Only methods that carry a body are read; the app caps how much of it
-      // any handler is allowed to see.
-      const body =
-        incoming.method === 'POST' || incoming.method === 'PUT'
-          ? await readBody(incoming)
-          : undefined;
+        process.env.API_PUBLIC_ORIGIN ||
+        `http://${incoming.headers.host || `localhost:${process.env.PORT || 8787}`}`;
+      // POST is the only method any route accepts a body with; the app caps how
+      // much of it a handler is allowed to see.
+      const body = incoming.method === 'POST' ? await readBody(incoming) : undefined;
       const request = new Request(new URL(incoming.url, origin), {
         method: incoming.method,
         headers,

@@ -3,10 +3,17 @@ import { json } from '../lib/http.js';
 
 export async function presence(userId: string): Promise<Response> {
   if (!userId) return json({ error: 'discord_not_configured' }, 503);
-  const response = await fetch('https://api.lanyard.rest/socket', {
-    headers: { Upgrade: 'websocket' },
-  });
-  const upstream = response.webSocket;
+  // A failed or hung upstream must answer as JSON, not Cloudflare's error page.
+  let upstream: WebSocket | null;
+  try {
+    const response = await fetch('https://api.lanyard.rest/socket', {
+      headers: { Upgrade: 'websocket' },
+      signal: AbortSignal.timeout(10000),
+    });
+    upstream = response.webSocket;
+  } catch {
+    upstream = null;
+  }
   if (!upstream) return json({ error: 'presence_unavailable' }, 502);
   const pair = new WebSocketPair();
   const client = pair[0];

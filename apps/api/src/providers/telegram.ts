@@ -62,7 +62,10 @@ async function fetchTelegramProfile(services: Services, username: string) {
   } catch {
     return null;
   }
-  if (!response.ok) return null;
+  if (!response.ok) {
+    await response.body?.cancel();
+    return null;
+  }
   try {
     const finalUrl = new URL(response.url || profileUrl);
     if (finalUrl.protocol !== 'https:' || finalUrl.hostname.toLowerCase() !== 't.me') return null;
@@ -160,7 +163,7 @@ async function respond(services: Services, avatar: boolean): Promise<Response> {
   const { profile, image, updatedAt } = snapshot;
   if (avatar) {
     if (!image) return json({ error: 'telegram_photo_unavailable' }, 404);
-    return imageResponse(image);
+    return imageResponse(image, updatedAt);
   }
   const photo = `/telegram/avatar?username=${encodeURIComponent(profile.username)}&v=${encodeURIComponent(updatedAt)}`;
   return json({ ...profile, photo: image ? photo : null, updatedAt });
