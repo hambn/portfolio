@@ -20,6 +20,10 @@ const MESSAGES = {
   contact_not_configured: 'The form is offline right now — use your mail app instead.',
 };
 const FALLBACK = 'Couldn’t send that. Please use your mail app instead.';
+// A little over the API's 3-second minimum, and a little under its 30-minute
+// maximum, to absorb transit time.
+const TOKEN_MIN_AGE_MS = 3500;
+const TOKEN_MAX_AGE_MS = 29 * 60 * 1000;
 const ENV =
   'M2.5 6.5A2.5 2.5 0 0 1 5 4h14a2.5 2.5 0 0 1 2.5 2.5v11A2.5 2.5 0 0 1 19 20H5a2.5 2.5 0 0 1-2.5-2.5v-11Zm2.2-.4 7.3 5.2 7.3-5.2A.9.9 0 0 0 19 6H5a.9.9 0 0 0-.3.1ZM20 8.1l-7.4 5.3a1 1 0 0 1-1.2 0L4 8.1v9.4c0 .55.45 1 1 1h14c.55 0 1-.45 1-1V8.1Z';
 
@@ -43,11 +47,22 @@ export const EmailCard = React.memo(function EmailCard({ address }) {
     try {
       const response = await fetch(apiUrl('/contact'), { headers: { Accept: 'application/json' } });
       const data = await response.json();
-      token.current = data.token || null;
+      token.current = data.token ? { value: data.token, at: Date.now() } : null;
     } catch {
       token.current = null;
     }
   }, []);
+
+  // The API accepts a token between 3 seconds and 30 minutes after minting.
+  // An old one is replaced and a new one waited out, so a slow writer or a
+  // quick resend never sees a spurious "expired" error.
+  const freshToken = async () => {
+    if (!token.current || Date.now() - token.current.at > TOKEN_MAX_AGE_MS) await mint();
+    if (!token.current) return '';
+    const wait = TOKEN_MIN_AGE_MS - (Date.now() - token.current.at);
+    if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+    return token.current.value;
+  };
   useEffect(() => {
     if (!collapsed && !token.current) void mint();
   }, [collapsed, mint]);
@@ -67,8 +82,8 @@ export const EmailCard = React.memo(function EmailCard({ address }) {
     }
     setSending(true);
     setStatus(null);
-    try {
-      if (!token.current) await mint();
+    const submit = async () => {
+      const form = await freshToken();
       const response = await fetch(apiUrl('/contact'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -76,13 +91,19 @@ export const EmailCard = React.memo(function EmailCard({ address }) {
           from: from.trim(),
           subject: subject.trim(),
           message: body,
-          token: token.current || '',
+          token: form,
           website: honeypot,
         }),
       });
-      const data = await response.json().catch(() => ({}));
-      // A token is spent whether or not the message went through.
+      // A token is never reused, whether or not the message went through.
       token.current = null;
+      return [response, await response.json().catch(() => ({}))];
+    };
+    try {
+      let [response, data] = await submit();
+      // A token refused anyway (clock skew, or open in two tabs) gets one
+      // silent retry with a new one.
+      if (data.error === 'invalid_token') [response, data] = await submit();
       if (response.ok && data.ok) {
         setStatus({ kind: 'sent', text: 'Sent — I’ll reply to ' + from.trim() + '.' });
         setSubject('');
