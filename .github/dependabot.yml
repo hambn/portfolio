@@ -18,6 +18,14 @@ updates:
           - minor
           - patch
 
+  # Base images are pinned (node major, nginx minor); these PRs move them.
+  - package-ecosystem: docker
+    directories: ["/apps/web", "/apps/api"]
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "chore(docker)"
+
   - package-ecosystem: github-actions
     directory: "/"
     schedule:

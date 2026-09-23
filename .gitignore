@@ -8,9 +8,9 @@ dist/
 .tmp/
 *.log
 
-# secrets / env
-.env
-deploy/.env
+# secrets / env (any .env variant, and wrangler's local secrets file)
+.env*
+.dev.vars*
 
 # cloudflare wrangler
 .wrangler/

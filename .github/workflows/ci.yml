@@ -6,6 +6,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -19,3 +23,12 @@ jobs:
       - run: npm run check
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
+
+  # Both images build from the repo root; a workspace missing from a
+  # Dockerfile's package.json copies only shows up here.
+  images:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: docker build -f apps/web/Dockerfile -t portfolio-web .
+      - run: docker build -f apps/api/Dockerfile -t portfolio-api .
