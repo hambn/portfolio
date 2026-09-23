@@ -311,8 +311,11 @@ your post body in GitHub-flavored markdown…
 ```
 
 - Index is generated automatically at build/dev — **no manifest to update**.
-- Route is `/blog/<filename-without-.md>`, so keep filenames unique.
-- **Hide a draft** by omitting `title` — files without a title are skipped.
+- Route is `/blog/<filename-without-.md>`, so keep filenames unique and use
+  lowercase letters, digits and hyphens only.
+- **Hide a draft** with `draft: true`, or by omitting `title`.
+- `date` must be a real `YYYY-MM-DD` date. One `key: value` per line and
+  `tags: [a, b]`; the build stops with the file name if frontmatter is invalid.
 
 ## structure
 
