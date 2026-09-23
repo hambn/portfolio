@@ -17,6 +17,14 @@ async function enhanceMarkdown(root) {
     code.parentElement.replaceWith(div);
     mermaidNodes.push(div);
   });
+  // Start the (heavy) diagram library now rather than after the highlighter
+  // has loaded; both downloads run together and are applied in order below.
+  const mermaidModule = mermaidNodes.length
+    ? import('mermaid').catch((error) => {
+        console.warn('mermaid', error);
+        return null;
+      })
+    : null;
 
   // Load the highlighter only when the post contains code.
   const codes = root.querySelectorAll('pre > code');
@@ -71,25 +79,24 @@ async function enhanceMarkdown(root) {
     wrap.appendChild(tbl);
   });
 
-  // 4. Render mermaid diagrams — load the (heavy) mermaid lib on demand, only
-  //    when a post actually contains a diagram, so other pages never fetch it.
-  if (mermaidNodes.length) {
-    import('mermaid')
-      .then(async ({ default: mermaid }) => {
-        if (!root.isConnected) return;
-        try {
-          mermaid.initialize({
-            startOnLoad: false,
-            theme: isDark ? 'dark' : 'default',
-            securityLevel: 'loose',
-            fontFamily: 'var(--font-mono)',
-          });
-          await mermaid.run({ nodes: mermaidNodes });
-        } catch (e) {
-          console.warn('mermaid', e);
-        }
-      })
-      .catch((error) => console.warn('mermaid', error));
+  // 4. Render mermaid diagrams. The library is only requested when a post
+  //    actually contains a diagram, so other pages never fetch it.
+  if (mermaidModule) {
+    void mermaidModule.then(async (module) => {
+      if (!module || !root.isConnected) return;
+      const mermaid = module.default;
+      try {
+        mermaid.initialize({
+          startOnLoad: false,
+          theme: isDark ? 'dark' : 'default',
+          securityLevel: 'loose',
+          fontFamily: 'var(--font-mono)',
+        });
+        await mermaid.run({ nodes: mermaidNodes });
+      } catch (e) {
+        console.warn('mermaid', e);
+      }
+    });
   }
 }
 
