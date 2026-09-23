@@ -189,3 +189,34 @@ test('a card with malformed provider data is hidden without blanking the page', 
   await expect(page.getByRole('navigation')).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test('returning to the tab refetches only cards whose poll is due', async ({ page }) => {
+  const requested = [];
+  await page.routeWebSocket('**/api/discord/socket', () => {});
+  await page.route('**/api/**', (route) => {
+    const { pathname } = new URL(route.request().url());
+    requested.push(pathname);
+    const responses = {
+      '/api/telegram': { username: 'ham_bn', name: 'Telegram Tester', description: 'Hello' },
+      '/api/linkedin': { username: 'hambn', name: 'LinkedIn Tester' },
+    };
+    return responses[pathname]
+      ? route.fulfill({ json: responses[pathname] })
+      : route.fulfill({ status: 503, json: { error: 'unavailable' } });
+  });
+  await page.goto('/links/');
+  await expect(page.getByText('Telegram Tester', { exact: true })).toBeVisible();
+  await page.waitForLoadState('networkidle');
+  const count = (path) => requested.filter((item) => item === path).length;
+  const before = { telegram: count('/api/telegram'), linkedin: count('/api/linkedin') };
+
+  for (const hidden of [true, false])
+    await page.evaluate((value) => {
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => value });
+      document.dispatchEvent(new Event('visibilitychange'));
+    }, hidden);
+  await page.waitForTimeout(1000);
+
+  // Both poll hourly and answered moments ago.
+  expect({ telegram: count('/api/telegram'), linkedin: count('/api/linkedin') }).toEqual(before);
+});

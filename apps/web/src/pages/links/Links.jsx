@@ -62,6 +62,7 @@ export default function Links() {
     let heartbeat;
     let reconnect;
     let handshake;
+    let failures = 0;
     let cancelled = false;
 
     function teardown() {
@@ -79,7 +80,8 @@ export default function Links() {
     }
 
     function connect() {
-      if (cancelled || document.hidden) return;
+      // Offline, the 'online' listener below reconnects when it can succeed.
+      if (cancelled || document.hidden || navigator.onLine === false) return;
       teardown();
       const socket = new WebSocket(socketUrl());
       ws = socket;
@@ -103,6 +105,7 @@ export default function Links() {
         }
         if (op === 0 && d) {
           clearTimeout(handshake);
+          failures = 0;
           setLanyardData(d);
         }
       };
@@ -111,7 +114,10 @@ export default function Links() {
         clearTimeout(handshake);
         if (!cancelled) {
           setLanyardData(null);
-          reconnect = setTimeout(connect, 4000);
+          // 4 s, doubling to a minute, with jitter so many open tabs do not
+          // reconnect in step while the relay is down.
+          const delay = Math.min(60000, 4000 * 2 ** failures++);
+          reconnect = setTimeout(connect, delay / 2 + Math.random() * (delay / 2));
         }
       };
       socket.onerror = () => socket.close();
@@ -119,7 +125,8 @@ export default function Links() {
 
     function resume() {
       if (document.hidden) teardown();
-      else connect();
+      // 'online' also fires while a socket is healthy; keep that one.
+      else if (!ws || ws.readyState > WebSocket.OPEN) connect();
     }
 
     connect();

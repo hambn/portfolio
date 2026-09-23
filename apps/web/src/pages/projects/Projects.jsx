@@ -76,7 +76,7 @@ export default function Projects() {
         const r = await fetch(apiUrl(`/github/repos?username=${encodeURIComponent(username)}`), {
           signal: ctrl.signal,
         });
-        if (!r.ok) throw new Error(`GitHub API: ${r.statusText}`);
+        if (!r.ok) throw new Error(`GitHub API: ${r.status}`);
         const data = await r.json();
         if (ctrl.signal.aborted) return;
         setRepos(

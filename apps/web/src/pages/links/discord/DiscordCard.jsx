@@ -172,8 +172,10 @@ export function DiscordCard({ userId, lanyardData, apiEndpoint }) {
     return () => window.clearInterval(id);
   }, [hasTimedActivity, collapsed]);
 
+  // While the socket is delivering presence, polling would only repeat it; a
+  // dropped socket clears lanyardData and polling picks up again at once.
   const { loading } = usePolledJSON(
-    collapsed ? null : apiEndpoint,
+    collapsed || lanyardData ? null : apiEndpoint,
     30000,
     (data) => {
       if (data?.username) setApiData(data);
