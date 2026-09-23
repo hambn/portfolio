@@ -34,6 +34,10 @@ services:
       API_DATA_DIR: /data
       API_CACHE_MAX_BYTES: ${API_CACHE_MAX_BYTES:-268435456}
       API_PUBLIC_ORIGIN: ${API_PUBLIC_ORIGIN:-}
+      # The sender address nginx sets for /api/ requests. Direct requests to
+      # :8787 can set it too; set this empty if that port is exposed beyond
+      # networks you trust.
+      API_CLIENT_IP_HEADER: ${API_CLIENT_IP_HEADER:-x-real-ip}
       CACHE_VERSION: ${CACHE_VERSION:-1}
     restart: unless-stopped
     volumes:

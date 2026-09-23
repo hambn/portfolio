@@ -89,10 +89,17 @@ export async function diskCache(
     }
   }
   await prune();
+  // One process answers for every Host name it is reached by, so the origin is
+  // left out of the key; otherwise each Host value would be a separate entry
+  // and a separate upstream fetch.
+  const file = (key: Request) => {
+    const { pathname, search } = new URL(key.url);
+    return join(directory, hash(pathname + search));
+  };
   return {
     async match(key) {
       try {
-        const bytes = await readFile(join(directory, hash(key.url)));
+        const bytes = await readFile(file(key));
         const separator = bytes.indexOf(10);
         if (separator < 0) return undefined;
         const parsed = cacheEntry.safeParse(JSON.parse(bytes.subarray(0, separator).toString()));
@@ -134,7 +141,7 @@ export async function diskCache(
       const bytes = Buffer.concat([Buffer.from(metadata + '\n'), body]);
       if (bytes.length > maxBytes) return;
       const pending = writes.then(async () => {
-        const path = join(directory, hash(key.url));
+        const path = file(key);
         await atomicWrite(path, bytes);
         total += bytes.length - (entries.get(path) ?? 0);
         entries.delete(path);

@@ -124,10 +124,10 @@ export async function isDuplicate(services: Services, fingerprint: string): Prom
   return Boolean(await services.state.get(`mail:dup:${await hashed(fingerprint)}`));
 }
 
-// Cloudflare sets CF-Connecting-IP; nginx sets X-Forwarded-For. Both are added
-// by our own edge, and an unidentifiable caller shares one bucket rather than
+// Cloudflare sets CF-Connecting-IP in front of the Worker; the Node entrypoint
+// drops any client-supplied copy and sets it from the socket or its trusted
+// proxy header. An unidentifiable caller shares one bucket rather than
 // escaping the per-sender limit entirely.
 export function clientAddress(request: Request): string {
-  const forwarded = request.headers.get('X-Forwarded-For')?.split(',')[0]?.trim();
-  return request.headers.get('CF-Connecting-IP') || forwarded || 'unknown';
+  return request.headers.get('CF-Connecting-IP') || 'unknown';
 }

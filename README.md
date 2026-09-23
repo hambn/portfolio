@@ -211,6 +211,7 @@ Environment variables:
 | `API_DATA_DIR`          | config | no (default: `.api-data`, relative to the cwd)        |
 | `API_CACHE_MAX_BYTES`   | config | no (default: `268435456`)                             |
 | `API_PUBLIC_ORIGIN`     | config | external origin for direct Node access behind TLS     |
+| `API_CLIENT_IP_HEADER`  | config | no (proxy header with the sender address; compose: `x-real-ip`) |
 
 ## self-host (Docker)
 
