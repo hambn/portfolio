@@ -5,8 +5,8 @@ services:
     build:
       context: ..
       dockerfile: apps/web/Dockerfile
+      # The image serves the site at the web root, so there is no BASE_PATH.
       args:
-        BASE_PATH: ${BASE_PATH:-/}
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
         SITE_URL: ${SITE_URL:-https://hgh.dev}
     depends_on:
