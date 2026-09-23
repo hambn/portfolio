@@ -5,6 +5,8 @@ import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { once } from 'node:events';
+import http from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { diskState, diskCache } from '../src/adapters/node.js';
 import { createServer } from '../src/entrypoints/node.js';
 import { testServices } from './helpers.js';
@@ -79,6 +81,41 @@ test('Node HTTP adapter matches the shared Worker application responses', async 
   }
 });
 
+test('the Host header neither splits the disk cache nor replaces the origin', async (t) => {
+  const root = await mkdtemp(join(tmpdir(), 'portfolio-api-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const cache = await diskCache(join(root, 'cache'));
+  await cache.put(
+    new Request('http://a.example/github?__v=1'),
+    new Response('cached', { headers: { 'Cache-Control': 'public, max-age=60' } }),
+  );
+  assert.equal(
+    await (await cache.match(new Request('http://b.example/github?__v=1')))!.text(),
+    'cached',
+  );
+  assert.equal(await cache.match(new Request('http://a.example/github?__v=2')), undefined);
+
+  const server = createServer(testServices());
+  server.listen(0, '127.0.0.1');
+  await once(server, 'listening');
+  t.after(() => {
+    server.closeAllConnections();
+    server.close();
+  });
+  const { port } = server.address() as AddressInfo;
+  // An absolute-form target ("GET http://evil.example/health") is refused.
+  const status = await new Promise<number | undefined>((resolve, reject) =>
+    http
+      .request({ host: '127.0.0.1', port, path: 'http://evil.example/health' }, (response) => {
+        response.resume();
+        resolve(response.statusCode);
+      })
+      .on('error', reject)
+      .end(),
+  );
+  assert.equal(status, 400);
+});
+
 test('scheduled Node refresh coalesces overlapping invocations and can retry', async () => {
   let calls = 0;
   const services = testServices({
@@ -143,6 +180,8 @@ test('malformed disk metadata is a miss and can be replaced', async (t) => {
   const cache = await diskCache(join(root, 'cache'), 4096, () => 1000);
   const key = new Request('https://api.test/corrupt');
   const filename = createHash('sha256').update(key.url).digest('hex');
+  // Cache files are named by path and query only.
+  const cacheFile = createHash('sha256').update('/corrupt').digest('hex');
   for (const metadata of [
     null,
     {},
@@ -159,7 +198,7 @@ test('malformed disk metadata is a miss and can be replaced', async (t) => {
     { expires: 10000, status: 204, headers: [] },
     { expires: 10000, status: 200, headers: [['bad header', 'value']] },
   ]) {
-    await writeFile(join(root, 'cache', filename), JSON.stringify(metadata) + '\nbody');
+    await writeFile(join(root, 'cache', cacheFile), JSON.stringify(metadata) + '\nbody');
     assert.equal(await cache.match(key), undefined);
   }
   await state.put(key.url, 'replacement');

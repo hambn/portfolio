@@ -26,13 +26,39 @@ async function readBody(incoming: http.IncomingMessage): Promise<ArrayBuffer> {
   return merged.buffer.slice(merged.byteOffset, merged.byteOffset + merged.byteLength);
 }
 
+// Headers a client could send to pose as another sender. They never reach the
+// app; the entrypoint sets CF-Connecting-IP itself, the one header the app
+// reads, just as Cloudflare does in front of the Worker.
+const CLIENT_ADDRESS_HEADERS = ['cf-connecting-ip', 'x-forwarded-for', 'x-real-ip'];
+
+// Behind a reverse proxy the socket peer is the proxy, so the sender comes
+// from the header the proxy overwrites (API_CLIENT_IP_HEADER, e.g. x-real-ip
+// behind the bundled nginx). Without it only the socket address is trusted.
+function clientAddress(incoming: http.IncomingMessage, trustedHeader: string): string {
+  const forwarded = trustedHeader ? incoming.headers[trustedHeader] : undefined;
+  const value = Array.isArray(forwarded) ? forwarded.join(',') : forwarded;
+  // A proxy appends to a list header, so the last entry is the one it added.
+  const nearest = value?.split(',').at(-1)?.trim();
+  return nearest || incoming.socket.remoteAddress || 'unknown';
+}
+
 export function createServer(services: Services) {
+  const trustedHeader = (process.env.API_CLIENT_IP_HEADER || '').trim().toLowerCase();
   return http.createServer(async (incoming, outgoing) => {
     try {
+      // Only origin-form targets ("/path"). An absolute-form target would
+      // otherwise replace the origin the app builds media URLs from.
+      if (!incoming.url?.startsWith('/')) {
+        outgoing.writeHead(400, { 'Content-Type': 'application/json' });
+        outgoing.end(JSON.stringify({ error: 'bad_request' }));
+        return;
+      }
       const headers = new Headers();
       for (const [key, value] of Object.entries(incoming.headers)) {
-        if (value !== undefined) headers.set(key, Array.isArray(value) ? value.join(', ') : value);
+        if (value === undefined || CLIENT_ADDRESS_HEADERS.includes(key)) continue;
+        headers.set(key, Array.isArray(value) ? value.join(', ') : value);
       }
+      headers.set('CF-Connecting-IP', clientAddress(incoming, trustedHeader));
       // Relative URLs use the public origin only when explicitly configured.
       const origin =
         process.env.API_PUBLIC_ORIGIN || `http://${incoming.headers.host || 'localhost:8787'}`;
@@ -42,7 +68,7 @@ export function createServer(services: Services) {
         incoming.method === 'POST' || incoming.method === 'PUT'
           ? await readBody(incoming)
           : undefined;
-      const request = new Request(new URL(incoming.url || '/', origin), {
+      const request = new Request(new URL(incoming.url, origin), {
         method: incoming.method,
         headers,
         body,

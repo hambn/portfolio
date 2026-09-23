@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { once } from 'node:events';
+import type { AddressInfo } from 'node:net';
 import { handleRequest } from '../src/app.js';
+import { createServer } from '../src/entrypoints/node.js';
 import { parseAddress } from '../src/mail/address.js';
 import { mailProvider } from '../src/mail/provider.js';
 import { identities } from '../src/identities.js';
@@ -216,6 +219,52 @@ test('per-sender and per-day limits cap what one visitor and one day can spend',
   const duplicate = await send(services, advance, { message: 'Fresh message.' }, other);
   assert.equal(duplicate.status, 429);
   assert.equal(((await duplicate.json()) as { error: string }).error, 'duplicate_message');
+});
+
+test('the Node server decides the sender address; forged headers do not reset the limit', async (t) => {
+  const { services, advance } = mailServices();
+  // Through the HTTP server, so the entrypoint's header handling is exercised.
+  const through = async (trusted: string, headers: (i: number) => Record<string, string>) => {
+    const previous = process.env.API_CLIENT_IP_HEADER;
+    process.env.API_CLIENT_IP_HEADER = trusted;
+    const server = createServer(services);
+    process.env.API_CLIENT_IP_HEADER = previous;
+    server.listen(0, '127.0.0.1');
+    await once(server, 'listening');
+    t.after(() => {
+      server.closeAllConnections();
+      server.close();
+    });
+    const { port } = server.address() as AddressInfo;
+    const statuses: number[] = [];
+    for (let i = 0; i <= MAIL_LIMITS.ipHour; i++) {
+      const form = await token(services);
+      advance(5000);
+      const response = await fetch(`http://127.0.0.1:${port}/contact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...headers(i) },
+        body: JSON.stringify({
+          from: 'visitor@example.com',
+          message: `Message ${trusted} ${i}.`,
+          token: form,
+        }),
+      });
+      statuses.push(response.status);
+    }
+    return statuses;
+  };
+
+  // No trusted proxy: every forged address still counts as the one socket.
+  const forged = (i: number) => ({
+    'CF-Connecting-IP': `203.0.113.${i}`,
+    'X-Forwarded-For': `198.51.100.${i}`,
+    'X-Real-IP': `192.0.2.${i}`,
+  });
+  assert.deepEqual(await through('', forged), [200, 200, 429]);
+
+  // Behind nginx the proxy's header identifies each visitor separately.
+  const proxied = (i: number) => ({ 'X-Real-IP': `192.0.2.${100 + i}` });
+  assert.deepEqual(await through('x-real-ip', proxied), [200, 200, 200]);
 });
 
 test('a provider failure reports an error and spends no quota', async () => {

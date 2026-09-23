@@ -87,6 +87,7 @@ remove the Docker volume unless you intend to discard it.
 | `API_DATA_DIR` | Node persistent data directory |
 | `API_CACHE_MAX_BYTES` | Node response/media cache budget, default 268435456 |
 | `API_PUBLIC_ORIGIN` | Optional external origin for direct Node access behind TLS |
+| `API_CLIENT_IP_HEADER` | Header a trusted proxy overwrites with the sender address (compose: `x-real-ip`); unset, Node uses the socket address |
 | `VITE_API_BASE_URL` | Frontend build setting; default production Worker, Docker default `/api` |
 
 Telegram, GitHub, GitLab and contact-form identities come from
@@ -96,7 +97,10 @@ Rebuild/redeploy after changing identities. Credentials stay in Worker secrets
 or container environment variables. The Node container has no Cloudflare dependency.
 
 Nginx forwards `/api/` to Node, including WebSocket upgrades, without replacing
-API cache headers. Both runtimes accept existing unprefixed routes and `/api/`
+API cache headers. It overwrites `X-Real-IP` with the visitor's address, which
+the contact form's per-sender limit uses. Node discards client-sent
+`CF-Connecting-IP`, `X-Forwarded-For` and `X-Real-IP`, and keys its disk cache on
+path and query only, so the Host header cannot split it. Both runtimes accept existing unprefixed routes and `/api/`
 routes. Prefixed responses use relative media URLs, so TLS termination does not
 produce mixed-content URLs. Separate frontend/API hosting uses an absolute
 `VITE_API_BASE_URL` and, for Node behind TLS, `API_PUBLIC_ORIGIN`.
