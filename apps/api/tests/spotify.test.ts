@@ -169,3 +169,47 @@ test('aggregate response clears an expired token when Spotify returns 401', asyn
   assert.equal(response.status, 401);
   assert.deepEqual(deleted, ['access_token']);
 });
+
+test('concurrent requests share one token refresh and refusals stay generic', async () => {
+  let refreshes = 0;
+  let refuse = false;
+  const services = testServices({
+    fetch: async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === 'https://accounts.spotify.com/api/token') {
+        refreshes++;
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        return refuse
+          ? Response.json({ error: 'invalid_grant', error_description: 'Refresh token revoked' })
+          : Response.json({ access_token: 'access', refresh_token: 'rotated' });
+      }
+      return Response.json(playing);
+    },
+  });
+  services.config.SPOTIFY_CLIENT_ID = 'client';
+  services.config.SPOTIFY_REFRESH_TOKEN = 'initial';
+  const playback = () =>
+    handleRequest(new Request('https://example.test/spotify?playback=1'), services);
+
+  const responses = await Promise.all(Array.from({ length: 5 }, playback));
+  assert.deepEqual(
+    responses.map((response) => response.status),
+    [200, 200, 200, 200, 200],
+  );
+  assert.equal(refreshes, 1);
+  assert.equal(await services.state.get('refresh_token'), 'rotated');
+
+  await services.state.delete('access_token');
+  refuse = true;
+  const refused = await playback();
+  assert.equal(refused.status, 401);
+  assert.deepEqual(await refused.json(), { error: 'spotify_unauthorized' });
+
+  const bare = testServices();
+  const unconfigured = await handleRequest(
+    new Request('https://example.test/spotify?playback=1'),
+    bare,
+  );
+  assert.equal(unconfigured.status, 503);
+  assert.deepEqual(await unconfigured.json(), { error: 'spotify_not_configured' });
+});
