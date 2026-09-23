@@ -48,7 +48,8 @@ delivery before and after a restart with networking disabled.
 
 No public endpoint accepts an arbitrary upstream destination. Media identifiers
 encode HTTPS URLs, but each request and redirect must pass the provider host
-allowlist. Only raster images are served; downloads are limited to 4 MiB and
+allowlist; on hosts that also serve user uploads (`gitlab.com`,
+`cdn.discordapp.com`, `pbs.twimg.com`) only the paths the cards use pass. Only raster images are served; downloads are limited to 4 MiB and
 10 seconds. Telegram avatars retain their 1 MiB limit. Unknown sources display
 an unavailable image instead of causing a browser request to the provider.
 

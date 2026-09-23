@@ -21,17 +21,22 @@ const hosts: Record<string, string[]> = {
   x: ['pbs.twimg.com'],
 };
 
+// Hosts that also serve arbitrary user uploads are limited to the paths the
+// cards draw, so the proxy is not a free image host for anything posted there.
+// media.discordapp.net stays open: activity art arrives as mp:attachments/… keys.
+const paths: Record<string, string[]> = {
+  'gitlab.com': ['/uploads/'],
+  'cdn.discordapp.com': ['/avatars/', '/embed/avatars/', '/app-assets/', '/app-icons/'],
+  'pbs.twimg.com': ['/profile_images/', '/profile_banners/'],
+};
+
 const imageKey = /^(images?|avatar|avatar_url|photo|banner|header|hero)$/;
 
 function allowedURL(provider: string, url: URL): boolean {
   if (url.protocol !== 'https:' || url.port || url.username || url.password || url.hash)
     return false;
-  if (
-    provider === 'gitlab' &&
-    url.hostname === 'gitlab.com' &&
-    !url.pathname.startsWith('/uploads/')
-  )
-    return false;
+  const prefixes = paths[url.hostname];
+  if (prefixes && !prefixes.some((prefix) => url.pathname.startsWith(prefix))) return false;
   return (hosts[provider] || []).some(
     (host) =>
       url.hostname === host || (provider === 'telegram' && url.hostname.endsWith(`.${host}`)),

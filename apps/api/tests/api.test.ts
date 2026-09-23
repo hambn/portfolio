@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { handleRequest } from '../src/app.js';
 import { testServices } from './helpers.js';
-import { mediaPath, rewriteMedia } from '@portfolio/shared/media';
+import { allowedMedia, mediaPath, rewriteMedia } from '@portfolio/shared/media';
 import { presenceMessage } from '../src/lib/presence.js';
 
 const request = (path: string, method = 'GET') =>
@@ -57,6 +57,21 @@ test('media cache hits, expiration, version invalidation, HEAD and local URL rew
     ),
     { images: [{ url: `/api${path}` }], url: 'https://open.spotify.com/track/one' },
   );
+});
+
+test('hosts that also serve user uploads are limited to the paths cards use', () => {
+  for (const [provider, source, allowed] of [
+    ['discord', 'https://cdn.discordapp.com/avatars/1/abc.png', true],
+    ['discord', 'https://cdn.discordapp.com/app-assets/1/2.png', true],
+    ['discord', 'https://cdn.discordapp.com/attachments/1/2/upload.png', false],
+    ['discord', 'https://media.discordapp.net/external/abc/image.png', true],
+    ['x', 'https://pbs.twimg.com/profile_images/1/a.jpg', true],
+    ['x', 'https://pbs.twimg.com/profile_banners/1/2', true],
+    ['x', 'https://pbs.twimg.com/media/upload.jpg', false],
+    ['gitlab', 'https://gitlab.com/uploads/-/system/user/avatar/1/a.png', true],
+    ['gitlab', 'https://gitlab.com/some/project/raw/image.png', false],
+  ] as const)
+    assert.equal(allowedMedia(provider, source), allowed, source);
 });
 
 test('media rejects arbitrary destinations, redirects, SVG and oversized bodies', async () => {
