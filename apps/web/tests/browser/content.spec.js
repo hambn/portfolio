@@ -133,3 +133,36 @@ test('LinkedIn unavailable state does not show old hardcoded profile details', a
   );
   await expect(linkedin.getByText('654 followers')).toHaveCount(0);
 });
+
+test('the contact form waits out a new token and retries a refused one', async ({ page }) => {
+  const minted = [];
+  const posts = [];
+  await page.route('**/api/**', async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    if (url.pathname === '/api/contact' && request.method() === 'GET') {
+      minted.push(Date.now());
+      return route.fulfill({ json: { to: 'me@example.com', token: `token-${minted.length}` } });
+    }
+    if (url.pathname === '/api/contact' && request.method() === 'POST') {
+      const { token } = request.postDataJSON();
+      posts.push({ token, at: Date.now() });
+      // The first token is refused, as it would be if it had expired.
+      return posts.length === 1
+        ? route.fulfill({ status: 403, json: { error: 'invalid_token' } })
+        : route.fulfill({ json: { ok: true } });
+    }
+    return route.fulfill({ status: 503, json: { error: 'unavailable' } });
+  });
+  await page.goto('/links/');
+  await page.getByPlaceholder('your@email.com').fill('visitor@example.com');
+  await page.getByLabel('Message').fill('A message that is long enough.');
+  await page.locator('.em-style-1 button[type="submit"]').click();
+  await expect(page.locator('.em-style-1').getByRole('status')).toContainText('Sent', {
+    timeout: 15000,
+  });
+
+  expect(posts.map((post) => post.token)).toEqual(['token-1', 'token-2']);
+  // The retried token was only used once it was old enough for the API.
+  expect(posts[1].at - minted[1]).toBeGreaterThanOrEqual(3000);
+});
