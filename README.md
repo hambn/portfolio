@@ -7,7 +7,7 @@ All content is data — edit `content/`, never the code.
 
 An npm-workspaces monorepo: the site is `apps/web`, the API is `apps/api`, code
 they share is `packages/shared`. Run every command from the repo root. Layout and
-conventions: [`.claude/structure.md`](.claude/structure.md).
+conventions: [`.agents/structure.md`](.agents/structure.md).
 
 ## develop
 
@@ -184,7 +184,7 @@ and failure regression checks.
 The card's wallpaper asset comes from
 [Telegram's public profile background](https://telegram.org/img/tgme/pattern.svg?1).
 
-Full reference + Spotify re-auth flow: [`.claude/api.md`](.claude/api.md).
+Full reference + Spotify re-auth flow: [`.agents/api.md`](.agents/api.md).
 
 ### Self-host on Node
 
@@ -316,5 +316,5 @@ your post body in GitHub-flavored markdown…
 ## structure
 
 The repo layout, workspace boundaries and code conventions are documented in
-[`.claude/structure.md`](.claude/structure.md); the API has its own guide in
-[`.claude/api.md`](.claude/api.md).
+[`.agents/structure.md`](.agents/structure.md); the API has its own guide in
+[`.agents/api.md`](.agents/api.md).
