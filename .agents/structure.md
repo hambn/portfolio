@@ -127,7 +127,8 @@ src/
 │     └─ <provider>/    Email, Discord, Telegram, X, GitHub, GitLab,
 │                       LinkedIn, Spotify, Steam (JSX + CSS per folder;
 │                       gitlab/fonts/ holds a latin subset of GitLab Sans;
-│                       spotify/ adds useSpotifyPlayback.js + playbackClock.js)
+│                       spotify/ adds useSpotifyPlayback.js + playbackClock.js,
+│                       discord/ useLanyardPresence.js, the live socket)
 └─ styles/
    ├─ index.css         imports fonts.css + tokens/ + core.css
    ├─ fonts.css         JetBrains Mono @font-face (latin subset only)
