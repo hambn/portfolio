@@ -23,7 +23,7 @@ time, and background tasks. Keep platform globals in adapters and entrypoints.
   shared with the site.
 - `src/adapters/`: Cloudflare KV/Cache API and persistent Node disk storage; WebSocket relays.
 - `src/entrypoints/`: Worker handlers and Node HTTP startup/shutdown.
-- `src/scheduled.ts`: Telegram refresh and Node overlap prevention.
+- `src/scheduled.ts`: Telegram, X and LinkedIn snapshot refresh and Node overlap prevention.
 - `tests/`: network-free provider, storage, and HTTP regressions (`*.test.ts`),
   the Miniflare Worker smoke test (`worker.test.mjs`), and the Docker restart
   check (`container.mjs`, run only by `test:container`).

@@ -9,15 +9,16 @@ TypeScript API for the link cards. An npm-workspaces monorepo (Node 24, see
 .
 ├─ package.json            workspaces (apps/*, packages/*), engines, root-only dev
 │                          tooling (eslint, prettier, typescript), and the
-│                          orchestration scripts: every root script delegates
-│                          with `-w @portfolio/<app>` (dev / build / preview /
-│                          lint / check / test:* / api:*)
+│                          orchestration scripts: dev / build / preview /
+│                          test:* / api:* delegate with `-w @portfolio/<app>`;
+│                          lint / format / check run from the root
 ├─ package-lock.json       the only lockfile
 ├─ .nvmrc                  Node major (CI and deploy read it)
 ├─ eslint.config.js        one flat config for every workspace (`eslint .`)
 ├─ .prettierrc.json        + .prettierignore (`prettier .`; content/, *.md,
 │                          *.html, *.yml and generated files are excluded)
 ├─ .dockerignore           kept at root — the root is every image's build context
+├─ .editorconfig           utf-8, 2-space indent, LF, final newline
 │
 ├─ apps/
 │  ├─ web/                 @portfolio/web — the site
@@ -40,7 +41,7 @@ TypeScript API for the link cards. An npm-workspaces monorepo (Node 24, see
 │  │  ├─ Dockerfile        site build → nginx (build context: repo root)
 │  │  └─ nginx.conf        static files + /api/ HTTP/WebSocket forwarding
 │  │
-│  └─ api/                 @portfolio/api — portable backend; guide: .claude/api.md
+│  └─ api/                 @portfolio/api — portable backend; guide: .agents/api.md
 │     ├─ src/              app, routes, identities, links (batch), providers,
 │     │                    mail (contact form), media, lib, adapters, entrypoints
 │     ├─ tests/            *.test.ts (tsx), worker.test.mjs (miniflare),
@@ -49,7 +50,7 @@ TypeScript API for the link cards. An npm-workspaces monorepo (Node 24, see
 │     ├─ tools/spotify-auth.html   one-off PKCE helper
 │     ├─ tsconfig*.json    separate Node and Worker type checking
 │     ├─ worker-configuration.d.ts   generated Cloudflare bindings/runtime types
-│     ├─ wrangler.jsonc    deployment template (hourly Telegram cron); api:config
+│     ├─ wrangler.jsonc    deployment template (hourly Telegram/X/LinkedIn cron); api:config
 │     │                    writes the gitignored wrangler.gen.jsonc
 │     └─ Dockerfile        Node 24 → dist/server.mjs (build context: repo root)
 │
@@ -68,9 +69,11 @@ TypeScript API for the link cards. An npm-workspaces monorepo (Node 24, see
 ├─ deploy/compose.yaml     self-host the stack: web :8080 + api :8787
 │                          (`docker compose -f deploy/compose.yaml up -d --build`)
 ├─ docs/website-audit.md   record of the cleanup/perf passes
-└─ .github/workflows/
-   ├─ ci.yml               pull requests: npm ci, check, Playwright (chromium)
-   └─ deploy.yml           push to main: build + deploy Pages, deploy the Worker
+└─ .github/
+   ├─ dependabot.yml       weekly npm updates (minor + patch grouped)
+   └─ workflows/
+      ├─ ci.yml            pull requests: npm ci, check, Playwright (chromium)
+      └─ deploy.yml        push to main: build + deploy Pages, deploy the Worker
 ```
 
 `apps/web/src/`:
@@ -90,7 +93,8 @@ src/
 │  │                    synchronous peek() seeded from the inlined page data
 │  ├─ metadata.js       routeMetadata / pageGraph / updateDocumentMetadata —
 │  │                    shared by the prerenderer and client navigation
-│  ├─ router.js         navigate() / currentRoute() history helpers
+│  ├─ router.js         navigate() / currentRoute() / routeHref() / followRoute()
+│  │                    history helpers
 │  ├─ storage.js        safe localStorage get/set (never throws)
 │  ├─ cardState.js      shared collapsed-card store (useSyncExternalStore)
 │  ├─ highlight.js      highlight.js/lib/common + extra languages
@@ -104,7 +108,9 @@ src/
 ├─ pages/               one folder per route (default exports)
 │  ├─ index.js          lazy page map (React.lazy) + preloadPage()
 │  ├─ home/             Home.jsx + Intro, Timeline/GitLog/GitRow (git-graph
-│  │                    timeline), Stack, SectionHead, FooterLinks, home.css
+│  │                    timeline; git-graph.js lays it out, BranchCard.jsx is
+│  │                    the branch hover card), Stack, SectionHead,
+│  │                    FooterLinks, home.css
 │  ├─ projects/         Projects.jsx (live GitHub repos) + projects.css
 │  ├─ resume/           Resume.jsx + resume.css (screen + @media print)
 │  ├─ blog/
@@ -116,10 +122,12 @@ src/
 │     ├─ Links.jsx      composes the cards; reads links.json
 │     ├─ LinksFeed.jsx  one /links request per visit; seeds every card
 │     │                 (useCardFeed) so a fresh card needs no request
+│     ├─ link-cards.css  shared card header geometry for every provider card
 │     ├─ link-fonts.css  brand faces the cards share (DM Sans, Roboto)
 │     └─ <provider>/    Email, Discord, Telegram, X, GitHub, GitLab,
 │                       LinkedIn, Spotify, Steam (JSX + CSS per folder;
-│                       gitlab/fonts/ holds a latin subset of GitLab Sans)
+│                       gitlab/fonts/ holds a latin subset of GitLab Sans;
+│                       spotify/ adds useSpotifyPlayback.js + playbackClock.js)
 └─ styles/
    ├─ index.css         imports fonts.css + tokens/ + core.css
    ├─ fonts.css         JetBrains Mono @font-face (latin subset only)
