@@ -90,7 +90,13 @@ for (const route of [
 test('feeds and crawler hints respect the deployment base', () => {
   assert.ok(read('robots.txt').includes(`Sitemap: ${root}/sitemap.xml`));
   assert.ok(read('feed.xml').includes(`href="${root}/feed.xml"`));
-  assert.ok(read('404.html').includes('name="robots" content="noindex"'));
+  const notFound = read('404.html');
+  assert.ok(notFound.includes('name="robots" content="noindex"'));
+  // A not-found page claims no URL and describes no entity.
+  assert.match(notFound, /<title>not found — /);
+  assert.ok(!notFound.includes('rel="canonical"'));
+  assert.ok(!notFound.includes('property="og:url"'));
+  assert.ok(!notFound.includes('application/ld+json'));
   for (const post of posts)
     assert.ok(read('feed.xml').includes(`<link>${root}/blog/${post.slug}/</link>`));
 });

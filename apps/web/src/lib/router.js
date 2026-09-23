@@ -46,10 +46,15 @@ export function followRoute(page) {
 
 /** Current route relative to the base path, e.g. "home" or "blog/my-post". */
 export function currentRoute() {
+  // Static hosts also serve /blog/index.html and /blog/welcome/index.html, and
+  // encode non-ASCII slugs; both must resolve to the page that was prerendered.
   const rel = window.location.pathname
     .replace(BASE_PATH, '')
-    .replace(/^\//, '')
-    .replace(/\/$/, '')
-    .replace(/^index\.html$/, '');
-  return rel || 'home';
+    .replace(/(^|\/)index\.html$/, '')
+    .replace(/^\/+|\/+$/g, '');
+  try {
+    return decodeURIComponent(rel) || 'home';
+  } catch {
+    return rel || 'home';
+  }
 }

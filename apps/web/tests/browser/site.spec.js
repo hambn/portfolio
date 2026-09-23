@@ -10,6 +10,9 @@ const paths = [
   '/blog/docker-multistage/',
   '/blog/gitops-with-argocd/',
   '/blog/nixos-homelab/',
+  // Static hosts serve the directory index under its own name as well.
+  '/blog/index.html',
+  '/blog/welcome/index.html',
 ];
 
 test.beforeEach(async ({ page }) => {
@@ -135,4 +138,42 @@ test('home skips blog styles and mobile timeline is readable without JavaScript'
 test('diagram posts render Mermaid on demand', async ({ page }) => {
   await page.goto('/blog/gitops-with-argocd/');
   await expect(page.locator('.mermaid svg')).toBeVisible();
+});
+
+test('a not-found view is noindex and navigating on restores indexing', async ({ page }) => {
+  const notFound = await (await page.request.get('/404.html')).text();
+  await page.route('**/nope/', (route) =>
+    route.fulfill({ contentType: 'text/html', body: notFound }),
+  );
+  const robots = () => page.locator('meta[name="robots"]').getAttribute('content');
+
+  await page.goto('/nope/');
+  await expect(page).toHaveTitle(/^not found — /);
+  expect(await robots()).toBe('noindex');
+  expect(await page.locator('link[rel="canonical"]').count()).toBe(0);
+
+  await page.locator('nav a[href="/projects/"]').click();
+  await expect(page).toHaveTitle(/^projects — /);
+  expect(await robots()).toContain('index, follow');
+
+  await page.evaluate(() => {
+    history.pushState({}, '', '/blog/no-such-post/');
+    dispatchEvent(new PopStateEvent('popstate'));
+  });
+  await expect(page).toHaveTitle(/^not found — /);
+  expect(await robots()).toBe('noindex');
+});
+
+test('opening a post from the prerendered list keeps the page mounted', async ({ page }) => {
+  await page.goto('/blog/');
+  await page.waitForLoadState('networkidle');
+  await page.evaluate(() => {
+    window.sawFallback = false;
+    new MutationObserver(() => {
+      if (document.querySelector('.page-loading')) window.sawFallback = true;
+    }).observe(document.body, { childList: true, subtree: true });
+  });
+  await page.locator('a.post-row-link').first().click();
+  await expect(page.locator('main h1')).toBeVisible();
+  expect(await page.evaluate(() => window.sawFallback)).toBe(false);
 });

@@ -14,7 +14,13 @@ import { marked } from 'marked';
 import { createServer } from 'vite';
 import { buildBlogIndex } from './blog-index.mjs';
 import { routes } from '../src/routes.js';
-import { isoDate, routeMetadata, pageGraph } from '../src/lib/metadata.js';
+import {
+  INDEX_ROBOTS,
+  isoDate,
+  notFoundTitle,
+  pageGraph,
+  routeMetadata,
+} from '../src/lib/metadata.js';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const dist = join(root, 'dist');
@@ -238,7 +244,7 @@ function page({
   desc,
   path,
   type = 'website',
-  robots = false,
+  notFound = false,
   jsonLd,
   extraHead = '',
   preload = '',
@@ -253,15 +259,16 @@ function page({
     const post = posts.find((p) => `blog/${p.slug}` === path);
     if (post) data.postHtml = { [post.slug]: marked.parse(post.body) };
   }
-  const content = robots ? '' : render(path || 'home', data);
+  const content = notFound ? '' : render(path || 'home', data);
   const serialized = JSON.stringify(data).replace(/</g, '\\u003c');
 
   // No image preload here on purpose: React already emits one for the home
   // avatar because it renders with fetchPriority="high". A second link for the
   // same URL would only duplicate markup.
   const head = [
-    `  <link rel="canonical" href="${esc(url)}" />`,
-    `  <meta property="og:url" content="${esc(url)}" />`,
+    // A not-found page names no canonical URL: it is no page's duplicate.
+    notFound ? '' : `  <link rel="canonical" href="${esc(url)}" />`,
+    notFound ? '' : `  <meta property="og:url" content="${esc(url)}" />`,
     `  <meta property="og:site_name" content="${esc(profile.name)}" />`,
     `  <meta property="og:locale" content="en_US" />`,
     `  <meta name="twitter:image" content="${esc(profile.avatar)}" />`,
@@ -270,11 +277,7 @@ function page({
     `  <meta name="twitter:title" content="${esc(title)}" />`,
     `  <meta name="twitter:description" content="${esc(desc)}" />`,
     `  <link rel="alternate" type="application/rss+xml" title="blog" href="${siteRoot}/feed.xml" />`,
-    // Defaults are conservative: ask explicitly for full-size image previews and
-    // untruncated snippets so results aren't capped at a thumbnail and 160 chars.
-    robots
-      ? `  <meta name="robots" content="noindex" />`
-      : `  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />`,
+    `  <meta name="robots" content="${notFound ? 'noindex' : INDEX_ROBOTS}" />`,
     preload,
     extraHead,
   ]
@@ -291,11 +294,12 @@ function page({
       '<div id="root"></div>',
       `<div id="root">${content}</div><script id="portfolio-data" type="application/json">${serialized}</script>`,
     );
-  if (jsonLd)
-    html = html.replace(
-      /<script type="application\/ld\+json">[\s\S]*?<\/script>/,
-      `<script type="application/ld+json">\n${jsonLd}\n</script>`,
-    );
+  // The template's structured data is a placeholder: every page replaces it,
+  // and a not-found page, which describes nothing, drops it.
+  html = html.replace(
+    /<script type="application\/ld\+json">[\s\S]*?<\/script>/,
+    jsonLd ? `<script type="application/ld+json">\n${jsonLd}\n</script>` : '',
+  );
   return html;
 }
 
@@ -343,7 +347,10 @@ for (const route of [
 }
 
 // SPA fallback for unknown deep links — boots the app, kept out of the index.
-writeFileSync(join(dist, '404.html'), page({ ...meta.home, path: '', robots: true }));
+writeFileSync(
+  join(dist, '404.html'),
+  page({ ...meta.home, title: notFoundTitle(profile), path: '', notFound: true }),
+);
 
 // feed.xml — RSS 2.0 so readers and aggregators can follow the blog.
 const feed = `<?xml version="1.0" encoding="UTF-8"?>
