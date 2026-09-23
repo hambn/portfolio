@@ -1,6 +1,7 @@
 // GitHub / GitLab contribution graph.
-// GitHub data comes from the public (no-auth) jogruber contributions API;
-// GitLab has no no-auth calendar API so it uses a deterministic synthetic grid.
+// GitHub data comes from the API's /github/contributions route (seeded by the
+// /links batch). GitLab has no public calendar, so its card draws a random
+// placeholder grid on every visit, as GitHub does when its data is unavailable.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { apiUrl } from '../../lib/api.js';
 import { useCardFeed } from '../../pages/links/LinksFeed.jsx';

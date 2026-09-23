@@ -89,7 +89,7 @@ async function enhanceMarkdown(root) {
         mermaid.initialize({
           startOnLoad: false,
           theme: isDark ? 'dark' : 'default',
-          securityLevel: 'loose',
+          securityLevel: 'strict',
           fontFamily: 'var(--font-mono)',
         });
         await mermaid.run({ nodes: mermaidNodes });
