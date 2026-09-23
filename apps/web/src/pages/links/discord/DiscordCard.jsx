@@ -7,6 +7,7 @@ import { useCollapsed } from '../../../hooks/useCollapsed.js';
 import { useCopy } from '../../../hooks/useCopy.js';
 import { usePolledJSON } from '../../../hooks/usePolledJSON.js';
 import { useCardFeed } from '../LinksFeed.jsx';
+import { useLanyardPresence } from './useLanyardPresence.js';
 import { HeaderButtons } from '../../../components/card/HeaderButtons.jsx';
 
 const DC = {
@@ -132,9 +133,10 @@ function ActivityArtwork({ src, alt, isGame }) {
   );
 }
 
-export function DiscordCard({ userId, lanyardData, apiEndpoint }) {
+export function DiscordCard({ userId, apiEndpoint }) {
   const [apiData, setApiData] = useState(null);
   const [collapsed, toggleCollapse] = useCollapsed('dc_card_collapsed');
+  const lanyardData = useLanyardPresence(userId, !collapsed);
 
   // Lanyard is the live source when its WebSocket is connected. Keep the
   // polled API as a fallback for the first paint and reconnect gaps. The two

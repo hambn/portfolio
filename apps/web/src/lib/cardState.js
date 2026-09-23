@@ -1,9 +1,7 @@
 // Shared collapsed-state store for the link cards.
 //
-// Every card persists its own `<prefix>_card_collapsed` key, but the value has
-// to be readable outside the card too: Links.jsx gates the Discord WebSocket on
-// whether the Discord card is expanded. A tiny store keeps one source of truth
-// and lets useSyncExternalStore read it synchronously.
+// Every card persists its own `<prefix>_card_collapsed` key. A tiny store keeps
+// one source of truth and lets useSyncExternalStore read it synchronously.
 //
 // Prerendered HTML is always expanded. index.html lists the cards collapsed on
 // a previous visit in <html data-collapsed> before first paint and cards.css
