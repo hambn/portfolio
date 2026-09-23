@@ -7,8 +7,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pages
@@ -32,6 +30,9 @@ jobs:
   deploy:
     needs: [build, deploy-worker]
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -41,6 +42,8 @@ jobs:
 
   deploy-worker:
     needs: build
+    # A manual run can target any branch; only main reaches production.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -61,13 +64,15 @@ jobs:
           LINKEDIN_URL: ${{ secrets.LINKEDIN_URL }}
       - name: Push worker secrets
         run: |
+          # An unset repository secret is skipped rather than written as an
+          # empty value, which would wipe one set by hand with wrangler.
           jq -n \
             --arg client_id "$SPOTIFY_CLIENT_ID" \
             --arg refresh_token "$SPOTIFY_REFRESH_TOKEN" \
             --arg steam_key "$STEAM_API_KEY" \
             --arg mail_key "$MAIL_API_KEY" \
             --arg mail_token_secret "$MAIL_TOKEN_SECRET" \
-            '{SPOTIFY_CLIENT_ID: $client_id, SPOTIFY_REFRESH_TOKEN: $refresh_token, STEAM_API_KEY: $steam_key, MAIL_API_KEY: $mail_key, MAIL_TOKEN_SECRET: $mail_token_secret}' \
+            '{SPOTIFY_CLIENT_ID: $client_id, SPOTIFY_REFRESH_TOKEN: $refresh_token, STEAM_API_KEY: $steam_key, MAIL_API_KEY: $mail_key, MAIL_TOKEN_SECRET: $mail_token_secret} | with_entries(select(.value != ""))' \
             | npx wrangler secret bulk --config apps/api/wrangler.gen.jsonc
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

@@ -6,6 +6,6 @@
 **/.wrangler
 **/test-results
 **/playwright-report
-.env
-deploy/.env
+**/.env*
+**/.dev.vars*
 apps/api/wrangler.gen.jsonc
