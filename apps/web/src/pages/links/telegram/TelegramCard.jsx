@@ -78,6 +78,7 @@ function TelegramProfile({ username, apiEndpoint }) {
         </div>
       </div>
       <div
+        data-card="tg"
         className={`sc-body ${collapsed ? 'closed' : 'open'}`}
         inert={collapsed ? '' : undefined}
       >

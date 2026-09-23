@@ -232,6 +232,7 @@ export function DiscordCard({ userId, lanyardData, apiEndpoint }) {
       </div>
 
       <div
+        data-card="dc"
         className={`sc-body ${collapsed ? 'closed' : 'open'}`}
         inert={collapsed ? '' : undefined}
       >

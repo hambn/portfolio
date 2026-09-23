@@ -100,6 +100,7 @@ function XProfile({ username, apiEndpoint }) {
         </div>
       </div>
       <div
+        data-card="x"
         className={`sc-body ${collapsed ? 'closed' : 'open'}`}
         inert={collapsed ? '' : undefined}
       >

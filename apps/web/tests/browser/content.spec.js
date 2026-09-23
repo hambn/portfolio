@@ -220,3 +220,26 @@ test('returning to the tab refetches only cards whose poll is due', async ({ pag
   // Both poll hourly and answered moments ago.
   expect({ telegram: count('/api/telegram'), linkedin: count('/api/linkedin') }).toEqual(before);
 });
+
+test('cards collapsed on a previous visit do not open and shut on load', async ({ page }) => {
+  await page.routeWebSocket('**/api/discord/socket', () => {});
+  await page.route('**/api/**', (route) =>
+    route.fulfill({ status: 503, json: { error: 'unavailable' } }),
+  );
+  await page.addInitScript(() => {
+    for (const card of ['email', 'dc', 'tg', 'x', 'gh', 'gl', 'li', 'sp', 'st'])
+      localStorage.setItem(`${card}_card_collapsed`, '1');
+    window.shift = 0;
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) if (!entry.hadRecentInput) window.shift += entry.value;
+    }).observe({ type: 'layout-shift', buffered: true });
+  });
+  await page.goto('/links/');
+  await page.waitForLoadState('networkidle');
+  expect(await page.locator('.sc-body.open').count()).toBe(0);
+  expect(await page.evaluate(() => window.shift)).toBeLessThan(0.01);
+
+  // Expanding one afterwards still opens it.
+  await page.locator('[data-card="gh"]').locator('xpath=..').getByTitle('Expand').click();
+  await expect(page.locator('[data-card="gh"]')).toBeVisible();
+});

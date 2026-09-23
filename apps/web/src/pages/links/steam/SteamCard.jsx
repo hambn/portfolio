@@ -367,7 +367,7 @@ export const SteamCard = React.memo(function SteamCard({ handle, url, apiEndpoin
       </div>
 
       {/* ── Collapsible body ── */}
-      <div className={`sc-body ${collapsed ? 'closed' : 'open'}`}>
+      <div data-card="st" className={`sc-body ${collapsed ? 'closed' : 'open'}`}>
         {/* ── Profile row — status lives here, next to name ── */}
         {data && (
           <div

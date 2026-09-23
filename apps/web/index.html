@@ -13,7 +13,6 @@
     <!-- The avatar (home LCP) and every card load from the API origin. -->
     <link vite-ignore rel="preconnect" href="%VITE_API_BASE_URL%" crossorigin />
 
-
     <!-- SEO -->
     <meta
       name="description"
@@ -61,12 +60,21 @@
       }
     </style>
 
-    <!-- Apply the saved theme before first paint so there is no dark flash. -->
+    <!-- Apply the saved theme and collapsed link cards before first paint. -->
     <script>
       (function () {
         try {
           var t = localStorage.getItem('hambn-theme');
           document.documentElement.setAttribute('data-theme', t === 'light' ? 'light' : 'dark');
+          // Link cards collapsed on a previous visit (see src/lib/cardState.js).
+          var collapsed = [];
+          for (var i = 0; i < localStorage.length; i++) {
+            var key = localStorage.key(i);
+            var card = /^(.+)_card_collapsed$/.exec(key || '');
+            if (card && localStorage.getItem(key) === '1') collapsed.push(card[1]);
+          }
+          if (collapsed.length)
+            document.documentElement.setAttribute('data-collapsed', collapsed.join(' '));
         } catch (e) {}
       })();
     </script>

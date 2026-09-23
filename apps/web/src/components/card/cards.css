@@ -36,6 +36,21 @@
   visibility: hidden;
   pointer-events: none;
 }
+/* A card collapsed on a previous visit, before hydration applies .closed. */
+html[data-collapsed~='email'] .sc-body[data-card='email'],
+html[data-collapsed~='dc'] .sc-body[data-card='dc'],
+html[data-collapsed~='tg'] .sc-body[data-card='tg'],
+html[data-collapsed~='gh'] .sc-body[data-card='gh'],
+html[data-collapsed~='st'] .sc-body[data-card='st'],
+html[data-collapsed~='gl'] .sc-body[data-card='gl'],
+html[data-collapsed~='x'] .sc-body[data-card='x'],
+html[data-collapsed~='sp'] .sc-body[data-card='sp'],
+html[data-collapsed~='li'] .sc-body[data-card='li'] {
+  max-height: 0;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
 /* ContribGraph day cell; --cg-ring is the card's muted colour. */
 .cg-day:hover {
   box-shadow: 0 0 0 1.5px var(--cg-ring);

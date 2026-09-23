@@ -97,6 +97,7 @@ export const GitHubCard = React.memo(function GitHubCard({ username, url }) {
       </div>
       {/* Body */}
       <div
+        data-card="gh"
         className={`sc-body ${collapsed ? 'closed' : 'open'}`}
         inert={collapsed ? '' : undefined}
       >
