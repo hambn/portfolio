@@ -3,7 +3,9 @@
 // Scans the .md files under content/blogs/ (repo root), reads YAML frontmatter,
 // and returns the blog index as a JSON string. Authors just drop .md files
 // anywhere under blogs/ — no manifest to maintain. A file with no frontmatter
-// `title` is treated as a draft and left out.
+// `title`, or with `draft: true`, is a draft and left out. Frontmatter the
+// parser cannot read faithfully, an invalid date or a slug that is not plain
+// lowercase fails the build instead of publishing something wrong.
 //
 // Browsers can't list a directory over static hosting (GitHub Pages), so the
 // Vite plugin (vite.config.js) calls this and serves the result virtually in
@@ -12,16 +14,37 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, relative, basename } from 'node:path';
 
-/** Minimal YAML-frontmatter parser. Returns { meta, body }. */
-function parseFrontmatter(raw) {
+/** One scalar: YAML's quoted forms unescaped, anything else as written. */
+function scalar(value) {
+  if (/^"(?:[^"\\]|\\.)*"$/.test(value)) {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return value.slice(1, -1);
+    }
+  }
+  if (/^'(?:[^']|'')*'$/.test(value)) return value.slice(1, -1).replace(/''/g, "'");
+  return value;
+}
+
+/**
+ * Minimal YAML-frontmatter parser: one `key: value` per line, and tags as a
+ * flow list (`[a, b]`). Returns { meta, body }. Anything this parser would
+ * silently misread (block lists, folded or literal text) is an error instead.
+ */
+function parseFrontmatter(raw, path) {
   const text = raw.replace(/^\uFEFF/, '');
   const m = /^---\s*\r?\n([\s\S]*?)\r?\n---\s*\r?\n?/.exec(text);
   if (!m) return { meta: {}, body: text };
   const body = text.slice(m[0].length);
   const meta = {};
   for (const line of m[1].split(/\r?\n/)) {
+    if (!line.trim() || line.trimStart().startsWith('#')) continue;
     const kv = /^([A-Za-z0-9_-]+)\s*:\s*(.*)$/.exec(line);
-    if (!kv) continue;
+    if (!kv || /^[>|][+-]?$/.test(kv[2].trim()))
+      throw new Error(
+        `${path}: unsupported frontmatter line "${line.trim()}" — use one "key: value" per line and tags: [a, b]`,
+      );
     const key = kv[1].trim();
     const val = kv[2].trim();
     if (key === 'tags') {
@@ -29,14 +52,25 @@ function parseFrontmatter(raw) {
       meta.tags = inner
         ? inner
             .split(',')
-            .map((t) => t.trim().replace(/^["']|["']$/g, ''))
+            .map((t) => scalar(t.trim()))
             .filter(Boolean)
         : [];
     } else {
-      meta[key] = val.replace(/^["']|["']$/g, '');
+      meta[key] = scalar(val);
     }
   }
   return { meta, body };
+}
+
+// Slugs become URLs, feed links and sitemap entries, so they stay plain.
+const SLUG = /^[a-z0-9][a-z0-9-]*$/;
+
+/** A real calendar date in YYYY-MM-DD form, or null. */
+function validDate(value) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!m) return null;
+  const date = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+  return date.toISOString().slice(0, 10) === value ? value : null;
 }
 
 /**
@@ -70,10 +104,16 @@ function walkMarkdown(dir, base = dir) {
 export function buildBlogIndex(blogsDir) {
   const posts = walkMarkdown(blogsDir)
     .map((path) => {
-      const { meta, body } = parseFrontmatter(readFileSync(join(blogsDir, path), 'utf8'));
-      if (!meta.title) return null; // no frontmatter title → draft, skip
+      const { meta, body } = parseFrontmatter(readFileSync(join(blogsDir, path), 'utf8'), path);
+      // No title, or draft: true → a draft, skipped.
+      if (!meta.title || String(meta.draft).toLowerCase() === 'true') return null;
+      const slug = basename(path).replace(/\.md$/i, '');
+      if (!SLUG.test(slug))
+        throw new Error(`${path}: file name must be lowercase letters, digits and hyphens`);
+      if (meta.date && !validDate(meta.date))
+        throw new Error(`${path}: date "${meta.date}" is not a real YYYY-MM-DD date`);
       return {
-        slug: basename(path).replace(/\.md$/i, ''),
+        slug,
         path: path.split('\\').join('/'),
         title: meta.title,
         date: meta.date || '',

@@ -114,3 +114,36 @@ test('blog discovery omits drafts and rejects duplicate route slugs', () => {
     rmSync(directory, { recursive: true, force: true });
   }
 });
+
+test('frontmatter is read faithfully or refused', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'portfolio-frontmatter-'));
+  const index = (name, frontmatter) => {
+    rmSync(directory, { recursive: true, force: true });
+    mkdirSync(directory);
+    writeFileSync(join(directory, name), `---\n${frontmatter}\n---\nBody text.`);
+    return JSON.parse(buildBlogIndex(directory).json);
+  };
+  try {
+    const [quoted] = index(
+      'quoted.md',
+      'title: "Say \\"hard\\" things: twice"\ndescription: \'It\'\'s fine\'\ntags: ["a", \'b\']\ndate: 2026-02-28',
+    );
+    assert.equal(quoted.title, 'Say "hard" things: twice');
+    assert.equal(quoted.description, "It's fine");
+    assert.deepEqual(quoted.tags, ['a', 'b']);
+    assert.equal(quoted.date, '2026-02-28');
+
+    assert.deepEqual(index('draft.md', 'title: Not yet\ndraft: true'), []);
+
+    for (const [name, frontmatter, error] of [
+      ['bad-date.md', 'title: T\ndate: June 1, 2026', /not a real YYYY-MM-DD date/],
+      ['bad-date.md', 'title: T\ndate: 2026-13-45', /not a real YYYY-MM-DD date/],
+      ['Spaced Name.md', 'title: T', /lowercase letters, digits and hyphens/],
+      ['block-tags.md', 'title: T\ntags:\n  - k8s', /unsupported frontmatter line/],
+      ['folded.md', 'title: T\ndescription: >\n  text', /unsupported frontmatter line/],
+    ])
+      assert.throws(() => index(name, frontmatter), error, name);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
