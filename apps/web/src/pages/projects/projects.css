@@ -3,68 +3,133 @@
   margin: 0 auto;
   padding: 88px 24px 80px;
 }
-.projects-head {
-  margin-bottom: 40px;
-}
 .projects-title {
   font-size: var(--text-2xl);
   font-weight: 700;
-  margin-bottom: 6px;
+  margin-bottom: 32px;
 }
-.projects-github {
-  margin-bottom: 24px;
+
+/* One block per source: featured first, then a block per git host. A host
+ * with nothing to list is simply not rendered, so there is no empty state. */
+.projects-section + .projects-section {
+  margin-top: 48px;
 }
-.projects-status {
+.projects-section-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  padding-bottom: 10px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.projects-heading {
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+.projects-heading::before {
+  /* Decoration only: the second form gives it an empty accessible name, so
+     the heading is announced as "github", not "number github". */
+  content: '# ';
+  content: '# ' / '';
+  color: var(--foreground-faint);
+}
+.projects-count {
+  color: var(--foreground-subtle);
+  font-size: var(--text-xs);
+}
+.projects-account {
+  margin-left: auto;
+  color: var(--foreground-muted);
+  font-size: var(--text-xs);
+  transition: color 150ms;
+}
+.projects-account:hover {
+  color: var(--primary);
+}
+
+.projects-note {
+  margin-top: 40px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
   color: var(--foreground-muted);
   font-size: var(--text-sm);
 }
-.repo-grid {
+.projects-note a {
+  color: var(--primary);
+}
+
+.project-grid {
+  list-style: none;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 10px;
 }
+.project-grid--featured {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  gap: 12px;
+}
 
-/* Repo card chrome. Hover lives here rather than in component state: the
- * browser already tracks the pointer, so React never re-renders a card for it. */
-.repo-card {
-  display: block;
-  text-decoration: none;
+/* Card chrome. The whole card is the title link's hit area (its ::after is
+ * stretched over the card); the secondary links sit above it. Hover lives
+ * here rather than in component state, so React never re-renders a card for
+ * the pointer. */
+.project-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 16px 18px;
   transition: border-color 150ms;
 }
-.repo-card:hover {
+.project-card:hover {
   border-color: var(--border-strong);
 }
+.project-card--featured {
+  padding: 20px 22px;
+}
 
-.repo-card-name {
-  font-weight: 600;
-  font-size: var(--text-sm);
-  color: var(--foreground);
-  transition: color 150ms;
-  word-break: break-word;
-}
-.repo-card:hover .repo-card-name {
-  color: var(--primary);
-}
-.repo-card-head {
+.project-card-head {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 8px;
   margin-bottom: 8px;
 }
-.repo-card-stars {
+.project-card-name {
+  font-weight: 600;
+  font-size: var(--text-sm);
+  color: var(--foreground);
+  transition: color 150ms;
+  word-break: break-word;
+}
+.project-card--featured .project-card-name {
+  font-size: var(--text-lg);
+}
+.project-card-name a::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+.project-card:hover .project-card-name {
+  color: var(--primary);
+}
+.project-card-stars {
   font-size: var(--text-xs);
   color: var(--foreground-subtle);
   flex-shrink: 0;
+  white-space: nowrap;
 }
-.repo-card-desc {
+
+.project-card-desc {
   font-size: var(--text-xs);
   color: var(--foreground-muted);
-  line-height: 1.55;
+  line-height: 1.6;
   margin-bottom: 14px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -72,26 +137,80 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.repo-card-foot {
-  display: flex;
-  gap: 12px;
-  align-items: center;
+.project-card--featured .project-card-desc {
+  font-size: var(--text-sm);
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
 }
-.repo-card-lang {
+
+.project-card-topics {
+  list-style: none;
   display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.project-card-topics li {
+  font-size: var(--text-xs);
+  color: var(--foreground-muted);
+  background: var(--background-muted);
+  border-radius: var(--radius-sm);
+  padding: 1px 7px;
+}
+
+/* Pinned to the bottom so cards in one row line their footers up. */
+.project-card-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
   align-items: center;
-  gap: 5px;
+  margin-top: auto;
   font-size: var(--text-xs);
   color: var(--foreground-subtle);
 }
-.repo-card-dot {
+.project-card-foot:empty {
+  display: none;
+}
+.project-card-lang {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.project-card-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
 }
-.repo-card-pushed {
-  font-size: var(--text-xs);
-  color: var(--foreground-faint);
+.project-card-flag {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-full);
+  padding: 0 7px;
+}
+.project-card-pushed {
   margin-left: auto;
+}
+
+.project-card-links {
+  position: relative; /* above the stretched title link */
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: var(--text-xs);
+}
+.project-card-links a {
+  color: var(--foreground-muted);
+  transition: color 150ms;
+}
+.project-card-links a:hover {
+  color: var(--primary);
+}
+
+@media (max-width: 639px) {
+  .projects-page {
+    padding: 76px 16px 64px;
+  }
 }

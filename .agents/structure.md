@@ -111,7 +111,8 @@ src/
 │  │                    timeline; git-graph.js lays it out, BranchCard.jsx is
 │  │                    the branch hover card), Stack, SectionHead,
 │  │                    FooterLinks, home.css
-│  ├─ projects/         Projects.jsx (live GitHub repos) + projects.css
+│  ├─ projects/         Projects.jsx (featured cards from content, then one
+│  │                    /projects request for every host) + projects.css
 │  ├─ resume/           Resume.jsx + resume.css (screen + @media print)
 │  ├─ blog/
 │  │  ├─ Blog.jsx       container: list ↔ post routing
@@ -196,6 +197,9 @@ with `apps/`, `packages/` or `content/`.
   explicit `robots` directives, a per-page JSON-LD `@graph`
   (Person/WebSite/BlogPosting/BreadcrumbList/…), a modulepreload hint for the
   route's lazy chunk, plus sitemap.xml (with lastmod), feed.xml and robots.txt.
+  For agents it also writes `llms.txt` (an index), `llms-full.txt` (every post
+  in one file) and a raw `blog/<slug>.md` per post, linked from the post's head
+  as `rel="alternate" type="text/markdown"`.
   `tests/site.test.mjs` asserts all of it — run `npm run test:site` after
   touching head markup.
 - **Prerender inlines the entry stylesheet** as `<style>` so the first paint
@@ -204,6 +208,11 @@ with `apps/`, `packages/` or `content/`.
   prerendered pages; on client navigation it loads as a link. Each inlined file
   also gets a script-created disabled `<link>`, so Vite's preload helper sees
   it as present and does not download it again before rendering a route.
+- **The projects page makes one request.** Its featured cards are prerendered
+  from `content/projects/projects.json`; `/projects` on the API then supplies
+  stars, languages and every host's repository list in a single response. The
+  last answer is kept in localStorage and shown on the next visit while the
+  request runs. Do not add a second request to that page.
 - **Canonical URLs end in a slash** (`/blog/`); `navigate()` pushes that form and
   the prerendered links match it.
 - **GitHub Pages.** Known routes are real 200 HTML files; `404.html` is the SPA
@@ -220,6 +229,9 @@ with `apps/`, `packages/` or `content/`.
 - New blog post → add `content/blogs/<name>.md` with frontmatter.
 - Change a social link → edit `content/links/links.json`.
 - Update bio / resume → `content/home/*.json`.
+- Feature a project, reorder them, or add a git account →
+  `content/projects/projects.json` (see `content/README.md`); redeploy the API
+  too, since it reads the same file.
 - Add a route → add the component in `apps/web/src/pages/`, register it in
   `apps/web/src/pages/index.js`, and add its meta to `apps/web/src/routes.js`.
 - Restyle → `apps/web/src/styles/tokens/` (design tokens) or

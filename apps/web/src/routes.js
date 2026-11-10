@@ -15,7 +15,8 @@ export const routes = [
     page: 'projects',
     path: 'projects',
     title: (ctx) => `projects — ${ctx.profile.name}`,
-    description: (ctx) => `open-source projects and public repositories by ${ctx.profile.name}.`,
+    description: (ctx) =>
+      `featured projects and every public repository by ${ctx.profile.name} on github, codeberg and gitlab.`,
   },
   {
     page: 'blog',

@@ -16,6 +16,7 @@
       "types": "./x.d.ts",
       "default": "./x.js"
     },
-    "./media": "./media.ts"
+    "./media": "./media.ts",
+    "./projects": "./projects.ts"
   }
 }

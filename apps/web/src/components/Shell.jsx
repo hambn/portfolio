@@ -3,9 +3,7 @@ import Nav from './Nav.jsx';
 
 export default function Shell({ page, children }) {
   return (
-    <div
-      style={{ minHeight: '100vh', background: 'var(--background)', color: 'var(--foreground)' }}
-    >
+    <div className="site-shell">
       <a href="#content" className="skip-link">
         skip to content
       </a>

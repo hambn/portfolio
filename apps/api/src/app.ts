@@ -1,7 +1,7 @@
 import type { Services } from './contracts.js';
 import { CORS, json, readBytes } from './lib/http.js';
 import { rewriteMedia } from '@portfolio/shared/media';
-import { allowedMethods, matchRoute } from './routes.js';
+import { allowedMethods, matchRoute, routePaths } from './routes.js';
 
 // The only route that accepts a body accepts a small one; the cap lives here so
 // no handler can be reached with an unbounded upload behind it.
@@ -22,7 +22,8 @@ export async function handleRequest(request: Request, services: Services): Promi
   const allowed = route ? allowedMethods(route) : 'GET, HEAD, OPTIONS';
   let response: Response;
   try {
-    if (!route && url.pathname !== '/health') response = json({ error: 'not found' }, 404);
+    const builtin = url.pathname === '/health' || url.pathname === '/';
+    if (!route && !builtin) response = json({ error: 'not found' }, 404);
     else if (request.method === 'OPTIONS')
       response = new Response(null, {
         headers: {
@@ -36,6 +37,12 @@ export async function handleRequest(request: Request, services: Services): Promi
       response = json({ error: 'method not allowed' }, 405);
       response.headers.set('Allow', allowed);
     } else if (url.pathname === '/health') response = json({ ok: true });
+    // A map of the API for whoever, or whatever, lands on its root.
+    else if (url.pathname === '/')
+      response = json({
+        service: 'portfolio-api',
+        routes: ['/health', ...routePaths()].map((path) => `${prefix}${path}`),
+      });
     else {
       // Handlers build the GET representation so HEAD never poisons a cache entry.
       const body =

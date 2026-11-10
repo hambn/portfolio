@@ -129,9 +129,10 @@ test('scheduled Node refresh coalesces overlapping invocations and can retry', a
   const second = run();
   assert.equal(first, second);
   await assert.rejects(first);
-  assert.equal(calls, 3);
+  // Telegram, X, LinkedIn, and the two account listings of the projects page.
+  assert.equal(calls, 5);
   await assert.rejects(run());
-  assert.equal(calls, 6);
+  assert.equal(calls, 10);
 });
 
 test('Node presence relay forwards frames and pins the upstream subscription', async (t) => {

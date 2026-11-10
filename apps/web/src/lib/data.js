@@ -69,6 +69,9 @@ export const PortfolioData = (() => {
         getJSON('/links/links.json').then((value) => apiContent('links', value)),
       ),
 
+    /** { featured[], accounts[] } — see content/projects/projects.json */
+    getProjects: () => cached('projects', () => getJSON('/projects/projects.json')),
+
     /** [{ slug, path, title, date, description, tags, body }] sorted newest-first */
     getBlogIndex,
   };

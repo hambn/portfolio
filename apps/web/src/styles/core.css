@@ -9,6 +9,9 @@
   padding: 0;
 }
 html {
+  /* Phones in landscape otherwise inflate some text and not the rest. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -34,6 +37,25 @@ img,
 svg {
   display: block;
   max-width: 100%;
+}
+
+/* Headings break into even lines, paragraphs avoid a lone last word. */
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+p,
+li {
+  text-wrap: pretty;
+}
+
+/* One keyboard focus ring for anything that has none of its own. :where()
+ * keeps it at zero specificity, so a component's own ring always wins. */
+:where(a, button, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
 }
 
 /* ── Scrollbar ── */
@@ -179,6 +201,37 @@ svg {
 }
 [data-theme='light'] .theme-light-icon {
   display: inline;
+}
+.site-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+/* Inline failure notice with an optional retry (components/ErrorState.jsx). */
+.error-state {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.error-state-message {
+  color: var(--destructive);
+  font-size: var(--text-sm);
+}
+.error-state-retry {
+  cursor: pointer;
+  font-size: var(--text-xs);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--background-muted);
+  color: var(--foreground-muted);
+  border: 1px solid var(--border);
+  transition:
+    color 150ms,
+    border-color 150ms;
+}
+.error-state-retry:hover {
+  color: var(--foreground);
+  border-color: var(--border-strong);
 }
 .page-loading {
   max-width: 760px;

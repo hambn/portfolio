@@ -101,6 +101,50 @@ test('feeds and crawler hints respect the deployment base', () => {
     assert.ok(read('feed.xml').includes(`<link>${root}/blog/${post.slug}/</link>`));
 });
 
+test('agents get a plain-text index, the full text and each post as Markdown', () => {
+  const robots = read('robots.txt');
+  assert.match(robots, /^User-agent: \*\nAllow: \/\n/);
+  assert.ok(!/^Disallow:/m.test(robots));
+  for (const agent of ['GPTBot', 'ClaudeBot', 'PerplexityBot', 'Google-Extended'])
+    assert.ok(robots.includes(`User-agent: ${agent}\n`));
+
+  const index = read('llms.txt');
+  assert.ok(index.startsWith(`# ${profile.name}\n\n> `));
+  for (const route of routes)
+    assert.ok(index.includes(`(${root}/${route.path ? `${route.path}/` : ''})`));
+  const full = read('llms-full.txt');
+  for (const post of posts) {
+    const markdown = `${root}/blog/${post.slug}.md`;
+    assert.ok(index.includes(`(${markdown})`));
+    assert.ok(read(`blog/${post.slug}.md`).startsWith(`# ${post.title}\n`));
+    assert.ok(
+      read(`blog/${post.slug}/index.html`).includes(`type="text/markdown" href="${markdown}"`),
+    );
+    assert.ok(full.includes(`# ${post.title}\n`));
+  }
+});
+
+test('the projects page is complete without a request', () => {
+  const projects = JSON.parse(readFileSync(new URL('projects/projects.json', content), 'utf8'));
+  const html = read('projects/index.html');
+  const nodes = elements(parse(html));
+  const graph = JSON.parse(
+    nodes.find((node) => attr(node, 'type') === 'application/ld+json').childNodes[0].value,
+  )['@graph'];
+  const listed = graph[1].mainEntity.itemListElement.map((entry) => entry.item);
+  const repos = projects.featured.map((entry) => entry.repo).filter(Boolean);
+  assert.deepEqual(listed.map((item) => item.codeRepository).filter(Boolean), repos);
+  // The cards are in the markup, linking to the repositories content names.
+  const hrefs = nodes.filter((node) => node.tagName === 'a').map((node) => attr(node, 'href'));
+  for (const repo of repos) assert.ok(hrefs.includes(repo));
+  // And the content is inlined, so hydration needs no content request either.
+  const data = JSON.parse(
+    nodes.find((node) => attr(node, 'id') === 'portfolio-data').childNodes[0].value,
+  );
+  assert.equal(data.projects.featured.length, projects.featured.length);
+  assert.ok(!('_comment' in data.projects));
+});
+
 test('blog discovery omits drafts and rejects duplicate route slugs', () => {
   const directory = mkdtempSync(join(tmpdir(), 'portfolio-blog-'));
   try {

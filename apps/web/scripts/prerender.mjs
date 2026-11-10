@@ -5,7 +5,8 @@
 // This emits a real HTML file per route with a unique title/description/
 // canonical/OG tags, JSON-LD, route chunk hints, and the actual React markup.
 // The client hydrates this markup without replacing it with a second layout.
-// It also writes sitemap.xml, robots.txt and the RSS feed.
+// It also writes sitemap.xml, robots.txt, the RSS feed, and the plain-text
+// copies for agents (llms.txt, llms-full.txt, one .md per post).
 
 import { readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -19,6 +20,7 @@ import {
   isoDate,
   notFoundTitle,
   pageGraph,
+  projectListLd,
   routeMetadata,
 } from '../src/lib/metadata.js';
 
@@ -56,6 +58,7 @@ const rfc822 = (d) => {
 const profile = readJSON('home/profile.json');
 const resume = readJSON('home/resume.json');
 const links = readJSON('links/links.json');
+const projects = readJSON('projects/projects.json');
 const posts = JSON.parse(buildBlogIndex(join(contents, 'blogs')).json);
 
 // Identity meta that's the same on every page (author, avatar, social handles,
@@ -186,9 +189,10 @@ const server = await createServer({
   esbuild: { jsx: 'transform', jsxFactory: 'React.createElement', jsxFragment: 'React.Fragment' },
 });
 let render;
+let featuredProjects;
 let avatarImage;
 try {
-  ({ render } = await server.ssrLoadModule('/src/entry-server.jsx'));
+  ({ render, featuredProjects } = await server.ssrLoadModule('/src/entry-server.jsx'));
   ({ avatarImage } = await server.ssrLoadModule('/src/lib/api.js'));
 } finally {
   await server.close();
@@ -260,6 +264,7 @@ function page({
   const data = { profile };
   if (!path || path === 'resume') data.resume = resume;
   if (!path || ['projects', 'links', 'resume'].includes(path)) data.links = links;
+  if (path === 'projects') data.projects = projects;
   if (path === 'blog' || path?.startsWith('blog/')) data.blogIndex = posts;
   if (path?.startsWith('blog/')) {
     const post = posts.find((p) => `blog/${p.slug}` === path);
@@ -315,9 +320,15 @@ function write(path, html) {
   writeFileSync(join(dir, 'index.html'), html);
 }
 
+// Every post is also published as the Markdown it was written in, for readers
+// that want the text without the page around it (agents, LLMs, feed tools).
+const postMarkdownUrl = (post) => `${siteRoot}/blog/${post.slug}.md`;
+
 // Titles/descriptions come from the shared route registry (src/routes.js) so
 // the prerendered <head> and the SPA never drift apart.
 const ctx = { profile, links, resume };
+// The featured cards as content alone describes them: what a crawler reads.
+const featured = featuredProjects(projects);
 const meta = Object.fromEntries(
   routes.map((r) => [r.page, { title: r.title(ctx), desc: r.description(ctx) }]),
 );
@@ -340,14 +351,20 @@ for (const route of [
             ...metadata.post.tags.map(
               (tag) => `  <meta property="article:tag" content="${esc(tag)}" />`,
             ),
+            `  <link rel="alternate" type="text/markdown" href="${esc(postMarkdownUrl(metadata.post))}" />`,
           ]
             .filter(Boolean)
             .join('\n')
         : '',
-      jsonLd: JSON.stringify(pageGraph(metadata, personLd, siteRoot, posts)).replace(
-        /</g,
-        '\\u003c',
-      ),
+      jsonLd: JSON.stringify(
+        pageGraph(
+          metadata,
+          personLd,
+          siteRoot,
+          posts,
+          metadata.page === 'projects' ? projectListLd(featured) : undefined,
+        ),
+      ).replace(/</g, '\\u003c'),
     }),
   );
 }
@@ -405,10 +422,130 @@ const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://w
   .join('\n')}\n</urlset>\n`;
 writeFileSync(join(dist, 'sitemap.xml'), sitemap);
 
-// robots.txt — keep its Sitemap line on the same origin as everything else.
+/* ── plain-text copies for agents ──
+ * llms.txt is the index an LLM or agent reads first (llmstxt.org): what the
+ * site is and where each thing lives. llms-full.txt is the whole site as one
+ * Markdown document, and each post is published as its own .md file. All of it
+ * comes from content/, like the pages. */
+const postMarkdown = (post) =>
+  [
+    `# ${post.title}`,
+    '',
+    [isoDate(post.date), (post.tags || []).join(', ')].filter(Boolean).join(' · '),
+    post.description ? `\n> ${post.description}\n` : '',
+    post.body.trim(),
+    '',
+  ].join('\n');
+for (const post of posts) writeFileSync(join(dist, 'blog', `${post.slug}.md`), postMarkdown(post));
+
+const oneLine = (value) =>
+  String(value ?? '')
+    .replace(/\s+/g, ' ')
+    .trim();
+const bullet = (label, url, note) =>
+  `- [${oneLine(label)}](${url})${note ? `: ${oneLine(note)}` : ''}`;
+const projectLines = featured.map((project) =>
+  bullet(project.name, project.repo || project.homepage || abs('projects'), project.description),
+);
+const llms = [
+  `# ${profile.name}`,
+  '',
+  `> ${oneLine(profile.bio)}`,
+  '',
+  oneLine(
+    `Personal site of ${profile.name}${profile.handle ? ` (${profile.handle})` : ''}${profile.title ? `, ${profile.title}` : ''}. Everything here may be read, quoted and linked.`,
+  ),
+  '',
+  '## Pages',
+  '',
+  ...routes.map((route) => bullet(meta[route.page].title, abs(route.path), meta[route.page].desc)),
+  ...(posts.length
+    ? [
+        '',
+        '## Blog posts',
+        '',
+        ...posts.map((post) => bullet(post.title, postMarkdownUrl(post), post.description)),
+      ]
+    : []),
+  ...(projectLines.length ? ['', '## Projects', '', ...projectLines] : []),
+  ...(sameAs.length
+    ? ['', '## Elsewhere', '', ...sameAs.map((url) => bullet(new URL(url).hostname, url))]
+    : []),
+  '',
+  '## Optional',
+  '',
+  bullet('Full text', `${siteRoot}/llms-full.txt`, 'this index plus the resume and every post'),
+  bullet('RSS feed', `${siteRoot}/feed.xml`),
+  bullet('Sitemap', `${siteRoot}/sitemap.xml`),
+  '',
+].join('\n');
+writeFileSync(join(dist, 'llms.txt'), llms);
+
+const resumeLines = (resume.items || []).flatMap((item) => [
+  `### ${oneLine([item.role || item.degree || item.title, item.company || item.school].filter(Boolean).join(', '))}`,
+  '',
+  oneLine(
+    [[item.start, item.end].filter(Boolean).join(' – '), item.employment, item.location]
+      .filter(Boolean)
+      .join(' · '),
+  ),
+  '',
+  ...(Array.isArray(item.description) ? item.description : [item.description])
+    .filter(Boolean)
+    .map((line) => `- ${oneLine(line)}`),
+  '',
+]);
+writeFileSync(
+  join(dist, 'llms-full.txt'),
+  [
+    llms,
+    ...(resumeLines.length ? ['## Resume', '', ...resumeLines] : []),
+    ...(resume.skills?.length ? [`Skills: ${resume.skills.join(', ')}`, ''] : []),
+    ...posts.flatMap((post) => [
+      '---',
+      '',
+      postMarkdown(post),
+      `Source: ${abs(`blog/${post.slug}`)}`,
+      '',
+    ]),
+  ].join('\n'),
+);
+
+// robots.txt — everything is open to every crawler. The AI crawlers and
+// assistants are named as well: several of them only treat a site as opted in
+// when their own token appears, and it documents the intent for the rest.
+// The Sitemap line stays on the same origin as everything else.
+const AI_AGENTS = [
+  'GPTBot',
+  'OAI-SearchBot',
+  'ChatGPT-User',
+  'ClaudeBot',
+  'Claude-User',
+  'Claude-SearchBot',
+  'PerplexityBot',
+  'Perplexity-User',
+  'Google-Extended',
+  'Applebot-Extended',
+  'meta-externalagent',
+  'Amazonbot',
+  'DuckAssistBot',
+  'MistralAI-User',
+  'CCBot',
+];
 writeFileSync(
   join(dist, 'robots.txt'),
-  `User-agent: *\nAllow: /\n\nSitemap: ${siteRoot}/sitemap.xml\n`,
+  [
+    'User-agent: *',
+    'Allow: /',
+    '',
+    '# AI crawlers and assistants are welcome. A plain-text index of the site',
+    `# for them is at ${siteRoot}/llms.txt`,
+    ...AI_AGENTS.map((agent) => `User-agent: ${agent}`),
+    'Allow: /',
+    '',
+    `Sitemap: ${siteRoot}/sitemap.xml`,
+    '',
+  ].join('\n'),
 );
 
 // The manifest is a build artifact, not site content — drop it once read.
