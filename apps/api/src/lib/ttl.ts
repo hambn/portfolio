@@ -21,3 +21,6 @@ export const PROJECTS_RESPONSE_TTL = 5 * MINUTE;
 // fresh a little longer than that means a visitor only ever triggers a refresh
 // when a scheduled one was missed.
 export const PROJECTS_TTL = HOUR + 10 * MINUTE;
+// A snapshot missing a host (it failed and there was nothing earlier to keep)
+// is retried this soon instead of waiting for the next scheduled run.
+export const PROJECTS_RETRY_TTL = 5 * MINUTE;

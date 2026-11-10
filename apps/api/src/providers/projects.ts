@@ -19,7 +19,7 @@ import {
   remainingTtl,
   type PersistedSource,
 } from '../lib/persisted.js';
-import { PROJECTS_RESPONSE_TTL, PROJECTS_TTL } from '../lib/ttl.js';
+import { MINUTE, PROJECTS_RESPONSE_TTL, PROJECTS_RETRY_TTL, PROJECTS_TTL } from '../lib/ttl.js';
 import { githubHeaders } from './github.js';
 
 // Everything the projects page shows, in one response. Which repositories and
@@ -60,6 +60,9 @@ const snapshotSchema = z.object({
   sections: z.array(sectionSchema),
   // Featured repositories that no listed account owns.
   extra: z.array(projectSchema),
+  // Accounts (`host:username`) that failed with no earlier listing to keep.
+  // While any are missing the snapshot is retried within minutes.
+  missing: z.array(z.string()).default([]),
 });
 type Snapshot = z.infer<typeof snapshotSchema>;
 type Repo = z.infer<typeof projectSchema>;
@@ -286,6 +289,7 @@ async function load(services: Services, previous: Snapshot | null): Promise<Snap
   // A host that fails keeps the section it had; one bad host never empties
   // the others, and never empties itself.
   const unanswered = new Set<string>();
+  const missing: string[] = [];
   const sections = await Promise.all(
     accounts.map(async ({ host, username, url }): Promise<Section> => {
       requests++;
@@ -298,6 +302,9 @@ async function load(services: Services, previous: Snapshot | null): Promise<Snap
         const kept = previous?.sections.find(
           (section) => section.host === host && section.username === username,
         );
+        // An empty section stored by an earlier failure is not a listing.
+        const key = accountKey({ host, username });
+        if (!kept || previous?.missing.includes(key)) missing.push(key);
         return { host, username, url, repos: kept?.repos ?? [] };
       }
     }),
@@ -331,12 +338,16 @@ async function load(services: Services, previous: Snapshot | null): Promise<Snap
 
   // Nothing answered: keep the stored snapshot and its timestamp as they are.
   if (requests > 0 && failures === requests) throw new Error('projects_sources_unavailable');
-  return { sections, extra };
+  return { sections, extra, missing };
 }
+
+const accountKey = (account: { host: GitHost; username: string }) =>
+  `${account.host}:${account.username}`;
 
 const source = (services: Services): PersistedSource<typeof snapshotSchema> => ({
   key: 'projects:snapshot',
   ttl: PROJECTS_TTL,
+  ttlFor: (data) => (data.missing.length ? PROJECTS_RETRY_TTL : PROJECTS_TTL),
   schema: snapshotSchema,
   // An edit to the featured list or the accounts is fetched on the next
   // request after the deploy instead of waiting out the hour.
@@ -370,11 +381,17 @@ export async function handle(request: Request, services: Services): Promise<Resp
       featured: featuredProjects(projectsContent, (id) => repos.get(id)),
       // A host with nothing to show is left out rather than sent empty.
       sections: (value?.data.sections ?? []).filter((section) => section.repos.length),
+      // Accounts whose host has not answered yet, so the page can say so and
+      // link there instead of quietly leaving the host out.
+      unavailable: accounts
+        .filter((account) => !value || value.data.missing.includes(accountKey(account)))
+        .map(({ host, username, url }) => ({ host, username, url })),
     };
-    return json(
-      body,
-      200,
-      value ? Math.min(PROJECTS_RESPONSE_TTL, remainingTtl(services, value, PROJECTS_TTL)) : 0,
-    );
+    const ttl = !value
+      ? 0
+      : value.data.missing.length
+        ? MINUTE
+        : Math.min(PROJECTS_RESPONSE_TTL, remainingTtl(services, value, value.ttl));
+    return json(body, 200, ttl);
   });
 }

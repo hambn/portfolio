@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { handleRequest } from '../src/app.js';
 import { refreshProjects } from '../src/providers/projects.js';
-import { PROJECTS_RESPONSE_TTL, PROJECTS_TTL } from '../src/lib/ttl.js';
+import { PROJECTS_RESPONSE_TTL, PROJECTS_RETRY_TTL, PROJECTS_TTL } from '../src/lib/ttl.js';
 import { projectsContent } from '../src/identities.js';
 import { featuredProjects, projectAccounts } from '@portfolio/shared/projects';
 import { testServices } from './helpers.js';
@@ -18,6 +18,7 @@ interface Body {
   updatedAt: string | null;
   featured: { id: string; name: string; stars: number; homepage: string | null }[];
   sections: { host: string; username: string; repos: { id: string; name: string }[] }[];
+  unavailable: { host: string; username: string }[];
 }
 
 const request = (path = '/projects') => new Request(`https://api.test${path}`);
@@ -133,6 +134,51 @@ test('projects keeps answering from the snapshot while the hosts are down', asyn
   await assert.rejects(refreshProjects(services));
   now += 61_000;
   assert.deepEqual((await read(services)).body.sections, first.body.sections);
+});
+
+test('a host that failed on the first build is retried within minutes, not an hour', async () => {
+  const calls: string[] = [];
+  let now = 1_000_000;
+  let githubDown = true;
+  const pending: Promise<unknown>[] = [];
+  const answer = upstream(calls);
+  const services = testServices({
+    now: () => now,
+    // GitHub refuses the Worker; every other host answers.
+    fetch: async (input) =>
+      githubDown && String(input).includes('api.github.com')
+        ? new Response('rate limited', { status: 403 })
+        : answer(input),
+    background: (task) => void pending.push(task.catch(() => {})),
+  });
+
+  const first = await read(services);
+  assert.equal(first.response.status, 200);
+  assert.ok(!first.body.sections.some((section) => section.host === 'github'));
+  assert.deepEqual(first.body.unavailable, [
+    { host: 'github', username: github.username, url: github.url },
+  ]);
+  // Cached briefly, so the CDN does not hold the incomplete answer either.
+  assert.equal(first.response.headers.get('Cache-Control'), 'public, max-age=60');
+
+  // Still down a few minutes later: the empty section is not mistaken for a
+  // listing worth keeping, so GitHub stays missing and keeps being retried.
+  now += (PROJECTS_RETRY_TTL + 1) * 1000;
+  await read(services);
+  await Promise.all(pending.splice(0));
+  now += (PROJECTS_RETRY_TTL + 1) * 1000;
+  assert.equal((await read(services)).body.unavailable.length, 1);
+  await Promise.all(pending.splice(0));
+
+  githubDown = false;
+  now += (PROJECTS_RETRY_TTL + 1) * 1000;
+  await read(services);
+  await Promise.all(pending.splice(0));
+  now += 61_000;
+  const recovered = await read(services);
+  assert.equal(recovered.body.sections[0].host, 'github');
+  assert.deepEqual(recovered.body.unavailable, []);
+  assert.ok(recovered.body.featured.every((project) => project.stars === 3));
 });
 
 test('projects still answers the featured cards when no host has ever answered', async () => {

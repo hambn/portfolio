@@ -77,6 +77,34 @@ function view(content, answer) {
     updatedAt: answer?.updatedAt ?? null,
     featured: featuredProjects(content, (id) => known.get(id)),
     sections: answer?.sections || [],
+    unavailable: answer?.unavailable || [],
+  };
+}
+
+const HOST_ORDER = Object.keys(GIT_HOSTS);
+const sameAccount = (a, b) => a.host === b.host && a.username === b.username;
+
+/**
+ * A new answer with some hosts still unavailable keeps those hosts' sections
+ * from the last answer this browser saw, so a host that is briefly down does
+ * not vanish from the page (or from what is stored for next time).
+ */
+function merge(data, last) {
+  const unavailable = Array.isArray(data.unavailable) ? data.unavailable : [];
+  const kept = (last?.sections || []).filter(
+    (section) =>
+      unavailable.some((account) => sameAccount(account, section)) &&
+      !data.sections.some((fresh) => sameAccount(fresh, section)),
+  );
+  if (!kept.length) return { ...data, unavailable };
+  return {
+    ...data,
+    sections: [...data.sections, ...kept].sort(
+      (a, b) => HOST_ORDER.indexOf(a.host) - HOST_ORDER.indexOf(b.host),
+    ),
+    unavailable: unavailable.filter(
+      (account) => !kept.some((section) => sameAccount(account, section)),
+    ),
   };
 }
 
@@ -171,10 +199,11 @@ export default function Projects() {
         if (last) setAnswer((current) => current || last);
         const response = await fetch(apiUrl('/projects'), { signal: ctrl.signal });
         if (!response.ok) throw new Error(`projects ${response.status}`);
-        const data = await response.json();
+        const body = await response.json();
         if (!alive) return;
-        if (!Array.isArray(data?.featured) || !Array.isArray(data?.sections))
+        if (!Array.isArray(body?.featured) || !Array.isArray(body?.sections))
           throw new Error('projects: unexpected response');
+        const data = merge(body, last);
         setAnswer(data);
         setStatus('ready');
         // Only an answer that carries host data is worth keeping for next time.
@@ -204,6 +233,8 @@ export default function Projects() {
   const accounts = projectAccounts(content);
   const pending = !sections.length && status === 'loading' && (accounts.length > 0 || !content);
   const unreachable = !sections.length && status === 'failed';
+  // Hosts the API has not heard from yet, while others are already listed.
+  const waiting = sections.length ? shown?.unavailable || [] : [];
 
   return (
     <main className="projects-page">
@@ -253,6 +284,20 @@ export default function Projects() {
           </ul>
         </section>
       ))}
+
+      {waiting.length > 0 && (
+        <p role="status" className="projects-note">
+          {waiting.map((account) => (
+            <span key={account.host}>
+              {GIT_HOSTS[account.host]?.label.toLowerCase() || account.host} is not answering right
+              now —{' '}
+              <a href={account.url} target="_blank" rel="noopener noreferrer me">
+                @{account.username} <span aria-hidden="true">↗</span>
+              </a>
+            </span>
+          ))}
+        </p>
+      )}
 
       {pending && (
         <p role="status" className="projects-note">

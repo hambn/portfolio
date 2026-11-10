@@ -299,3 +299,61 @@ test('cards collapsed on a previous visit do not open and shut on load', async (
   await page.locator('[data-card="gh"]').locator('xpath=..').getByTitle('Expand').click();
   await expect(page.locator('[data-card="gh"]')).toBeVisible();
 });
+
+test('a host the API cannot reach keeps the section this browser saw last', async ({ page }) => {
+  const repo = (host, name) => ({
+    id: `${host}:tester/${name}`,
+    host,
+    name,
+    description: null,
+    repo: `https://${host}.com/tester/${name}`,
+    homepage: null,
+    language: null,
+    stars: 0,
+    forks: 0,
+    topics: [],
+    pushedAt: null,
+    archived: false,
+    fork: false,
+  });
+  const section = (host, name) => ({
+    host,
+    username: 'tester',
+    url: `https://${host}.com/tester`,
+    repos: [repo(host, name)],
+  });
+  const answers = [
+    // A complete answer, then one built while GitHub refused the API.
+    {
+      updatedAt: '2026-01-01T00:00:00.000Z',
+      featured: [],
+      sections: [section('github', 'gh-repo'), section('gitlab', 'gl-repo')],
+      unavailable: [],
+    },
+    {
+      updatedAt: '2026-01-02T00:00:00.000Z',
+      featured: [],
+      sections: [section('gitlab', 'gl-repo')],
+      unavailable: [{ host: 'github', username: 'tester', url: 'https://github.com/tester' }],
+    },
+  ];
+  let served = 0;
+  await page.route('**/api/projects', (route) => route.fulfill({ json: answers[served++] }));
+
+  await page.goto('/projects/');
+  await expect(page.getByRole('link', { name: 'gh-repo' })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('link', { name: 'gl-repo' })).toBeVisible();
+  // Still listed, first, from the earlier answer; nothing claims it is missing.
+  await expect(page.getByRole('link', { name: 'gh-repo' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 2 }).nth(1)).toHaveText('github');
+  await expect(page.getByText('is not answering')).toHaveCount(0);
+
+  // A browser that never saw GitHub's list is told why it is not there.
+  await page.evaluate(() => localStorage.clear());
+  served = 1;
+  await page.reload();
+  await expect(page.getByRole('link', { name: 'gl-repo' })).toBeVisible();
+  await expect(page.getByText('github is not answering right now')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'gh-repo' })).toHaveCount(0);
+});
