@@ -18,6 +18,8 @@ export interface Persisted<T> {
   updatedAt: number;
   /** True when `data` is older than its ttl and a refresh has been started. */
   stale: boolean;
+  /** Seconds `data` counts as fresh: the source's ttl, or what `ttlFor` chose. */
+  ttl: number;
 }
 
 export interface PersistedSource<T extends z.ZodType> {
@@ -25,6 +27,8 @@ export interface PersistedSource<T extends z.ZodType> {
   key: string;
   /** Seconds a stored value counts as fresh. */
   ttl: number;
+  /** A shorter lifetime for a particular value, such as one that came back incomplete. */
+  ttlFor?: (data: z.output<T>) => number;
   schema: T;
   /**
    * Changes whenever the stored shape or the configuration behind it does. A
@@ -66,8 +70,11 @@ export async function refreshPersisted<T extends z.ZodType>(
     source.key,
     JSON.stringify({ updatedAt, version: source.version ?? '', data }),
   );
-  return { data, updatedAt, stale: false };
+  return { data, updatedAt, stale: false, ttl: lifetime(source, data) };
 }
+
+const lifetime = <T extends z.ZodType>(source: PersistedSource<T>, data: z.output<T>) =>
+  source.ttlFor?.(data) ?? source.ttl;
 
 // The cooldown is persisted, not in memory, so cold Worker instances in
 // different data centers do not each retry a failing upstream.
@@ -93,15 +100,18 @@ export async function readPersisted<T extends z.ZodType>(
 ): Promise<Persisted<z.output<T>> | null> {
   const stored = await read(services, source);
   if (stored?.current) {
-    const stale = services.now() - stored.updatedAt >= source.ttl * 1000;
+    const ttl = lifetime(source, stored.data);
+    const stale = services.now() - stored.updatedAt >= ttl * 1000;
     if (stale) services.background(attempt(services, source));
-    return { data: stored.data, updatedAt: stored.updatedAt, stale };
+    return { data: stored.data, updatedAt: stored.updatedAt, stale, ttl };
   }
   // Nothing usable for this version: wait once, and fall back to whatever an
   // older version left behind rather than answering with nothing.
   const fresh = await attempt(services, source);
   if (fresh) return fresh;
-  return stored ? { data: stored.data, updatedAt: stored.updatedAt, stale: true } : null;
+  return stored
+    ? { data: stored.data, updatedAt: stored.updatedAt, stale: true, ttl: source.ttl }
+    : null;
 }
 
 /**

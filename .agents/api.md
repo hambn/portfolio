@@ -160,8 +160,10 @@ Other media is fetched on demand; cached delivery is not an offline archive.
 job rebuilds the snapshot (`refreshProjects`); it is considered fresh for 70
 minutes, so a visitor only triggers a background refresh when a scheduled run
 was missed, and still gets the stored answer immediately. A host that fails
-keeps its previous section, a host with no account or no repositories is left
-out, and editing `projects.json` changes the snapshot's version so the next
+keeps its previous section; one that fails with no earlier section to keep is
+listed in the response's `unavailable` and the snapshot is retried after 5
+minutes (responses cached 1 minute) rather than at the next hourly run. A host
+with no account or no repositories is left out, and editing `projects.json` changes the snapshot's version so the next
 request refreshes it. With no snapshot at all (first boot with every host down)
 the route answers 200 with the featured entries from content and `no-store`.
 The featured order, titles and descriptions are applied from content on every
