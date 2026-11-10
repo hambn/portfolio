@@ -12,12 +12,17 @@
   top: 68px;
   right: 20px;
   z-index: 40;
-  background: transparent;
-  border: 1px solid var(--border);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--scrim);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border-strong);
   color: var(--foreground-muted);
-  border-radius: 4px;
-  padding: 5px 12px;
-  font-size: 11px;
+  border-radius: var(--radius-md);
+  padding: 6px 12px;
+  font-size: 12px;
   cursor: pointer;
   font-family: var(--font-mono);
   transition:
@@ -181,6 +186,60 @@
   border: 1px solid var(--border);
   border-radius: 3px;
   padding: 2px 8px;
+}
+
+/* On screen the type runs a size up from the print sheet, which keeps the
+   compact sizes above so the PDF stays the same length. */
+@media screen {
+  .resume-name {
+    font-size: 26px;
+  }
+  .resume-role {
+    font-size: 14px;
+  }
+  .resume-contact {
+    font-size: 12.5px;
+  }
+  .resume-bio {
+    font-size: 14px;
+    max-width: 600px;
+  }
+  .resume-section-label h2 {
+    font-size: 11px;
+  }
+  .resume-entry {
+    margin-bottom: 26px;
+  }
+  .resume-entry-title {
+    font-size: 15px;
+  }
+  .resume-entry-dates {
+    font-size: 12.5px;
+  }
+  .resume-entry-org,
+  .resume-entry-text {
+    font-size: 13.5px;
+  }
+  .resume-entry-location {
+    font-size: 12.5px;
+  }
+  .resume-entry-employment {
+    font-size: 11px;
+    padding: 1px 6px;
+  }
+  .resume-skill {
+    font-size: 12.5px;
+    padding: 3px 9px;
+    border-radius: var(--radius-md);
+    background: var(--background-subtle);
+  }
+  .resume-contact a {
+    transition: opacity 150ms;
+  }
+  .resume-contact a:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
 }
 
 /* Print: hide the chrome and force a plain black-on-white page. The margin

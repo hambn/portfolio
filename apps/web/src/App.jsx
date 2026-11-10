@@ -31,8 +31,10 @@ export default function App({ initialRoute, initialPage }) {
     let shown = currentRoute();
     const onPop = () => {
       const next = currentRoute();
-      setRoute(next);
       const moved = next !== shown;
+      // From here on a newly opened page fades in (core.css, page-in).
+      if (moved) document.documentElement.setAttribute('data-navigated', '');
+      setRoute(next);
       shown = next;
       if (!moved && window.location.hash) return;
       const y = window.history.state?.scrollY ?? 0;

@@ -1,5 +1,6 @@
 import React from 'react';
 import { followRoute, routeHref } from '../../lib/router.js';
+import Icon from '../../components/Icon.jsx';
 import GitLog from './GitLog.jsx';
 import SectionHead from './SectionHead.jsx';
 
@@ -9,7 +10,8 @@ export default function Timeline({ resume }) {
 
   const fullResume = (
     <a href={routeHref('resume')} onClick={followRoute('resume')} className="link-quiet">
-      full resume →
+      full resume
+      <Icon name="arrow-right" className="icon-nudge" />
     </a>
   );
 

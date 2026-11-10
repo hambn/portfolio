@@ -23,11 +23,11 @@
   font-size: var(--text-3xl);
   font-weight: 700;
   letter-spacing: -0.025em;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   line-height: 1.2;
 }
 .home-handle {
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   font-weight: 500;
   color: var(--primary);
 }
@@ -35,8 +35,8 @@
 .home-intro {
   color: var(--foreground-muted);
   font-size: var(--text-base);
-  line-height: 1.85;
-  max-width: 620px;
+  line-height: 1.8;
+  max-width: 640px;
   margin-bottom: 36px;
   display: grid;
   gap: 18px;
@@ -60,17 +60,46 @@
   height: 1px;
   background: var(--border);
 }
+.section-head .link-quiet {
+  font-size: var(--text-sm);
+}
 .stack-list {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 .home-footer {
-  padding-top: 32px;
+  padding-top: 28px;
   border-top: 1px solid var(--border);
   display: flex;
-  gap: 24px;
+  gap: 8px;
   flex-wrap: wrap;
+}
+/* Footer profile links: brand icon, name, and an arrow that shows on hover. */
+.home-footer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  margin-left: -10px;
+  margin-right: 10px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--foreground-muted);
+  transition:
+    color var(--transition-base),
+    background-color var(--transition-base);
+}
+.home-footer-link:hover {
+  color: var(--foreground);
+  background: var(--background-muted);
+}
+.home-footer-link > .icon:first-child {
+  font-size: 15px;
+}
+.home-footer-link > .icon-nudge {
+  font-size: 12px;
+  color: var(--foreground-subtle);
 }
 
 /* ── Button ── (intro route links) */
@@ -89,12 +118,16 @@
     background var(--transition-base),
     color var(--transition-base),
     border-color var(--transition-base),
-    opacity var(--transition-base);
+    opacity var(--transition-base),
+    transform var(--duration-fast) var(--ease-default);
   text-decoration: none;
   white-space: nowrap;
   outline: none;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+}
+.btn:active {
+  transform: scale(0.97);
 }
 .btn:focus-visible {
   box-shadow:
@@ -133,11 +166,11 @@
 }
 .btn-outline:hover:not(:disabled) {
   background: var(--background-muted);
-  border-color: var(--border-strong);
+  border-color: var(--foreground-subtle);
 }
 .btn-md {
   font-size: var(--text-sm);
-  padding: 7px 14px;
+  padding: 8px 16px;
 }
 
 /* Avatar is the home LCP element — fixed box so it never shifts the hero. */
@@ -145,14 +178,14 @@
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  border: 2px solid var(--border);
+  border: 2px solid var(--border-strong);
   background: var(--border);
   flex-shrink: 0;
 }
 /* Small uppercase section label — also the <h2> in the timeline header. */
 .section-label {
-  font-size: 10px;
-  font-weight: 400;
+  font-size: 11px;
+  font-weight: 500;
   margin: 0;
   color: var(--foreground-subtle);
   letter-spacing: 0.08em;
@@ -160,9 +193,12 @@
   white-space: nowrap;
 }
 .link-quiet {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: var(--text-xs);
   white-space: nowrap;
-  color: var(--foreground-subtle);
+  color: var(--foreground-muted);
   transition: color 150ms;
 }
 .link-quiet:hover {
@@ -187,7 +223,7 @@
   padding-bottom: 20px;
   font-size: var(--text-sm);
   color: var(--foreground-muted);
-  transition: opacity 150ms;
+  transition: opacity 200ms var(--ease-default);
 }
 .git-meta {
   display: block;
@@ -253,7 +289,7 @@
   display: block;
   padding-left: 14px;
   text-indent: -14px;
-  color: var(--foreground-subtle);
+  color: var(--foreground-muted);
   line-height: 1.7;
 }
 .git-msg > span::before {
@@ -274,6 +310,11 @@
   stroke-width: 2;
   stroke-linecap: round;
   pointer-events: none;
+}
+.git-graph g,
+.git-graph path,
+.git-graph circle {
+  transition: opacity 200ms var(--ease-default);
 }
 .git-lane.is-life {
   stroke: var(--graph-life);
@@ -330,6 +371,13 @@
   background: var(--card);
   box-shadow: 0 14px 34px var(--overlay);
   pointer-events: none;
+  animation: branch-card-in 140ms var(--ease-out);
+}
+@keyframes branch-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
 }
 .git-branch-card.is-edu {
   border-left-color: var(--graph-edu);
@@ -378,9 +426,9 @@
 
 /* Tooling chips under the intro. */
 .stack-chip {
-  padding: 3px 9px;
+  padding: 4px 10px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background: var(--background-subtle);
   font-size: var(--text-xs);
   color: var(--foreground-muted);

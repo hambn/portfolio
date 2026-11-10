@@ -1,6 +1,7 @@
 // BlogPost.jsx — single post view: markdown rendering + syntax highlighting.
 import React, { useEffect, useRef, useState } from 'react';
 import { PortfolioData } from '../../lib/data.js';
+import Icon from '../../components/Icon.jsx';
 import { ClickableTag, fmtDate, goToTag } from './blog-ui.jsx';
 
 // Post-process the rendered DOM: mermaid blocks, highlight.js, copy buttons.
@@ -130,7 +131,8 @@ export default function PostView({ post, onBack }) {
   return (
     <main className="blog-page">
       <button type="button" className="blog-back" onClick={onBack}>
-        ← all posts
+        <Icon name="arrow-left" className="icon-nudge is-back" />
+        all posts
       </button>
 
       <time className="post-date" dateTime={post.date || undefined}>

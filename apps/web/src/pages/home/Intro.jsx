@@ -1,13 +1,14 @@
 import React from 'react';
 import { avatarImage } from '../../lib/api.js';
 import { followRoute, routeHref } from '../../lib/router.js';
+import Icon from '../../components/Icon.jsx';
 
 const AVATAR_SIZE = 72;
 
 const ROUTES = [
   { route: 'projects', label: 'projects', className: 'btn btn-default btn-md' },
   { route: 'blog', label: 'blog', className: 'btn btn-outline btn-md' },
-  { route: 'links', label: 'social & contact →', className: 'btn btn-ghost btn-md' },
+  { route: 'links', label: 'social & contact', arrow: true, className: 'btn btn-ghost btn-md' },
 ];
 
 // Avatar, name, handle, the bio paragraphs and the three route buttons.
@@ -45,9 +46,10 @@ export default function Intro({ profile }) {
       </div>
 
       <div className="home-actions">
-        {ROUTES.map(({ route, label, className }) => (
+        {ROUTES.map(({ route, label, arrow, className }) => (
           <a key={route} href={routeHref(route)} onClick={followRoute(route)} className={className}>
             {label}
+            {arrow && <Icon name="arrow-right" className="icon-nudge" />}
           </a>
         ))}
       </div>

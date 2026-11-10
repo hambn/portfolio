@@ -436,13 +436,22 @@
   background: none;
   border: none;
   cursor: pointer;
-  padding: 0 0 28px;
+  padding: 6px 10px;
+  margin: 0 0 22px -10px;
+  border-radius: var(--radius-md);
   color: var(--foreground-muted);
   font-size: var(--text-sm);
   font-family: var(--font-mono);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  transition:
+    color var(--transition-base),
+    background-color var(--transition-base);
+}
+.blog-back:hover {
+  color: var(--foreground);
+  background: var(--background-muted);
 }
 
 .blog-head {
@@ -451,6 +460,7 @@
 .blog-title {
   font-size: var(--text-2xl);
   font-weight: 700;
+  letter-spacing: -0.02em;
   margin-bottom: 6px;
 }
 .blog-subtitle {
@@ -477,12 +487,16 @@
   top: 50%;
   transform: translateY(-50%);
   color: var(--foreground-subtle);
-  font-size: var(--text-sm);
+  font-size: 15px;
   pointer-events: none;
+  transition: color var(--transition-base);
+}
+.blog-search-field:focus-within .blog-search-icon {
+  color: var(--primary);
 }
 .blog-search {
   width: 100%;
-  padding: 10px 12px 10px 32px;
+  padding: 10px 12px 10px 36px;
   background: var(--input);
   color: var(--foreground);
   border: 1px solid var(--border);
@@ -490,13 +504,19 @@
   font-family: var(--font-mono);
   font-size: var(--text-sm);
   outline: none;
+  transition:
+    border-color var(--transition-base),
+    box-shadow var(--transition-base);
+}
+.blog-search::placeholder {
+  color: var(--foreground-subtle);
+}
+.blog-search:hover {
+  border-color: var(--border-strong);
 }
 .blog-search:focus {
   border-color: var(--primary);
-}
-.blog-search:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
+  box-shadow: 0 0 0 3px var(--primary-ring);
 }
 .blog-filter {
   position: relative;
@@ -518,6 +538,10 @@
   white-space: nowrap;
   transition: all var(--transition-base);
 }
+.blog-filter-toggle:hover {
+  color: var(--foreground);
+  border-color: var(--border-strong);
+}
 .blog-filter-toggle svg {
   flex-shrink: 0;
 }
@@ -532,6 +556,14 @@
   padding: 12px;
   width: 272px;
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
+  transform-origin: top right;
+  animation: blog-menu-in 140ms var(--ease-out);
+}
+@keyframes blog-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
 }
 .blog-filter-options {
   display: flex;
@@ -550,9 +582,16 @@
   padding: 3px 9px;
   border-radius: var(--radius-sm);
   background: var(--background-muted);
-  color: var(--foreground-subtle);
+  color: var(--foreground-muted);
   border: 1px solid var(--border);
   transition: all var(--transition-base);
+}
+.blog-chip:hover:not(:disabled, .is-on) {
+  color: var(--foreground);
+  border-color: var(--border-strong);
+}
+.blog-chip .icon {
+  margin-right: 5px;
 }
 .blog-chip.is-on,
 .blog-filter-toggle.is-on {
@@ -579,15 +618,15 @@
   align-items: center;
   gap: 5px;
 }
-.blog-chip-remove {
-  opacity: 0.7;
+.blog-active-tags .blog-chip .icon {
+  margin: 0;
+  opacity: 0.75;
   font-size: 11px;
-  line-height: 1;
 }
 .blog-count {
   font-size: var(--text-xs);
-  color: var(--foreground-faint);
-  margin: 0 0 18px;
+  color: var(--foreground-subtle);
+  margin: 0 0 6px;
   font-family: var(--font-mono);
 }
 .blog-empty {
@@ -627,8 +666,13 @@
 }
 .post-row-title {
   font-weight: 600;
-  font-size: var(--text-base);
+  font-size: var(--text-lg);
   color: var(--foreground);
+  transition: color var(--transition-base);
+}
+.post-row-link:hover .post-row-title,
+.post-row-link:focus-visible .post-row-title {
+  color: var(--primary);
 }
 .post-row-date {
   font-size: var(--text-xs);
@@ -639,7 +683,7 @@
 .post-row-desc {
   font-size: var(--text-sm);
   color: var(--foreground-muted);
-  line-height: 1.55;
+  line-height: 1.65;
 }
 .post-tags {
   display: flex;
@@ -649,7 +693,7 @@
 .post-row .post-tags {
   position: relative;
   z-index: 1;
-  margin-top: 7px;
+  margin-top: 10px;
 }
 
 .blog-pager {
@@ -661,7 +705,13 @@
   font-family: var(--font-mono);
 }
 .blog-pager .blog-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 6px 10px;
+}
+.blog-pager .blog-chip .icon {
+  margin: 0;
 }
 .blog-pager .blog-chip.is-on {
   font-weight: 600;
@@ -709,7 +759,7 @@
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   background: var(--background-muted);
-  color: var(--foreground-subtle);
+  color: var(--foreground-muted);
   border-radius: var(--radius-sm);
   padding: 2px 8px;
   border: 1px solid var(--border);

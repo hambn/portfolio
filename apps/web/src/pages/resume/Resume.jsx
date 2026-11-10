@@ -3,6 +3,7 @@ import './resume.css';
 import React, { useEffect, useState } from 'react';
 import { PortfolioData } from '../../lib/data.js';
 import ErrorState from '../../components/ErrorState.jsx';
+import Icon from '../../components/Icon.jsx';
 
 function ResumeSectionLabel({ text }) {
   return (
@@ -130,6 +131,7 @@ export default function Resume() {
   return (
     <main className="resume-main">
       <button type="button" className="resume-print-btn" onClick={() => window.print()}>
+        <Icon name="printer" />
         print / save pdf
       </button>
 

@@ -11,6 +11,7 @@ import React, { useEffect, useState } from 'react';
 import { PortfolioData } from '../../lib/data.js';
 import { navigate } from '../../lib/router.js';
 import ErrorState from '../../components/ErrorState.jsx';
+import Icon from '../../components/Icon.jsx';
 import { InlineCode } from './blog-ui.jsx';
 import BlogList from './BlogList.jsx';
 import BlogPost from './BlogPost.jsx';
@@ -65,7 +66,8 @@ export default function Blog({ route }) {
     return (
       <main className="blog-page">
         <button type="button" className="blog-back" onClick={() => navigate('blog')}>
-          ← all posts
+          <Icon name="arrow-left" className="icon-nudge is-back" />
+          all posts
         </button>
         <p className="blog-missing">
           no post found at <InlineCode>/blog/{slug}</InlineCode>
