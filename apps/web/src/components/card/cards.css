@@ -1,8 +1,10 @@
 .sc-hdr-btn {
   opacity: 0.55;
   transition:
-    opacity 0.12s,
-    color 0.12s;
+    opacity 0.15s,
+    color 0.15s,
+    background-color 0.15s,
+    transform 0.1s;
   background: none;
   border: none;
   cursor: pointer;
@@ -21,9 +23,9 @@
 .sc-body {
   overflow: hidden;
   transition:
-    max-height 0.35s ease,
-    opacity 0.22s ease,
-    visibility 0.35s;
+    max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.25s ease,
+    visibility 0.4s;
 }
 .sc-body.open {
   max-height: 4000px;
@@ -36,20 +38,52 @@
   visibility: hidden;
   pointer-events: none;
 }
-/* A card collapsed on a previous visit, before hydration applies .closed. */
-html[data-collapsed~='email'] .sc-body[data-card='email'],
-html[data-collapsed~='dc'] .sc-body[data-card='dc'],
-html[data-collapsed~='tg'] .sc-body[data-card='tg'],
-html[data-collapsed~='gh'] .sc-body[data-card='gh'],
-html[data-collapsed~='st'] .sc-body[data-card='st'],
-html[data-collapsed~='gl'] .sc-body[data-card='gl'],
-html[data-collapsed~='x'] .sc-body[data-card='x'],
-html[data-collapsed~='sp'] .sc-body[data-card='sp'],
-html[data-collapsed~='li'] .sc-body[data-card='li'] {
+/* A card collapsed on a previous visit, before hydration applies .closed.
+ * Only the prerendered .open body is matched: once React has set .closed, that
+ * class alone styles the card, so shutting it animates like opening does. */
+html[data-collapsed~='email'] .sc-body.open[data-card='email'],
+html[data-collapsed~='dc'] .sc-body.open[data-card='dc'],
+html[data-collapsed~='tg'] .sc-body.open[data-card='tg'],
+html[data-collapsed~='gh'] .sc-body.open[data-card='gh'],
+html[data-collapsed~='st'] .sc-body.open[data-card='st'],
+html[data-collapsed~='gl'] .sc-body.open[data-card='gl'],
+html[data-collapsed~='x'] .sc-body.open[data-card='x'],
+html[data-collapsed~='sp'] .sc-body.open[data-card='sp'],
+html[data-collapsed~='li'] .sc-body.open[data-card='li'] {
   max-height: 0;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
+}
+/* Where the browser can animate to and from `auto`, the body opens to its own
+ * height instead of racing toward a 4000px ceiling, so a short card and a tall
+ * one take the same time and ease the same way. */
+@supports (interpolate-size: allow-keywords) {
+  .sc-body {
+    interpolate-size: allow-keywords;
+    max-height: none;
+    transition:
+      height 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 0.22s ease,
+      visibility 0.32s;
+  }
+  .sc-body.open {
+    max-height: none;
+    height: auto;
+  }
+  .sc-body.closed,
+  html[data-collapsed~='email'] .sc-body.open[data-card='email'],
+  html[data-collapsed~='dc'] .sc-body.open[data-card='dc'],
+  html[data-collapsed~='tg'] .sc-body.open[data-card='tg'],
+  html[data-collapsed~='gh'] .sc-body.open[data-card='gh'],
+  html[data-collapsed~='st'] .sc-body.open[data-card='st'],
+  html[data-collapsed~='gl'] .sc-body.open[data-card='gl'],
+  html[data-collapsed~='x'] .sc-body.open[data-card='x'],
+  html[data-collapsed~='sp'] .sc-body.open[data-card='sp'],
+  html[data-collapsed~='li'] .sc-body.open[data-card='li'] {
+    max-height: none;
+    height: 0;
+  }
 }
 /* ContribGraph day cell; --cg-ring is the card's muted colour. */
 .cg-day:hover {

@@ -14,6 +14,7 @@ import { join } from 'node:path';
 import { marked } from 'marked';
 import { createServer } from 'vite';
 import { buildBlogIndex } from './blog-index.mjs';
+import './build-info.mjs';
 import { routes } from '../src/routes.js';
 import {
   INDEX_ROBOTS,

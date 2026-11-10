@@ -54,6 +54,7 @@
 
 /* Wordmark — gg sans bold with normal tracking, as Discord draws its lockup. */
 .dc-card .dc-title {
+  color: var(--dc-text);
   font-weight: 700;
   letter-spacing: 0;
 }
@@ -376,11 +377,6 @@
   .dc-activity {
     transition: none;
   }
-}
-
-.dc-card .dc-hdr-btn {
-  font-family: inherit;
-  font-size: 11px;
 }
 
 .dc-status::after {

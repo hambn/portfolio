@@ -12,6 +12,7 @@ import { GIT_HOSTS, featuredProjects, projectAccounts } from '@portfolio/shared/
 import { PortfolioData } from '../../lib/data.js';
 import { apiUrl } from '../../lib/api.js';
 import { storage } from '../../lib/storage.js';
+import Icon from '../../components/Icon.jsx';
 import './projects.css';
 
 const LANG_COLORS = {
@@ -127,7 +128,8 @@ function ProjectCard({ project, featured = false }) {
         </h3>
         {project.stars > 0 && (
           <span className="project-card-stars" title={`${project.stars} stars`}>
-            <span aria-hidden="true">★</span> {project.stars}
+            <Icon name="star" />
+            {project.stars}
             <span className="sr-only"> stars</span>
           </span>
         )}
@@ -162,13 +164,14 @@ function ProjectCard({ project, featured = false }) {
         <div className="project-card-links">
           {site && (
             <a href={site} target="_blank" rel="noopener noreferrer">
-              {hostname(site) || 'website'} <span aria-hidden="true">↗</span>
+              <Icon name="globe" />
+              {hostname(site) || 'website'}
             </a>
           )}
           {featured && project.repo && project.host && (
             <a href={project.repo} target="_blank" rel="noopener noreferrer">
-              source on {GIT_HOSTS[project.host].label.toLowerCase()}{' '}
-              <span aria-hidden="true">↗</span>
+              <Icon name={project.host} />
+              source on {GIT_HOSTS[project.host].label.toLowerCase()}
             </a>
           )}
         </div>
@@ -274,7 +277,8 @@ export default function Projects() {
               target="_blank"
               rel="noopener noreferrer me"
             >
-              @{section.username} <span aria-hidden="true">↗</span>
+              <Icon name={section.host} />@{section.username}
+              <Icon name="arrow-up-right" className="icon-nudge is-out" />
             </a>
           </div>
           <ul className="project-grid">
@@ -292,7 +296,8 @@ export default function Projects() {
               {GIT_HOSTS[account.host]?.label.toLowerCase() || account.host} is not answering right
               now —{' '}
               <a href={account.url} target="_blank" rel="noopener noreferrer me">
-                @{account.username} <span aria-hidden="true">↗</span>
+                @{account.username}
+                <Icon name="arrow-up-right" className="icon-nudge is-out" />
               </a>
             </span>
           ))}
@@ -310,7 +315,8 @@ export default function Projects() {
           the repository list is unavailable right now.{' '}
           {accounts.map((account) => (
             <a key={account.host} href={account.url} target="_blank" rel="noopener noreferrer me">
-              {GIT_HOSTS[account.host].label.toLowerCase()} <span aria-hidden="true">↗</span>
+              {GIT_HOSTS[account.host].label.toLowerCase()}
+              <Icon name="arrow-up-right" className="icon-nudge is-out" />
             </a>
           ))}
           <button

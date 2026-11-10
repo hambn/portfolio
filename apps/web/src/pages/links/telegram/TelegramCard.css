@@ -7,7 +7,6 @@
   --tg-pattern: #42634a;
   color: var(--tg-text);
   background: var(--tg-panel);
-  border: 1px solid #303030;
   font-family: 'Roboto Variable', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   color-scheme: dark;
@@ -19,7 +18,6 @@
   --tg-accent: #2481cc;
   --tg-wallpaper: #d6e3c6;
   --tg-pattern: #70966b;
-  border-color: #d9ded5;
   color-scheme: light;
 }
 .tg-header {

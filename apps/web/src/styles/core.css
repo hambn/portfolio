@@ -9,6 +9,9 @@
   padding: 0;
 }
 html {
+  /* Reserve the scrollbar's width so the centred nav and pages do not shift
+     sideways between a short route and a long one. */
+  scrollbar-gutter: stable;
   /* Phones in landscape otherwise inflate some text and not the rest. */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
@@ -21,7 +24,13 @@ body {
   color: var(--foreground);
   font-family: var(--font-mono);
   font-size: var(--text-base);
-  line-height: var(--leading-normal);
+  font-weight: var(--fw-body);
+  line-height: var(--leading-body);
+  letter-spacing: var(--tracking-body);
+  /* JetBrains Mono's coding ligatures fuse `--`, `->` and `!=` into one glyph,
+     which misreads in prose and in the `$ command` labels. Code blocks turn
+     them back on (blog.css). */
+  font-variant-ligatures: none;
 }
 a {
   color: inherit;
@@ -39,11 +48,36 @@ svg {
   max-width: 100%;
 }
 
+/* Inline line icon (components/Icon.jsx): sized and coloured by its text. */
+.icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+  vertical-align: -0.125em;
+}
+/* An arrow that leans the way it points when its link is hovered. */
+.icon-nudge {
+  transition: transform var(--transition-base);
+}
+a:hover > .icon-nudge,
+button:hover > .icon-nudge {
+  transform: translateX(2px);
+}
+a:hover > .icon-nudge.is-out {
+  transform: translate(1px, -1px);
+}
+a:hover > .icon-nudge.is-back,
+button:hover > .icon-nudge.is-back {
+  transform: translateX(-2px);
+}
+
 /* Headings break into even lines, paragraphs avoid a lone last word. */
 h1,
 h2,
 h3 {
   text-wrap: balance;
+  letter-spacing: -0.025em;
 }
 p,
 li {
@@ -60,8 +94,8 @@ li {
 
 /* ── Scrollbar ── */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
@@ -102,6 +136,30 @@ li {
 #content {
   outline: none;
 }
+/* A page opened by in-app navigation fades in. The first page of a visit is
+ * left alone (App.jsx sets data-navigated on the first route change), so the
+ * prerendered content paints at once. Opacity only: a transform here would
+ * re-anchor position:fixed children for the length of the animation. */
+@keyframes page-in {
+  from {
+    opacity: 0;
+  }
+}
+html[data-navigated] #content > main {
+  animation: page-in 220ms var(--ease-out);
+}
+/* While the theme flips (Nav.jsx), colours cross-fade instead of snapping. */
+html.theme-switching,
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition:
+    background-color 220ms var(--ease-default),
+    border-color 220ms var(--ease-default),
+    color 220ms var(--ease-default),
+    fill 220ms var(--ease-default),
+    stroke 220ms var(--ease-default) !important;
+}
 
 /* Visually hidden, still read by screen readers and search engines. */
 .sr-only {
@@ -125,8 +183,11 @@ li {
   left: 0;
   right: 0;
   height: 56px;
-  background: var(--background);
-  border-bottom: 1px solid var(--border);
+  /* frosted, so the page reads as scrolling under the bar */
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--blur-glass);
+  backdrop-filter: var(--blur-glass);
+  border-bottom: 1px solid var(--hairline);
   z-index: 50;
   display: flex;
   align-items: center;
@@ -141,11 +202,24 @@ li {
 .nav-item {
   font-family: var(--font-mono);
   font-size: 14px;
+  letter-spacing: 0;
   white-space: nowrap;
   text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
   padding: 6px 10px;
   border-radius: var(--radius-md);
-  transition: color 150ms;
+  transition:
+    color var(--transition-base),
+    background-color var(--transition-base);
+}
+/* Hover is for pointers only: on a touch screen it sticks to the last link
+ * tapped and reads as a second, grey "selected" state. */
+@media (hover: hover) {
+  .nav-brand:hover,
+  .nav-item:hover {
+    color: var(--foreground);
+    background: var(--background-muted);
+  }
 }
 .nav-brand {
   display: inline-flex;
@@ -169,42 +243,96 @@ li {
   color: var(--foreground-muted);
   font-weight: 500;
 }
+/* Weight and colour mark the open page. The size stays put: this is a
+ * monospace face, so the centred group keeps its width from page to page. */
 .nav-item[aria-current='page'] {
-  font-size: 15px;
   font-weight: 700;
   color: var(--foreground);
 }
 .nav-item-sigil {
   font-size: 0.85em;
   color: var(--foreground-faint);
+  transition: color var(--transition-base);
+}
+.nav-item:hover .nav-item-sigil {
+  color: var(--foreground-subtle);
 }
 .nav-item[aria-current='page'] .nav-item-sigil {
   color: var(--primary);
 }
 .nav-theme {
   position: absolute;
-  right: 20px;
+  right: 16px;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
   background: none;
-  border: none;
+  border: 1px solid transparent;
   cursor: pointer;
   color: var(--foreground-muted);
-  padding: 6px 8px;
   border-radius: var(--radius-md);
-  font-size: 14px;
-  font-family: var(--font-mono);
+  font-size: 16px;
+  transition:
+    color var(--transition-base),
+    background-color var(--transition-base),
+    border-color var(--transition-base);
 }
-.theme-light-icon {
-  display: none;
+.nav-theme:hover {
+  color: var(--foreground);
+  background: var(--background-muted);
+  border-color: var(--border);
 }
+/* Both icons share one cell; the one that is out turns away as it fades. */
+.nav-theme .icon {
+  grid-area: 1 / 1;
+  transition:
+    opacity var(--transition-slow),
+    transform var(--transition-slow);
+}
+.theme-light-icon,
 [data-theme='light'] .theme-dark-icon {
-  display: none;
+  opacity: 0;
+  transform: rotate(-90deg) scale(0.6);
 }
 [data-theme='light'] .theme-light-icon {
-  display: inline;
+  opacity: 1;
+  transform: none;
 }
+/* A column, so the footer sits at the bottom of a short page too. */
 .site-shell {
   min-height: 100vh;
   min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+#content {
+  flex: 1;
+}
+/* ── Footer status line (components/Footer.jsx) ── */
+.site-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 38px;
+  padding: 0 20px;
+  border-top: 1px solid var(--hairline);
+  font-size: 11.5px;
+  color: var(--foreground-subtle);
+}
+.site-footer-build {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  transition: color var(--transition-base);
+}
+.site-footer-build:hover {
+  color: var(--foreground);
+}
+.site-footer-build > .icon {
+  font-size: 14px;
+  color: var(--success);
 }
 /* Inline failure notice with an optional retry (components/ErrorState.jsx). */
 .error-state {
@@ -247,16 +375,12 @@ li {
   }
   .site-nav .nav-brand,
   .site-nav .nav-item {
-    font-size: 12px;
-    padding: 5px 6px;
-  }
-  .site-nav .nav-item[aria-current='page'] {
-    font-size: 13px;
+    font-size: 12.5px;
+    padding: 6px;
   }
   .site-nav .nav-theme {
     position: static;
     flex-shrink: 0;
-    padding: 6px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

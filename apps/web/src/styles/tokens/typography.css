@@ -11,8 +11,11 @@
   --font-code: var(--font-mono);
 
   /* ── Size scale ── */
-  --text-xs: 0.75rem; /*  12px */
-  --text-sm: 0.8125rem; /*  13px */
+  /* The two small steps sit half a pixel above the usual 12/13: a monospace
+     face is wide and light, and its small sizes are the first to get hard to
+     read. */
+  --text-xs: 0.78125rem; /*  12.5px */
+  --text-sm: 0.84375rem; /*  13.5px */
   --text-base: 0.9375rem; /*  15px */
   --text-lg: 1.0625rem; /*  17px */
   --text-xl: 1.25rem; /*  20px */
@@ -36,6 +39,14 @@
   --tracking-wide: 0.025em; /* @kind other */
   --tracking-wider: 0.05em; /* @kind other */
   --tracking-widest: 0.1em; /* @kind other */
+
+  /* ── Reading ──
+   * Running text is set a touch heavier than regular and pulled slightly
+   * together: light-on-dark mono at 400 reads thin, and its fixed advance
+   * leaves words looser than a proportional face would. */
+  --fw-body: 430; /* @kind other */
+  --tracking-body: -0.012em; /* @kind other */
+  --leading-body: 1.65; /* @kind other */
 
   /* ── Font weights ── */
   --fw-thin: 100; /* @kind other */

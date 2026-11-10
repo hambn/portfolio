@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { cpSync, readFileSync, statSync } from 'node:fs';
 import { extname, join, resolve, sep } from 'node:path';
 import { buildBlogIndex } from './scripts/blog-index.mjs';
+import './scripts/build-info.mjs';
 
 // Editable content lives at the repo root (content/) because the API reads it
 // too. The site serves it at <base>/contents/ exactly as if it sat in public/.

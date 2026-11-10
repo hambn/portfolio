@@ -7,7 +7,6 @@
   --li-bg: #1b1f23;
   --li-text: rgba(255, 255, 255, 0.9);
   --li-muted: rgba(255, 255, 255, 0.6);
-  --li-border: rgba(255, 255, 255, 0.13);
   --li-divider: rgba(255, 255, 255, 0.13);
   --li-blue: #71b7fb;
   --li-blue-hover: #9cc9fd;
@@ -19,7 +18,6 @@
   --li-ring: 4px;
   background: var(--li-bg);
   color: var(--li-text);
-  border: 1px solid var(--li-border);
   color-scheme: dark;
   /* LinkedIn ships its own faces but falls back to this system stack. */
   font-family:
@@ -29,7 +27,6 @@
   --li-bg: #ffffff;
   --li-text: rgba(0, 0, 0, 0.9);
   --li-muted: rgba(0, 0, 0, 0.6);
-  --li-border: rgba(0, 0, 0, 0.08);
   --li-divider: #e8e8e8;
   --li-blue: #0a66c2;
   --li-blue-hover: #004182;
@@ -47,9 +44,15 @@
 .li-brand {
   color: var(--li-blue);
 }
+/* The wordmark is blue on a light page and plain text on a dark one, as on
+   LinkedIn itself; the "in" tile keeps the brand blue either way. */
 .li-wordmark {
-  font-weight: 600;
-  letter-spacing: -0.5px;
+  color: var(--li-text);
+  font-weight: 700;
+  letter-spacing: -0.4px;
+}
+[data-theme='light'] .li-wordmark {
+  color: var(--li-blue);
 }
 .li-hdr-btn {
   color: var(--li-muted);

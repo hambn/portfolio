@@ -1,5 +1,6 @@
 import React from 'react';
 import Nav from './Nav.jsx';
+import Footer from './Footer.jsx';
 
 export default function Shell({ page, children }) {
   return (
@@ -11,6 +12,7 @@ export default function Shell({ page, children }) {
       <div id="content" tabIndex={-1}>
         {children}
       </div>
+      <Footer />
     </div>
   );
 }

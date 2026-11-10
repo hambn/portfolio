@@ -3,15 +3,22 @@ import React, { useEffect, useState } from 'react';
 import { PortfolioData } from '../lib/data.js';
 import { followRoute, routeHref } from '../lib/router.js';
 import { storage } from '../lib/storage.js';
+import Icon from './Icon.jsx';
 
 const NAV_ITEMS = ['projects', 'blog', 'links'];
 
 // The theme lives on <html data-theme> (set before first paint by index.html)
 // and the icons swap in CSS, so toggling needs no React state or re-render.
+let switching;
 function toggleTheme() {
   const root = document.documentElement;
   const next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
   storage.set('hambn-theme', next);
+  // core.css cross-fades colours while this class is on, so the flip is a
+  // short fade and ordinary hover transitions keep their own timing after.
+  root.classList.add('theme-switching');
+  clearTimeout(switching);
+  switching = setTimeout(() => root.classList.remove('theme-switching'), 260);
   root.setAttribute('data-theme', next);
 }
 
@@ -55,9 +62,15 @@ export default function Nav({ page }) {
         ))}
       </div>
 
-      <button className="nav-theme" onClick={toggleTheme} aria-label="toggle theme">
-        <span className="theme-dark-icon">☀</span>
-        <span className="theme-light-icon">☾</span>
+      <button
+        type="button"
+        className="nav-theme"
+        onClick={toggleTheme}
+        aria-label="toggle theme"
+        title="toggle theme"
+      >
+        <Icon name="sun" className="theme-dark-icon" />
+        <Icon name="moon" className="theme-light-icon" />
       </button>
     </nav>
   );

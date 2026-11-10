@@ -1,6 +1,7 @@
 // BlogList.jsx — post list: search, tag filtering, pagination.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { followRoute, routeHref } from '../../lib/router.js';
+import Icon from '../../components/Icon.jsx';
 import { ClickableTag, fmtDate, goToTag, readUrlTags } from './blog-ui.jsx';
 
 const POSTS_PER_PAGE = 15;
@@ -107,9 +108,7 @@ export default function PostList({ posts }) {
 
       <div className={`blog-toolbar${activeTags.length ? ' is-filtered' : ''}`}>
         <div className="blog-search-field">
-          <span className="blog-search-icon" aria-hidden="true">
-            ⌕
-          </span>
+          <Icon name="search" className="blog-search-icon" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -144,7 +143,7 @@ export default function PostList({ posts }) {
                         aria-pressed={on}
                         onClick={() => toggleTag(t)}
                       >
-                        {on ? '✓ ' : ''}
+                        {on && <Icon name="check" />}
                         {t}
                       </button>
                     );
@@ -170,9 +169,7 @@ export default function PostList({ posts }) {
           {activeTags.map((t) => (
             <button key={t} type="button" className="blog-chip is-on" onClick={() => toggleTag(t)}>
               {t}
-              <span className="blog-chip-remove" aria-hidden="true">
-                ×
-              </span>
+              <Icon name="x" />
             </button>
           ))}
         </div>
@@ -224,7 +221,8 @@ export default function PostList({ posts }) {
             onClick={() => goToPage(Math.max(1, page - 1))}
             disabled={page === 1}
           >
-            ← prev
+            <Icon name="arrow-left" />
+            prev
           </button>
 
           {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
@@ -245,7 +243,8 @@ export default function PostList({ posts }) {
             onClick={() => goToPage(Math.min(totalPages, page + 1))}
             disabled={page === totalPages}
           >
-            next →
+            next
+            <Icon name="arrow-right" />
           </button>
         </nav>
       )}

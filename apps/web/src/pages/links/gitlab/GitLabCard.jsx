@@ -7,6 +7,7 @@ import { usePolledJSON } from '../../../hooks/usePolledJSON.js';
 import { useCardFeed } from '../LinksFeed.jsx';
 import { ContribGraph } from '../../../components/card/ContribGraph.jsx';
 import { HeaderButtons } from '../../../components/card/HeaderButtons.jsx';
+import { BRAND_ICON } from '../brandIcons.js';
 const GL = {
   bg: 'var(--gl-bg)',
   bgHead: 'var(--gl-bgHead)',
@@ -21,8 +22,7 @@ const GL = {
 };
 const GL_LEVELS = Array.from({ length: 5 }, (_, i) => `var(--gl-level-${i})`);
 const GL_GRAPH_THEME = { div: GL.div, faint: GL.faint, muted: GL.muted };
-const GL_ICON =
-  'M23.955 13.587l-1.342-4.135-2.664-8.189c-.135-.423-.73-.423-.867 0L16.418 9.45H7.582L4.919 1.263C4.783.84 4.185.84 4.05 1.263L1.386 9.452.044 13.587c-.121.375.014.789.331 1.023L12 23.054l11.625-8.443c.318-.235.453-.647.33-1.024';
+const GL_ICON = BRAND_ICON.gl;
 export const GitLabCard = React.memo(function GitLabCard({ username, url }) {
   const [profile, setProfile] = useState(null);
   const [collapsed, toggleCollapse] = useCollapsed('gl_card_collapsed');
@@ -38,7 +38,6 @@ export const GitLabCard = React.memo(function GitLabCard({ username, url }) {
     <div
       style={{
         background: GL.bg,
-        border: `1px solid ${GL.border}`,
       }}
       className="gl-style-1 link-card"
     >
