@@ -62,6 +62,18 @@
   --overlay: rgba(0, 0, 0, 0.6);
   --scrim: rgba(9, 9, 11, 0.8);
 
+  /* ── Frosted surfaces ──
+   * A panel is a translucent fill over the page backdrop, blurred behind
+   * (--blur-glass in spacing.css), edged with a hairline and lit along its top
+   * edge. --glass-strong is for anything floating over text (menus, hover
+   * cards), which must stay readable whatever is underneath. */
+  --glass: rgba(24, 24, 27, 0.55);
+  --glass-strong: rgba(20, 20, 23, 0.82);
+  --glass-hover: rgba(39, 39, 42, 0.6);
+  --hairline: rgba(255, 255, 255, 0.08);
+  --hairline-strong: rgba(255, 255, 255, 0.16);
+  --glass-edge: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+
   color-scheme: dark;
 }
 
@@ -101,6 +113,15 @@
 
   --overlay: rgba(0, 0, 0, 0.3);
   --scrim: rgba(255, 255, 255, 0.8);
+
+  --glass: rgba(255, 255, 255, 0.62);
+  --glass-strong: rgba(255, 255, 255, 0.88);
+  --glass-hover: rgba(255, 255, 255, 0.85);
+  --hairline: rgba(9, 9, 11, 0.09);
+  --hairline-strong: rgba(9, 9, 11, 0.18);
+  --glass-edge: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+
+  --fw-body: 400;
 
   color-scheme: light;
 }

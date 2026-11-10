@@ -4,8 +4,8 @@
 .markdown-body {
   color: var(--foreground);
   font-family: var(--font-mono);
-  font-size: 15px;
-  line-height: 1.75;
+  font-size: 15.5px;
+  line-height: 1.8;
   word-wrap: break-word;
 }
 
@@ -165,11 +165,18 @@
   margin: 0 0 1.3em;
   padding: 16px 18px;
   overflow-x: auto;
-  background: var(--background-subtle);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  font-size: 13px;
-  line-height: 1.6;
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--blur-glass);
+  backdrop-filter: var(--blur-glass);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--glass-edge);
+  font-size: 13.5px;
+  font-weight: 400;
+  letter-spacing: 0;
+  /* code keeps the face's coding ligatures the body turns off */
+  font-variant-ligatures: normal;
+  line-height: 1.65;
   -webkit-overflow-scrolling: touch;
 }
 .markdown-body pre code {
@@ -485,6 +492,8 @@
   position: absolute;
   left: 12px;
   top: 50%;
+  /* above the field, which its backdrop filter turns into a stacking context */
+  z-index: 1;
   transform: translateY(-50%);
   color: var(--foreground-subtle);
   font-size: 15px;
@@ -497,10 +506,13 @@
 .blog-search {
   width: 100%;
   padding: 10px 12px 10px 36px;
-  background: var(--input);
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--blur-glass);
+  backdrop-filter: var(--blur-glass);
+  box-shadow: var(--glass-edge);
   color: var(--foreground);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
   font-family: var(--font-mono);
   font-size: var(--text-sm);
   outline: none;
@@ -512,7 +524,7 @@
   color: var(--foreground-subtle);
 }
 .blog-search:hover {
-  border-color: var(--border-strong);
+  border-color: var(--hairline-strong);
 }
 .blog-search:focus {
   border-color: var(--primary);
@@ -525,10 +537,13 @@
 .blog-filter-toggle {
   height: 100%;
   padding: 0 14px;
-  background: var(--input);
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--blur-glass);
+  backdrop-filter: var(--blur-glass);
+  box-shadow: var(--glass-edge);
   color: var(--foreground-muted);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
   cursor: pointer;
   font-family: var(--font-mono);
   font-size: var(--text-sm);
@@ -540,7 +555,7 @@
 }
 .blog-filter-toggle:hover {
   color: var(--foreground);
-  border-color: var(--border-strong);
+  border-color: var(--hairline-strong);
 }
 .blog-filter-toggle svg {
   flex-shrink: 0;
@@ -550,12 +565,16 @@
   right: 0;
   top: calc(100% + 6px);
   z-index: 50;
-  background: var(--background-subtle);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: var(--blur-glass);
+  backdrop-filter: var(--blur-glass);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-xl);
   padding: 12px;
   width: 272px;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22);
+  box-shadow:
+    var(--glass-edge),
+    0 14px 34px var(--overlay);
   transform-origin: top right;
   animation: blog-menu-in 140ms var(--ease-out);
 }
@@ -580,15 +599,15 @@
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   padding: 3px 9px;
-  border-radius: var(--radius-sm);
-  background: var(--background-muted);
+  border-radius: var(--radius-md);
+  background: var(--hairline);
   color: var(--foreground-muted);
-  border: 1px solid var(--border);
+  border: 1px solid var(--hairline);
   transition: all var(--transition-base);
 }
 .blog-chip:hover:not(:disabled, .is-on) {
   color: var(--foreground);
-  border-color: var(--border-strong);
+  border-color: var(--hairline-strong);
 }
 .blog-chip .icon {
   margin-right: 5px;
@@ -641,10 +660,29 @@
   display: flex;
   flex-direction: column;
 }
+/* Each row has a box that only shows itself under the pointer. It is a
+   pseudo-element so it can reach past the text column and round its corners
+   while the rule under the row stays straight. */
 .post-row {
   position: relative;
-  border-bottom: 1px solid var(--border);
+  isolation: isolate;
+  border-bottom: 1px solid var(--hairline);
   padding: 18px 0;
+}
+.post-row::before {
+  content: '';
+  position: absolute;
+  inset: 5px -14px;
+  z-index: -1;
+  border-radius: var(--radius-lg);
+  background: var(--glass);
+  opacity: 0;
+  transition: opacity var(--transition-base);
+  pointer-events: none;
+}
+.post-row:hover::before,
+.post-row:focus-within::before {
+  opacity: 1;
 }
 .post-row-link {
   cursor: pointer;
@@ -758,11 +796,11 @@
   cursor: pointer;
   font-family: var(--font-mono);
   font-size: var(--text-xs);
-  background: var(--background-muted);
+  background: var(--hairline);
   color: var(--foreground-muted);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   padding: 2px 8px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--hairline);
   white-space: nowrap;
   transition: all var(--transition-base);
 }

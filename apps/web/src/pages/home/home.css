@@ -55,10 +55,11 @@
   gap: 12px;
   margin-bottom: 16px;
 }
+/* strongest beside the label, gone by the far end */
 .section-head-rule {
   flex: 1;
   height: 1px;
-  background: var(--border);
+  background: linear-gradient(90deg, var(--hairline-strong), transparent);
 }
 .section-head .link-quiet {
   font-size: var(--text-sm);
@@ -70,7 +71,7 @@
 }
 .home-footer {
   padding-top: 28px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--hairline);
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
@@ -145,6 +146,9 @@
   background: var(--primary-solid);
   color: var(--primary-foreground);
   border-color: var(--primary-solid);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 6px 18px -8px var(--primary);
 }
 .btn-default:hover:not(:disabled) {
   background: var(--primary-hover);
@@ -160,12 +164,15 @@
   color: var(--foreground);
 }
 .btn-outline {
-  background: transparent;
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--blur-glass);
+  backdrop-filter: var(--blur-glass);
+  box-shadow: var(--glass-edge);
   color: var(--foreground);
-  border-color: var(--border-strong);
+  border-color: var(--hairline-strong);
 }
 .btn-outline:hover:not(:disabled) {
-  background: var(--background-muted);
+  background: var(--glass-hover);
   border-color: var(--foreground-subtle);
 }
 .btn-md {
@@ -178,7 +185,10 @@
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  border: 2px solid var(--border-strong);
+  border: 1px solid var(--hairline-strong);
+  box-shadow:
+    0 0 0 4px var(--hairline),
+    0 10px 30px -12px var(--primary);
   background: var(--border);
   flex-shrink: 0;
 }
@@ -365,11 +375,15 @@
   z-index: 5;
   width: min(420px, 78vw);
   padding: 12px 14px;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--hairline-strong);
   border-left: 2px solid var(--graph-work);
-  border-radius: var(--radius-md);
-  background: var(--card);
-  box-shadow: 0 14px 34px var(--overlay);
+  border-radius: var(--radius-lg);
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: var(--blur-glass);
+  backdrop-filter: var(--blur-glass);
+  box-shadow:
+    var(--glass-edge),
+    0 14px 34px var(--overlay);
   pointer-events: none;
   animation: branch-card-in 140ms var(--ease-out);
 }
@@ -427,22 +441,30 @@
 /* Tooling chips under the intro. */
 .stack-chip {
   padding: 4px 10px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--hairline);
   border-radius: var(--radius-md);
-  background: var(--background-subtle);
+  background: var(--glass);
+  box-shadow: var(--glass-edge);
   font-size: var(--text-xs);
   color: var(--foreground-muted);
   transition:
     border-color 150ms,
+    background-color 150ms,
     color 150ms;
 }
 .stack-chip:hover {
-  border-color: var(--border-strong);
+  border-color: var(--hairline-strong);
+  background: var(--glass-hover);
   color: var(--foreground);
 }
 @media (max-width: 639px) {
   .home-page {
     padding: 80px 18px 96px;
+  }
+  /* The text link keeps the row of three on one line at phone width, and
+     where it still wraps it lines up with the buttons above it. */
+  .home-actions .btn-ghost {
+    padding-inline: 4px;
   }
 }
 @media (max-width: 559px) {

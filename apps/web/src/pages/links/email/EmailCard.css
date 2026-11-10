@@ -6,6 +6,7 @@
   --em-input: #282a2c;
   --em-blue: #8ab4f8;
   --em-red: #f28b82;
+  --em-logo: #ea4335;
   --em-text: #e3e3e3;
   --em-muted: #9aa0a6;
   --em-faint: #8e918f;
@@ -221,8 +222,8 @@
   }
 }
 
-/* Wordmark — Gmail sets its product name in regular Google Sans, not bold. */
+/* Wordmark — Google sets its product names in medium weight, not bold. */
 .em-style-1 .em-style-5 {
-  font-weight: 400;
-  letter-spacing: -0.2px;
+  font-weight: 500;
+  letter-spacing: -0.1px;
 }

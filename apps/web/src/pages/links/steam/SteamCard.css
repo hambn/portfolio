@@ -1,19 +1,16 @@
 /* Compact community-profile typography, matching the reference screenshots. */
 .st-style-27,
 .st-style-23 {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Motiva Sans', Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   color: #dcdedf;
-}
-.st-style-27 .st-hdr-btn {
-  font-family: inherit;
-  font-size: 11px;
 }
 /* Wordmark — Steam's own header sets "Steam" in mixed case; the tracked-out
  * uppercase version read as a different brand entirely. */
 .st-style-27 .st-style-30 {
-  letter-spacing: -0.3px;
-  text-transform: none;
+  font-size: 17px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   font-weight: 700;
 }
 .st-style-27 a:focus-visible,

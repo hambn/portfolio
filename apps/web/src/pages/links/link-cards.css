@@ -1,7 +1,7 @@
 /* link-cards.css — shared geometry for every link card header.
  *
- * Visual reference is SpotifyCard (.sp-card): these values mirror it exactly,
- * so Spotify itself needs no changes. Brand stylesheets keep ONLY their
+ * Every card, Spotify included, takes its frame and header from here. Brand
+ * stylesheets keep ONLY their
  * brand tokens (colors, font stacks, backgrounds, hover states, body layout).
  * Card size / shape / header spacing / title size / button placement live here.
  *
@@ -14,12 +14,220 @@
  *   actions:     wrap <HeaderButtons/> in `link-card-actions`
  *   buttons:     add `link-card-hdr-btn` to HeaderButtons btnClass
  */
+/* ── Page chrome ── */
+.links-page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 88px 24px 80px;
+}
+.links-head {
+  margin-bottom: 20px;
+}
+.links-title {
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.links-sub {
+  color: var(--foreground-muted);
+  font-size: var(--text-sm);
+}
+/* Jump bar: one chip per card, pinned under the nav while the cards scroll.
+ * It is a small dock, only as wide as its chips and centred over the cards:
+ * two rows of logo + name on a wide screen, one row of logos on a phone. */
+.links-jump {
+  position: sticky;
+  top: 66px;
+  z-index: 20;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto 22px;
+  padding: 5px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-xl);
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: var(--blur-glass);
+  backdrop-filter: var(--blur-glass);
+  box-shadow: 0 10px 28px -18px var(--overlay);
+}
+.links-jump-list {
+  display: grid;
+  grid-template-columns: repeat(5, auto);
+  gap: 2px;
+}
+.links-jump-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 32px;
+  padding: 0 14px 0 11px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  color: var(--foreground-subtle);
+  white-space: nowrap;
+  transition:
+    color var(--transition-base),
+    background-color var(--transition-base),
+    transform 0.1s;
+}
+/* Each name is set in its own service's face, as on the card it opens. */
+.links-jump-label {
+  font-family: var(--face, var(--font-mono));
+  font-size: 13.5px;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1;
+}
+.links-jump-item[data-card='email'],
+.links-jump-item[data-card='tg'] {
+  --face: 'Roboto Variable', Roboto, sans-serif;
+}
+.links-jump-item[data-card='dc'] {
+  --face: 'gg sans', 'DM Sans Variable', 'Segoe UI', sans-serif;
+}
+.links-jump-item[data-card='x'] {
+  --face:
+    Chirp, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+.links-jump-item[data-card='gh'] {
+  --face: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+}
+.links-jump-item[data-card='gl'] {
+  --face: 'GitLab Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+.links-jump-item[data-card='li'] {
+  --face:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+.links-jump-item[data-card='sp'] {
+  --face: 'Spotify Mix', 'DM Sans Variable', sans-serif;
+}
+.links-jump-item[data-card='st'] {
+  --face: 'Motiva Sans', Arial, Helvetica, sans-serif;
+}
+.links-jump-item[data-card='gh'] .links-jump-label,
+.links-jump-item[data-card='x'] .links-jump-label,
+.links-jump-item[data-card='sp'] .links-jump-label {
+  font-weight: 600;
+}
+@media (hover: hover) {
+  .links-jump-item:hover {
+    color: var(--foreground);
+    background: var(--hairline);
+  }
+}
+.links-jump-item:active {
+  transform: scale(0.97);
+}
+/* An open card's chip is lit and wears its service's colour; a collapsed
+   card's chip goes quiet. */
+.links-jump-item[aria-expanded='true'] {
+  color: var(--foreground);
+}
+.links-jump-icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  fill: currentColor;
+  transition: fill var(--transition-base);
+}
+.links-jump-item[aria-expanded='true'] .links-jump-icon {
+  fill: var(--brand, currentColor);
+}
+.links-jump-item[data-card='email'] {
+  --brand: #f28b82;
+}
+.links-jump-item[data-card='dc'] {
+  --brand: #7983f5;
+}
+.links-jump-item[data-card='tg'] {
+  --brand: #2aabee;
+}
+.links-jump-item[data-card='gl'] {
+  --brand: #fc6d26;
+}
+.links-jump-item[data-card='li'] {
+  --brand: #71b7fb;
+}
+.links-jump-item[data-card='sp'] {
+  --brand: #1ed760;
+}
+[data-theme='light'] .links-jump-item[data-card='email'] {
+  --brand: #d93025;
+}
+[data-theme='light'] .links-jump-item[data-card='dc'] {
+  --brand: #5865f2;
+}
+[data-theme='light'] .links-jump-item[data-card='li'] {
+  --brand: #0a66c2;
+}
+[data-theme='light'] .links-jump-item[data-card='sp'] {
+  --brand: #169c46;
+}
+/* The tenth cell works on every card at once; it stays in the site's own
+   monospace and a step quieter than the services beside it. */
+.links-jump-all {
+  color: var(--foreground-faint);
+}
+.links-jump-all .links-jump-label {
+  font-size: var(--text-xs);
+  font-weight: 400;
+}
+.links-jump-all .icon {
+  width: 15px;
+  font-size: 14px;
+}
+.links-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  /* a card opening must not drag the scroll position along with it */
+  overflow-anchor: none;
+}
+/* The jump bar scrolls a card to just below itself. */
+.links-item {
+  scroll-margin-top: 160px;
+}
+
+/* One frame for every card, whatever the service inside it. The edge is a
+ * ring laid over the card rather than a border around it: a border sits
+ * outside the brand surface, which then shows through the curve of each corner
+ * as a pale fringe, and reads lighter or darker from one card to the next. */
 .link-card {
-  border-radius: 12px;
+  position: relative;
+  border-radius: 14px;
   overflow: hidden;
   container-type: inline-size;
   min-width: 0;
   line-height: 1.5;
+  /* Cards are set in their service's own face; the page's reading weight and
+     tracking are tuned for the monospace and must not leak into them. */
+  font-weight: 400;
+  letter-spacing: normal;
+  box-shadow: 0 14px 34px -26px var(--overlay);
+}
+.link-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px var(--card-ring);
+  pointer-events: none;
+}
+.links-list {
+  --card-ring: rgba(255, 255, 255, 0.1);
+}
+[data-theme='light'] .links-list {
+  --card-ring: rgba(9, 9, 11, 0.13);
+}
+/* A collapsed card is its header alone: no divider under it. */
+.link-card-header:has(+ .sc-body.closed) {
+  border-bottom-color: transparent;
 }
 .link-card-header {
   padding: 16px 24px;
@@ -60,15 +268,30 @@
   align-items: center;
   gap: 6px;
 }
-/* Header button geometry mirrors Spotify; color/hover stay brand-specific. */
-.link-card-hdr-btn {
-  border-radius: 6px;
-  font-family: var(--font-mono, monospace);
-  font-size: 11px;
-  min-width: 32px;
-  min-height: 32px;
+/* Header buttons belong to their card: they are set in the service's own face
+ * and take their outline and fill from the card's text colour, so they sit
+ * right on any brand surface. Only the geometry is shared. */
+.link-card .link-card-hdr-btn {
+  height: 30px;
+  min-width: 30px;
+  padding: 0 10px;
+  gap: 6px;
   justify-content: center;
+  border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, currentColor 4%, transparent);
+  /* currentColor here is the card's text colour, so every card's buttons sit
+     at the same strength against their own surface */
+  color: color-mix(in srgb, currentColor 72%, transparent);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1;
   opacity: 1;
+}
+.link-card .link-card-hdr-btn:active {
+  transform: scale(0.96);
 }
 @container (max-width: 480px) {
   .link-card-header {
@@ -77,8 +300,45 @@
   .link-card-header .sc-hdr-label {
     display: none;
   }
-  .link-card-header .link-card-hdr-btn {
-    min-width: 36px;
-    min-height: 36px;
+  .link-card .link-card-hdr-btn {
+    height: 34px;
+    min-width: 34px;
+  }
+}
+@media (max-width: 639px) {
+  .links-page {
+    padding: 76px 16px 64px;
+  }
+  .links-jump {
+    top: 60px;
+  }
+  .links-item {
+    scroll-margin-top: 120px;
+  }
+}
+@media (max-width: 639px) {
+  .links-jump {
+    padding: 4px;
+  }
+  .links-jump-list {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: clamp(26px, 7.9vw, 38px);
+    gap: 1px;
+  }
+  .links-jump-item {
+    justify-content: center;
+    height: 36px;
+    padding: 0;
+  }
+  .links-jump-label {
+    display: none;
+  }
+  .links-jump-icon {
+    width: 17px;
+    height: 17px;
+  }
+  .links-jump-all .icon {
+    font-size: 16px;
   }
 }

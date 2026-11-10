@@ -35,6 +35,9 @@
   --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.8);
   --shadow-accent: 0 0 0 1px var(--primary), 0 0 24px rgba(59, 130, 246, 0.2);
 
+  /* ── Frosted surfaces ── (fills and edges are in colors.css) */
+  --blur-glass: saturate(160%) blur(14px); /* @kind other */
+
   /* ── Motion ── */
   --ease-default: cubic-bezier(0.4, 0, 0.2, 1); /* @kind other */
   --ease-in: cubic-bezier(0.4, 0, 1, 1); /* @kind other */

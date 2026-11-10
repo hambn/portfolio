@@ -7,8 +7,8 @@ import { xUsername } from '@portfolio/shared/x';
 import { useCollapsed } from '../../../hooks/useCollapsed.js';
 import { useCopy } from '../../../hooks/useCopy.js';
 import { HeaderButtons } from '../../../components/card/HeaderButtons.jsx';
-const X_ICON =
-  'M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.259 5.631 5.905-5.631zm-1.161 17.52h1.833L7.084 4.126H5.117z';
+import { BRAND_ICON } from '../brandIcons.js';
+const X_ICON = BRAND_ICON.x;
 const LINK_ICON =
   'M18.36 5.64c-1.95-1.96-5.11-1.96-7.07 0L9.88 7.05 8.46 5.64l1.42-1.42c2.73-2.73 7.16-2.73 9.9 0 2.73 2.74 2.73 7.17 0 9.9l-1.42 1.42-1.41-1.42 1.41-1.41c1.96-1.96 1.96-5.12 0-7.07zm-2.12 3.53l-7.07 7.07-1.41-1.41 7.07-7.07 1.41 1.41zm-12.02.71l1.42-1.42 1.41 1.42-1.41 1.41c-1.96 1.96-1.96 5.12 0 7.07 1.95 1.96 5.11 1.96 7.07 0l1.41-1.41 1.42 1.41-1.42 1.42c-2.73 2.73-7.16 2.73-9.9 0-2.73-2.74-2.73-7.17 0-9.9z';
 const CALENDAR_ICON =
@@ -46,7 +46,6 @@ function XProfile({ username, apiEndpoint }) {
     <div
       style={{
         background: 'var(--x-bg)',
-        border: '1px solid var(--x-border)',
       }}
       className="x-style-1 link-card"
     >

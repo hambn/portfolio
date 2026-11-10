@@ -15,10 +15,11 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: var(--scrim);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
-  border: 1px solid var(--border-strong);
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--blur-glass);
+  backdrop-filter: var(--blur-glass);
+  box-shadow: var(--glass-edge);
+  border: 1px solid var(--hairline-strong);
   color: var(--foreground-muted);
   border-radius: var(--radius-md);
   padding: 6px 12px;
@@ -242,11 +243,20 @@
   }
 }
 
+/* Until the window is wide enough for the pinned print button to sit in the
+   margin beside the sheet, the sheet starts below it instead of under it. */
+@media screen and (max-width: 1099px) {
+  .resume-main {
+    padding-top: 124px;
+  }
+}
+
 /* Print: hide the chrome and force a plain black-on-white page. The margin
    lives on the content instead of @page so the browser has no room to print
    its own title/date header above the resume. */
 @media print {
   .site-nav,
+  .site-footer,
   .skip-link,
   .resume-print-btn {
     display: none !important;
@@ -254,6 +264,9 @@
   body {
     background: #fff !important;
     color: #0a0a0b !important;
+    /* the sheet keeps regular weight and spacing whatever the screen uses */
+    font-weight: 400;
+    letter-spacing: 0;
   }
   .resume-main {
     padding: 0.9cm 1.4cm;

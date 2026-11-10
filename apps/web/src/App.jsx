@@ -1,10 +1,10 @@
-import React, { Suspense, useEffect, useRef, useState } from 'react';
+import React, { Suspense, startTransition, useEffect, useRef, useState } from 'react';
 import Shell from './components/Shell.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import ErrorState from './components/ErrorState.jsx';
-import { pages } from './pages/index.js';
+import { pages, preloadPage } from './pages/index.js';
 
-import { currentRoute } from './lib/router.js';
+import { currentRoute, routeOf } from './lib/router.js';
 import { PortfolioData } from './lib/data.js';
 import { routeMetadata, updateDocumentMetadata, updateNotFoundMetadata } from './lib/metadata.js';
 
@@ -34,7 +34,9 @@ export default function App({ initialRoute, initialPage }) {
       const moved = next !== shown;
       // From here on a newly opened page fades in (core.css, page-in).
       if (moved) document.documentElement.setAttribute('data-navigated', '');
-      setRoute(next);
+      // A transition keeps the page being left on screen while the next
+      // route's chunk loads, instead of blanking to the Suspense fallback.
+      startTransition(() => setRoute(next));
       shown = next;
       if (!moved && window.location.hash) return;
       const y = window.history.state?.scrollY ?? 0;
@@ -42,6 +44,26 @@ export default function App({ initialRoute, initialPage }) {
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
+  // Start downloading a route's code as soon as a link to it is pointed at,
+  // touched or focused, so the click that follows finds it already loaded.
+  useEffect(() => {
+    const warm = (event) => {
+      const link = event.target instanceof Element ? event.target.closest('a[href]') : null;
+      if (!link || link.target === '_blank' || link.origin !== window.location.origin) return;
+      const route = routeOf(link.pathname);
+      if (route !== null) preloadPage(pageOf(route))?.catch(() => {});
+    };
+    const options = { passive: true };
+    document.addEventListener('pointerover', warm, options);
+    document.addEventListener('touchstart', warm, options);
+    document.addEventListener('focusin', warm);
+    return () => {
+      document.removeEventListener('pointerover', warm, options);
+      document.removeEventListener('touchstart', warm, options);
+      document.removeEventListener('focusin', warm);
+    };
   }, []);
 
   // Keep navigation metadata consistent with the static page at the same URL.

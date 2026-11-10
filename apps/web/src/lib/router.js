@@ -44,12 +44,16 @@ export function followRoute(page) {
   };
 }
 
-/** Current route relative to the base path, e.g. "home" or "blog/my-post". */
-export function currentRoute() {
+/**
+ * Route for a pathname on this origin, e.g. "home" or "blog/my-post"; null for
+ * a path outside the site's base (another app on the same host).
+ */
+export function routeOf(pathname) {
+  if (BASE_PATH && pathname !== BASE_PATH && !pathname.startsWith(`${BASE_PATH}/`)) return null;
   // Static hosts also serve /blog/index.html and /blog/welcome/index.html, and
   // encode non-ASCII slugs; both must resolve to the page that was prerendered.
-  const rel = window.location.pathname
-    .replace(BASE_PATH, '')
+  const rel = pathname
+    .slice(BASE_PATH.length)
     .replace(/(^|\/)index\.html$/, '')
     .replace(/^\/+|\/+$/g, '');
   try {
@@ -57,4 +61,9 @@ export function currentRoute() {
   } catch {
     return rel || 'home';
   }
+}
+
+/** Current route relative to the base path, e.g. "home" or "blog/my-post". */
+export function currentRoute() {
+  return routeOf(window.location.pathname) ?? 'home';
 }

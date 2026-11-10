@@ -4,6 +4,7 @@ import { apiUrl } from '../../../lib/api.js';
 import { useCollapsed } from '../../../hooks/useCollapsed.js';
 import { useCopy } from '../../../hooks/useCopy.js';
 import { HeaderButtons } from '../../../components/card/HeaderButtons.jsx';
+import { BRAND_ICON } from '../brandIcons.js';
 
 // Mirrors the API's own structural check closely enough to catch a typo before
 // a request is spent; the API stays the authority.
@@ -24,8 +25,7 @@ const FALLBACK = 'Couldn’t send that. Please use your mail app instead.';
 // maximum, to absorb transit time.
 const TOKEN_MIN_AGE_MS = 3500;
 const TOKEN_MAX_AGE_MS = 29 * 60 * 1000;
-const ENV =
-  'M2.5 6.5A2.5 2.5 0 0 1 5 4h14a2.5 2.5 0 0 1 2.5 2.5v11A2.5 2.5 0 0 1 19 20H5a2.5 2.5 0 0 1-2.5-2.5v-11Zm2.2-.4 7.3 5.2 7.3-5.2A.9.9 0 0 0 19 6H5a.9.9 0 0 0-.3.1ZM20 8.1l-7.4 5.3a1 1 0 0 1-1.2 0L4 8.1v9.4c0 .55.45 1 1 1h14c.55 0 1-.45 1-1V8.1Z';
+const ENV = BRAND_ICON.email;
 
 export const EmailCard = React.memo(function EmailCard({ address }) {
   const fromId = useId();
@@ -125,7 +125,6 @@ export const EmailCard = React.memo(function EmailCard({ address }) {
     <div
       style={{
         background: 'var(--em-bg)',
-        border: '1px solid var(--em-border)',
       }}
       className="em-style-1 link-card"
     >
@@ -133,14 +132,13 @@ export const EmailCard = React.memo(function EmailCard({ address }) {
       <div
         style={{
           background: 'var(--em-bgHead)',
-          borderBottom: collapsed ? '1px solid var(--em-border)' : 'none',
         }}
         className="em-style-2 link-card-header"
       >
         <a href={`mailto:${to}`} className="em-style-3 link-card-brand">
           <svg
             viewBox="0 0 24 24"
-            fill="var(--em-red)"
+            fill="var(--em-logo)"
             width={24}
             height={24}
             className="em-style-4"

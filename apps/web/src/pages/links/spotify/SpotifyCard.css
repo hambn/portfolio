@@ -9,10 +9,12 @@
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-  border: 1px solid #292929;
-  border-radius: 12px;
   overflow: hidden;
   container-type: inline-size;
+}
+.sp-simple-card {
+  border: 1px solid #292929;
+  border-radius: 12px;
 }
 .sp-card a,
 .sp-simple-card {
@@ -30,10 +32,7 @@
   outline-offset: 3px;
 }
 .sp-card-header {
-  display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: 16px 24px;
   background: #121212;
 }
 .sp-brand {
@@ -42,30 +41,18 @@
   align-items: center;
   gap: 8px;
   font-size: 20px;
-  font-weight: 800;
-  letter-spacing: -1px;
+  font-weight: 700;
+  letter-spacing: -0.7px;
 }
-.sp-header-actions {
-  flex-shrink: 0;
-  display: flex;
-  gap: 6px;
+.sp-brand > svg {
+  color: var(--sp-green);
 }
-.sp-card .sp-hdr-btn {
+.sp-hdr-btn {
   color: var(--sp-muted);
-  border-radius: 6px;
-  font-family: var(--font-mono, monospace);
-  font-size: 10px;
-  min-width: 32px;
-  min-height: 32px;
-  justify-content: center;
-  opacity: 1;
 }
 .sp-hdr-btn:hover {
   color: #fff;
   background: #292929;
-}
-.sp-header-label {
-  display: inline;
 }
 .sp-profile {
   display: grid;
@@ -545,9 +532,6 @@
   color: var(--sp-muted);
 }
 @container (max-width: 480px) {
-  .sp-card-header {
-    padding: 14px 16px;
-  }
   .sp-profile {
     grid-template-columns: 76px minmax(0, 1fr);
     grid-template-areas: 'avatar copy' '. action';
@@ -560,13 +544,6 @@
   }
   .sp-profile-name {
     letter-spacing: -1px;
-  }
-  .sp-header-label {
-    display: none;
-  }
-  .sp-card .sp-hdr-btn {
-    min-width: 36px;
-    min-height: 36px;
   }
   .sp-context {
     gap: 12px;
