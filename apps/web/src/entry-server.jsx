@@ -8,6 +8,10 @@ import Links from './pages/links/Links.jsx';
 import Resume from './pages/resume/Resume.jsx';
 import { PortfolioData } from './lib/data.js';
 
+// The prerenderer builds the projects page's structured data with the same
+// parser the page renders with.
+export { featuredProjects } from '@portfolio/shared/projects';
+
 const pages = { home: Home, projects: Projects, blog: Blog, links: Links, resume: Resume };
 
 export function render(route, data) {

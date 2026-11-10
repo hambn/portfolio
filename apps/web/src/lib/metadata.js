@@ -45,8 +45,36 @@ export function routeMetadata(route, profile, posts = []) {
   };
 }
 
-/** Shared by static HTML generation and client-side navigation. */
-export function pageGraph(meta, person, siteRoot, posts = []) {
+/**
+ * The featured projects as schema.org source code entries, for the projects
+ * page. Takes the cards exactly as the page renders them.
+ */
+export function projectListLd(projects = []) {
+  if (!projects.length) return undefined;
+  return {
+    '@type': 'ItemList',
+    numberOfItems: projects.length,
+    itemListElement: projects.map((project, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      item: {
+        '@type': 'SoftwareSourceCode',
+        name: project.name,
+        description: project.description || undefined,
+        url: project.homepage || project.repo || undefined,
+        codeRepository: project.repo || undefined,
+        programmingLanguage: project.language || undefined,
+        keywords: project.topics?.length ? project.topics.join(', ') : undefined,
+      },
+    })),
+  };
+}
+
+/**
+ * Shared by static HTML generation and client-side navigation. `mainEntity`
+ * is what a collection page lists (see projectListLd).
+ */
+export function pageGraph(meta, person, siteRoot, posts = [], mainEntity) {
   const abs = (path = '') => `${siteRoot}/${path ? `${path}/` : ''}`;
   const author = { '@id': person['@id'] };
   const postNode = (post) => ({
@@ -97,7 +125,7 @@ export function pageGraph(meta, person, siteRoot, posts = []) {
         inLanguage: 'en',
         isPartOf: partOf,
         about: author,
-        ...(meta.page === 'home' ? { mainEntity: author } : {}),
+        ...(meta.page === 'home' ? { mainEntity: author } : mainEntity ? { mainEntity } : {}),
         // Same @id the posts' isPartOf points at — one Blog entity, not two.
         ...(meta.page === 'blog'
           ? { '@id': `${siteRoot}/#blog`, author, blogPost: posts.map(postNode) }
@@ -178,6 +206,10 @@ export function updateDocumentMetadata(meta, profile, posts) {
         },
         siteRoot,
         posts,
+        // What the static page listed stays listed: the list is built from
+        // content at prerender, and re-rendering the same URL must not drop it.
+        previous['@graph']?.find((node) => node.url === url && node.mainEntity?.['@type'])
+          ?.mainEntity,
       ),
     );
   }

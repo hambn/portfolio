@@ -17,6 +17,8 @@ export interface Config {
   STEAM_ID: string;
   DISCORD_ID: string;
   LINKEDIN_URL: string;
+  // Optional read-only token; lifts GitHub's anonymous rate limit.
+  GITHUB_TOKEN: string;
   // Contact form credentials only. Who receives, who sends and which vendor
   // carries it are content, and live in links.json.
   MAIL_API_KEY: string;

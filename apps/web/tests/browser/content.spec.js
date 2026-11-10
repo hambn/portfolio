@@ -86,7 +86,52 @@ test('rendered provider content and presence use only the configured host', asyn
       '/api/github': { login: 'hambn', avatar_url: '/api/media/github/test', name: 'Tester' },
       '/api/gitlab': [{ username: 'ham_bn', avatar_url: '/api/media/gitlab/test', name: 'Tester' }],
       '/api/github/contributions': { contributions: [{ date: '2026-09-17', count: 1, level: 1 }] },
-      '/api/github/repos': [],
+      '/api/projects': {
+        updatedAt: '2026-01-01T00:00:00.000Z',
+        featured: [
+          {
+            id: 'github:tester/featured',
+            host: 'github',
+            name: 'stale-featured',
+            description: 'from the api',
+            repo: 'https://github.com/tester/featured',
+            homepage: null,
+            language: null,
+            stars: 0,
+            forks: 0,
+            topics: [],
+            pushedAt: null,
+            archived: false,
+            fork: false,
+          },
+        ],
+        sections: [
+          {
+            host: 'github',
+            username: 'tester',
+            url: 'https://github.com/tester',
+            repos: [
+              {
+                id: 'github:tester/listed',
+                host: 'github',
+                name: 'listed-repo',
+                description: 'a listed repository',
+                repo: 'https://github.com/tester/listed',
+                homepage: 'https://listed.example/',
+                language: 'Go',
+                stars: 4,
+                forks: 0,
+                topics: [],
+                pushedAt: '2026-01-01T00:00:00.000Z',
+                archived: false,
+                fork: false,
+              },
+            ],
+          },
+          // A host with nothing to list is never drawn.
+          { host: 'gitlab', username: 'tester', url: 'https://gitlab.com/tester', repos: [] },
+        ],
+      },
     };
     return route.fulfill({ json: responses[url.pathname] || {} });
   });
@@ -113,7 +158,18 @@ test('rendered provider content and presence use only the configured host', asyn
     .poll(() => requested.some((path) => path.startsWith('/api/media/github/')))
     .toBe(true);
   await page.goto('/projects/');
-  await expect.poll(() => requested.includes('/api/github/repos')).toBe(true);
+  // Everything the page needs arrives in one request.
+  await expect(page.getByRole('link', { name: 'listed-repo' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'github', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'gitlab', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: /listed\.example/ })).toBeVisible();
+  // Content decides the featured cards; the API answer cannot add one.
+  await expect(page.getByText('stale-featured')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'featured', exact: true })).toBeVisible();
+  expect(requested.filter((path) => path === '/api/projects')).toHaveLength(1);
+  expect(requested.filter((path) => path.startsWith('/api/git'))).toEqual(
+    requested.filter((path) => path.startsWith('/api/git') && !path.includes('repos')),
+  );
   expect(external).toEqual([]);
   expect(errors).toEqual([]);
 });

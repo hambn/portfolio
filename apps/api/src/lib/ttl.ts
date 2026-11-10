@@ -1,7 +1,7 @@
 // Response cache lifetimes, in seconds. Kept together so the route table in
 // routes.ts and the `maxAge` a batch response reports per card cannot drift
 // from the Cache-Control a single-card route actually sends.
-const MINUTE = 60;
+export const MINUTE = 60;
 export const HOUR = 3600;
 export const DAY = 86400;
 
@@ -14,3 +14,10 @@ export const MEDIA_TTL = DAY;
 export const SNAPSHOT_STALE_MS = 7 * DAY * 1000;
 // How long a failed snapshot refresh blocks the next attempt.
 export const REFRESH_COOLDOWN_TTL = MINUTE;
+// The projects envelope is cheap to rebuild from state, so it is cached only
+// briefly: a refreshed snapshot reaches visitors within this window.
+export const PROJECTS_RESPONSE_TTL = 5 * MINUTE;
+// The scheduler refreshes the projects snapshot every hour. Counting it as
+// fresh a little longer than that means a visitor only ever triggers a refresh
+// when a scheduled one was missed.
+export const PROJECTS_TTL = HOUR + 10 * MINUTE;

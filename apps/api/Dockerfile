@@ -9,6 +9,7 @@ RUN npm ci --workspace @portfolio/api
 COPY packages/shared ./packages/shared
 COPY apps/api ./apps/api
 COPY content/links/links.json ./content/links/links.json
+COPY content/projects/projects.json ./content/projects/projects.json
 RUN npm run build --workspace @portfolio/api
 
 FROM node:24-alpine

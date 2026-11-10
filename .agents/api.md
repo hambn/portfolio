@@ -6,24 +6,30 @@ time, and background tasks. Keep platform globals in adapters and entrypoints.
 
 - `src/routes.ts`: flat path -> handler table; `app.ts` only strips the prefix,
   handles methods, rewrites media, and wraps errors.
-- `src/identities.ts`: the single place the API reads `links.json`; the configured
-  username per provider. Never take an identity from a query parameter.
+- `src/identities.ts`: the single place the API reads `links.json` and
+  `projects/projects.json`; the configured username per provider and the
+  projects page's featured list and accounts. Never take an identity from a
+  query parameter.
 - `src/links.ts`: the batch `/links` route; calls the same provider handlers the
   single-card routes use, so caches, TTLs, and cooldowns are shared.
-- `src/providers/`: provider requests and response shaping.
+- `src/providers/`: provider requests and response shaping. `projects.ts` is
+  the projects page's one route: it lists GitHub, Codeberg and GitLab, fetches
+  featured repositories the listings do not cover, and serves the result from a
+  persisted snapshot.
 - `src/mail/`: the contact form. `provider.ts` is the swappable vendor interface,
   `address.ts` validates a sender without any verification service, `quota.ts`
   holds the form token and the send limits, `contact.ts` is the route.
 - `src/lib/`: bounded HTTP reads, HTML parsing, schemas, cache policy, presence protocol.
   `lib/ttl.ts` holds the named cache lifetimes; `lib/snapshot.ts` holds the shared
   persisted-snapshot serving (retry cooldown, 7-day stale limit, image download, image responses cached per
-  snapshot version).
+  snapshot version). `lib/persisted.ts` is the same idea for plain JSON: the last
+  good answer is kept in state and served while the source is slow or down.
 - `src/media/`: cached image responses. The allowlisted image sources and asset
   URL encoding live in `packages/shared/media.ts` (`@portfolio/shared/media`),
   shared with the site.
 - `src/adapters/`: Cloudflare KV/Cache API and persistent Node disk storage; WebSocket relays.
 - `src/entrypoints/`: Worker handlers and Node HTTP startup/shutdown.
-- `src/scheduled.ts`: Telegram, X and LinkedIn snapshot refresh and Node overlap prevention.
+- `src/scheduled.ts`: Telegram, X, LinkedIn and projects snapshot refresh and Node overlap prevention.
 - `tests/`: network-free provider, storage, and HTTP regressions (`*.test.ts`),
   the Miniflare Worker smoke test (`worker.test.mjs`), and the Docker restart
   check (`container.mjs`, run only by `test:container`).
@@ -80,6 +86,7 @@ remove the Docker volume unless you intend to discard it.
 | `SPOTIFY_REFRESH_TOKEN` | Initial/fallback token; stored rotated token takes precedence |
 | `STEAM_API_KEY`, `STEAM_ID` | Steam credentials and account |
 | `DISCORD_ID` | Lanyard account and sole allowed socket subscription |
+| `GITHUB_TOKEN` | Optional read-only GitHub token; secret. Raises GitHub's limit from 60 to 5000 requests/hour. The Actions secret is named `PROJECTS_GITHUB_TOKEN` (GitHub reserves the `GITHUB_` prefix) |
 | `LINKEDIN_URL` | HTTPS LinkedIn profile; route returns 503 if unset |
 | `MAIL_API_KEY` | Mail vendor API key; secret. Without it `/contact` returns 503 |
 | `MAIL_TOKEN_SECRET` | HMAC secret for form tokens; secret. Falls back to `MAIL_API_KEY` |
@@ -92,7 +99,8 @@ remove the Docker volume unless you intend to discard it.
 | `VITE_API_BASE_URL` | Frontend build setting; default production Worker, Docker default `/api` |
 
 Telegram, GitHub, GitLab and contact-form identities come from
-`content/links/links.json`. There is no `TELEGRAM_USERNAME` variable,
+`content/links/links.json`; the projects page's accounts and featured list come
+from `content/projects/projects.json`. There is no `TELEGRAM_USERNAME` variable,
 and no `MAIL_FROM`/`MAIL_TO`/`MAIL_PROVIDER` variable.
 Rebuild/redeploy after changing identities. Credentials stay in Worker secrets
 or container environment variables. The Node container has no Cloudflare dependency.
@@ -115,6 +123,7 @@ images, data requests, and the live presence socket go through the API.
 
 | Route | Cache / behavior |
 | --- | --- |
+| `/` | Uncached index: the service name and every exact route |
 | `/health` | Uncached liveness |
 | `/links` | Uncached aggregate of every card; `include=`/`exclude=` filter by card key |
 | `/contact` | GET mints a single-use form token; POST sends one message |
@@ -128,8 +137,9 @@ images, data requests, and the live presence socket go through the API.
 | `/linkedin/avatar`, `/linkedin/banner`, `/x/avatar`, `/x/banner` | 1 hour, persisted snapshot image |
 | `/telegram` | Uncached JSON from hourly persisted snapshot; stale limit 7 days |
 | `/telegram/avatar` | 1 hour, persisted snapshot image |
-| `/github`, `/github/repos`, `/github/contributions` | 1 hour, configured GitHub account only |
-| `/gitlab` | 1 hour, configured GitLab account only |
+| `/github`, `/github/contributions` | 1 hour, configured GitHub account only; the last good answer is kept and served if GitHub fails |
+| `/projects` | Whole projects page in one response, from an hourly persisted snapshot; 5 minutes |
+| `/gitlab` | 1 hour, configured GitLab account only; the last good answer is kept and served if GitLab fails |
 | `/media/<provider>/<asset>` | 24 hours, allowlisted raster image proxy |
 
 `/links` is what the links page requests on load. It fans out to the same handlers
@@ -145,6 +155,17 @@ cooldown reduces retries, but KV is eventually consistent and cannot guarantee
 one global fetch across data centers. Failed refreshes retain previous metadata;
 a failed avatar download retains the previous image. No stale playback is served.
 Other media is fetched on demand; cached delivery is not an offline archive.
+
+`/projects` never waits on a git host once a snapshot exists. The same hourly
+job rebuilds the snapshot (`refreshProjects`); it is considered fresh for 70
+minutes, so a visitor only triggers a background refresh when a scheduled run
+was missed, and still gets the stored answer immediately. A host that fails
+keeps its previous section, a host with no account or no repositories is left
+out, and editing `projects.json` changes the snapshot's version so the next
+request refreshes it. With no snapshot at all (first boot with every host down)
+the route answers 200 with the featured entries from content and `no-store`.
+The featured order, titles and descriptions are applied from content on every
+response, so they never depend on the snapshot's age.
 
 ## Contact form
 

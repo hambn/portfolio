@@ -7,6 +7,7 @@ import { handle as x } from './providers/x.js';
 import { handle as telegram } from './providers/telegram.js';
 import { handle as gitlab } from './providers/gitlab.js';
 import { handle as github } from './providers/github.js';
+import { handle as projects } from './providers/projects.js';
 import { handle as media } from './media/handler.js';
 import { handle as links } from './links.js';
 import { handle as contact } from './mail/contact.js';
@@ -29,9 +30,9 @@ const exact: Record<string, Route> = {
   '/discord': { handler: discord },
   '/discord/avatar': { handler: discord },
   '/github': { handler: github },
-  '/github/repos': { handler: github },
   '/github/contributions': { handler: github },
   '/gitlab': { handler: gitlab },
+  '/projects': { handler: projects },
 };
 
 // Paths whose handler also accepts an optional image kind and trailing slash.
@@ -41,6 +42,9 @@ const patterns: [RegExp, Route][] = [
   [/^\/linkedin(?:\/(?:avatar|banner))?\/?$/, { handler: linkedin }],
   [/^\/media\/[a-z]+\/[A-Za-z0-9_-]{1,4096}$/, { handler: media }],
 ];
+
+/** Every exact path, for the index at `/`. */
+export const routePaths = () => Object.keys(exact);
 
 export function matchRoute(pathname: string): Route | undefined {
   if (Object.hasOwn(exact, pathname)) return exact[pathname];

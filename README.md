@@ -112,6 +112,7 @@ wrangler kv namespace create SPOTIFY_KV   # → copy id into SPOTIFY_KV_ID
 | `LINKEDIN_URL`          | optional public profile URL; overrides `links.json`                                 |
 | `MAIL_API_KEY`          | contact-form mail vendor API key                                                    |
 | `MAIL_TOKEN_SECRET`     | HMAC secret for contact-form tokens (any long random string)                        |
+| `PROJECTS_GITHUB_TOKEN` | optional: read-only GitHub token for the projects page (60 → 5000 requests/hour)    |
 
 Pages deploy needs no secrets — GitHub's `GITHUB_TOKEN` is automatic. `STEAM_ID`
 and `DISCORD_ID` are public on your profiles; kept as secrets only so nothing
@@ -205,6 +206,7 @@ configured; the rest of the API still runs):
 | `DISCORD_ID`            | config | for the Discord card and its live socket              |
 | `MAIL_API_KEY`          | secret | for the contact form                                  |
 | `MAIL_TOKEN_SECRET`     | secret | for the contact form (falls back to `MAIL_API_KEY`)   |
+| `GITHUB_TOKEN`          | secret | optional; raises GitHub's rate limit for /projects    |
 | `LINKEDIN_URL`          | config | optional public profile URL; defaults to `links.json` |
 | `CACHE_VERSION`         | config | no (Node default: `1`, stable across restarts)        |
 | `API_DATA_DIR`          | config | no (default: `.api-data`, relative to the cwd)        |

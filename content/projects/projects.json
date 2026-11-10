@@ -1,0 +1,17 @@
+{
+  "_comment": "The projects page. `featured` is the top section, shown in exactly this order — reorder the entries to reorder the cards. An entry is either a repository link (`repo`: a github.com, codeberg.org or gitlab.com URL — name, description, stars, language and the project's website are read from the host) or a manual project (`name` plus any of `description`, `url`, `language`, `tags`). Any field you write on a `repo` entry overrides what the host reports. `accounts` is the bottom section: every public repository of each account, in this order. Leave a `username` empty, or remove the entry, to hide that host; an account with no public repositories is hidden too.",
+  "featured": [
+    {
+      "repo": "https://github.com/hambn/portfolio",
+      "description": "This site: a prerendered React portfolio with a small TypeScript API behind its live cards."
+    },
+    {
+      "repo": "https://github.com/hambn/tool-containers"
+    }
+  ],
+  "accounts": [
+    { "host": "github", "username": "hambn" },
+    { "host": "codeberg", "username": "" },
+    { "host": "gitlab", "username": "ham_bn" }
+  ]
+}

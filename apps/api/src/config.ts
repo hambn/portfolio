@@ -9,6 +9,7 @@ export function configuration(values: Partial<Record<keyof Config, string>>): Co
     STEAM_ID: values.STEAM_ID || '',
     DISCORD_ID: values.DISCORD_ID || '',
     LINKEDIN_URL: values.LINKEDIN_URL || '',
+    GITHUB_TOKEN: values.GITHUB_TOKEN || '',
     MAIL_API_KEY: values.MAIL_API_KEY || '',
     MAIL_TOKEN_SECRET: values.MAIL_TOKEN_SECRET || '',
   };

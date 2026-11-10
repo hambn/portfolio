@@ -2,8 +2,8 @@
 
 Everything the site shows is edited here; no code changes needed. The site
 serves these files at `<base>/contents/`, and the API reads `links/links.json`
-for the accounts it may serve. Rebuild and redeploy the site (and the API, for
-`links.json`) after editing.
+and `projects/projects.json` for the accounts it may serve. Rebuild and redeploy
+the site (and the API, for those two files) after editing.
 
 ```
 content/
@@ -12,6 +12,8 @@ content/
 │   └── resume.json    CV entries, the home-page git graph, skills
 ├── links/
 │   └── links.json     one block per card on the links page
+├── projects/
+│   └── projects.json  featured projects and the git accounts to list
 └── blogs/
     └── **/*.md        posts; metadata in frontmatter, any folder depth
 ```
@@ -46,6 +48,29 @@ description), `intro` (paragraphs on the home page) and `avatar`.
 
 The API only serves the accounts named here; a request cannot ask it for any
 other.
+
+## Projects
+
+`projects/projects.json` drives the projects page.
+
+- `featured[]` is the top section, shown in the order written here. An entry is
+  either a repository or fully manual:
+
+  ```json
+  { "repo": "https://github.com/hambn/portfolio", "description": "optional" }
+  { "title": "Side thing", "description": "…", "url": "https://example.com",
+    "source": "https://codeberg.org/me/side-thing", "language": "Go",
+    "topics": ["cli"] }
+  ```
+
+  With `repo` (a GitHub, Codeberg or GitLab URL) the name, description, site
+  link, language, topics and stars are read from the host. Any of `title`,
+  `description`, `url`, `language` or `topics` written here wins over the host's
+  value. A written `description` also appears in the page's static HTML, so
+  search engines see it without waiting for the API.
+- `accounts` is the bottom section: every public repository of each account,
+  GitHub first, then Codeberg, then GitLab. Leave a username empty (or remove
+  it) to hide that host; a host with no repositories is not shown either.
 
 ## Blog posts
 

@@ -11,6 +11,8 @@ test('routing, CORS, HEAD, OPTIONS and methods have consistent responses', async
   const services = testServices();
   for (const [path, method, status] of [
     ['/health', 'GET', 200],
+    ['/', 'GET', 200],
+    ['/api/', 'GET', 200],
     ['/api/health', 'HEAD', 200],
     ['/missing', 'GET', 404],
     ['/steam/unknown', 'GET', 404],
@@ -24,6 +26,11 @@ test('routing, CORS, HEAD, OPTIONS and methods have consistent responses', async
     if (method === 'HEAD') assert.equal(await response.text(), '');
     if (method === 'POST') assert.equal(response.headers.get('Allow'), 'GET, HEAD, OPTIONS');
   }
+  // The root lists what the API answers, under the prefix it was asked with.
+  const index = (await (await handleRequest(request('/api/'), services)).json()) as {
+    routes: string[];
+  };
+  assert.ok(index.routes.includes('/api/projects') && index.routes.includes('/api/links'));
 });
 
 test('media cache hits, expiration, version invalidation, HEAD and local URL rewriting', async () => {
