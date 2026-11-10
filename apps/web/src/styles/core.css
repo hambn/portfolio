@@ -193,6 +193,40 @@ html.theme-switching *::after {
   align-items: center;
   justify-content: center;
 }
+/* A page that docks a bar into the nav (links) sets data-island and draws one
+ * shape for both: the glass moves to .nav-surface, clipped to that shape, and
+ * the edge to .nav-edge, so the nav and the bar are a single surface. */
+.nav-surface,
+.nav-edge {
+  display: none;
+}
+.site-nav[data-island] {
+  background: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border-bottom-color: transparent;
+}
+.site-nav[data-island] .nav-surface,
+.site-nav[data-island] .nav-edge {
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: -1;
+  pointer-events: none;
+}
+.site-nav[data-island] .nav-surface {
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--blur-glass);
+  backdrop-filter: var(--blur-glass);
+}
+.site-nav[data-island] .nav-edge {
+  overflow: visible;
+}
+.nav-edge-line {
+  fill: var(--hairline);
+}
 .nav-group {
   display: flex;
   align-items: center;

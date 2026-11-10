@@ -35,6 +35,26 @@ export default function Nav({ page }) {
   // aria-current so CSS and assistive tech read it from the same attribute.
   return (
     <nav className="site-nav">
+      {/* The nav's glass and bottom edge, for a page that docks a bar into the
+          nav (the links jump bar). Hidden until that page draws its shape;
+          the nav paints its own background and border until then. */}
+      <div className="nav-surface" aria-hidden="true" />
+      <svg className="nav-edge" aria-hidden="true" focusable="false">
+        {/* The edge is the shape's outline: a 2px stroke of every part, less
+            the filled shape, leaves 1px just outside the union. */}
+        <mask
+          id="nav-edge-mask"
+          maskUnits="userSpaceOnUse"
+          x="-5%"
+          y="-5%"
+          width="110%"
+          height="110%"
+        >
+          <path className="nav-edge-shape" fill="none" stroke="#fff" strokeWidth="2" />
+          <path className="nav-edge-shape" fill="#000" />
+        </mask>
+        <rect className="nav-edge-line" width="100%" height="100%" mask="url(#nav-edge-mask)" />
+      </svg>
       <div className="nav-group">
         <a
           className="nav-brand"

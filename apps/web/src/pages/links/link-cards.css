@@ -34,21 +34,40 @@
 }
 /* Jump bar: one chip per card, pinned under the nav while the cards scroll.
  * It is a small dock, only as wide as its chips and centred over the cards:
- * two rows of logo + name on a wide screen, one row of logos on a phone. */
+ * two rows of logo + name on a wide screen, one row of logos on a phone.
+ *
+ * Once Links.jsx is running (data-surface) the bar has no glass of its own:
+ * the nav draws one shape for itself and the bar (islandShape.js), which
+ * bridges to the bar as it nears and fuses with it once docked. The glass
+ * here is for the prerendered page before that, and it looks the same. */
 .links-jump {
   position: sticky;
-  top: 66px;
-  z-index: 20;
+  top: 56px;
+  /* above the nav, whose glass now runs underneath the bar */
+  z-index: 51;
   width: fit-content;
   max-width: 100%;
-  margin: 0 auto 22px;
+  margin: 0 auto calc(22px + var(--jump-slack, 0px));
+}
+.links-jump-island {
   padding: 5px;
-  border: 1px solid var(--hairline);
   border-radius: var(--radius-xl);
-  background: var(--glass-strong);
+  /* clips the chips while the bar folds between its layouts */
+  overflow: hidden;
+}
+.links-jump:not([data-surface]) .links-jump-island {
+  border: 1px solid var(--hairline);
+  background: var(--glass);
   -webkit-backdrop-filter: var(--blur-glass);
   backdrop-filter: var(--blur-glass);
-  box-shadow: 0 10px 28px -18px var(--overlay);
+}
+/* The drawn edge sits just outside the bar, so the bar keeps the same size
+   whether or not it draws a border of its own. */
+.links-jump[data-surface] .links-jump-island {
+  border: 1px solid transparent;
+}
+.links-jump-item:focus-visible {
+  outline-offset: -2px;
 }
 .links-jump-list {
   display: grid;
@@ -190,7 +209,7 @@
 }
 /* The jump bar scrolls a card to just below itself. */
 .links-item {
-  scroll-margin-top: 160px;
+  scroll-margin-top: 116px;
 }
 
 /* One frame for every card, whatever the service inside it. The edge is a
@@ -310,14 +329,40 @@
     padding: 76px 16px 64px;
   }
   .links-jump {
-    top: 60px;
+    top: 52px;
   }
   .links-item {
-    scroll-margin-top: 120px;
+    scroll-margin-top: 112px;
   }
 }
+/* One row of logos: a phone's bar always, and any bar once it has docked. The
+   names stay on as tooltips and accessible labels. */
+.links-jump[data-docked] .links-jump-island {
+  padding: 4px;
+}
+.links-jump[data-docked] .links-jump-list {
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: clamp(26px, 7.9vw, 38px);
+  gap: 1px;
+}
+.links-jump[data-docked] .links-jump-item {
+  justify-content: center;
+  height: 34px;
+  padding: 0;
+}
+.links-jump[data-docked] .links-jump-label {
+  display: none;
+}
+.links-jump[data-docked] .links-jump-icon {
+  width: 17px;
+  height: 17px;
+}
+.links-jump[data-docked] .links-jump-all .icon {
+  font-size: 16px;
+}
 @media (max-width: 639px) {
-  .links-jump {
+  .links-jump-island {
     padding: 4px;
   }
   .links-jump-list {
