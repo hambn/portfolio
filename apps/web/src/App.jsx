@@ -2,6 +2,7 @@ import React, { Suspense, startTransition, useEffect, useRef, useState } from 'r
 import Shell from './components/Shell.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import ErrorState from './components/ErrorState.jsx';
+import NotFound from './components/NotFound.jsx';
 import { pages, preloadPage } from './pages/index.js';
 
 import { currentRoute, routeOf } from './lib/router.js';
@@ -9,10 +10,11 @@ import { PortfolioData } from './lib/data.js';
 import { warmSite } from './lib/siteFeed.js';
 import { routeMetadata, updateDocumentMetadata, updateNotFoundMetadata } from './lib/metadata.js';
 
-// Unknown first segments render home, as they always have (404.html boots it).
+// The page a route belongs to; null when its first segment names none, which
+// renders the not-found view (404.html boots the app at such a URL).
 const pageOf = (route) => {
   const page = (route || 'home').split('/')[0] || 'home';
-  return pages[page] ? page : 'home';
+  return pages[page] ? page : null;
 };
 
 export default function App({ initialRoute, initialPage }) {
@@ -21,8 +23,11 @@ export default function App({ initialRoute, initialPage }) {
   // The page loaded before hydration stays in use for every route it renders
   // (blog list and posts alike). Switching to its lazy wrapper would remount
   // it and flash the Suspense fallback on the first in-page navigation.
-  const Page =
-    initialPage && initialRoute && page === pageOf(initialRoute) ? initialPage : pages[page];
+  const Page = !page
+    ? NotFound
+    : initialPage && initialRoute && page === pageOf(initialRoute)
+      ? initialPage
+      : pages[page];
   const firstRender = useRef(true);
 
   // On history navigation, restore the scroll offset saved with the entry.
@@ -64,7 +69,8 @@ export default function App({ initialRoute, initialPage }) {
       const link = event.target instanceof Element ? event.target.closest('a[href]') : null;
       if (!link || link.target === '_blank' || link.origin !== window.location.origin) return;
       const route = routeOf(link.pathname);
-      if (route !== null) preloadPage(pageOf(route))?.catch(() => {});
+      const target = route === null ? null : pageOf(route);
+      if (target) preloadPage(target)?.catch(() => {});
     };
     const options = { passive: true };
     document.addEventListener('pointerover', warm, options);

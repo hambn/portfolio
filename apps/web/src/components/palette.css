@@ -1,0 +1,102 @@
+/* Command palette (components/Palette.jsx). Arrives with that chunk, the
+ * first time the palette is opened. */
+.palette-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: min(18vh, 140px) 16px 16px;
+  background: var(--overlay);
+  /* the page is still the page, so its type scale applies */
+  font-size: var(--text-sm);
+  color: var(--foreground-muted);
+}
+.palette {
+  width: min(560px, 100%);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-xl);
+  background: var(--background-subtle);
+  box-shadow: 0 24px 60px var(--overlay);
+  overflow: hidden;
+  animation: palette-in 120ms ease-out;
+}
+@keyframes palette-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .palette {
+    animation: none;
+  }
+}
+.palette-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--hairline);
+}
+.palette-sigil {
+  color: var(--primary);
+}
+.palette-input {
+  flex: 1;
+  min-width: 0;
+  padding: 14px 0;
+  border: 0;
+  outline: none;
+  background: none;
+  color: var(--foreground);
+  font: inherit;
+}
+.palette-input::placeholder {
+  color: var(--foreground-subtle);
+}
+.palette-field kbd {
+  padding: 0 5px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--foreground-subtle);
+}
+.palette-list {
+  list-style: none;
+  max-height: min(52vh, 372px);
+  margin: 0;
+  padding: 6px;
+  overflow-y: auto;
+}
+.palette-item {
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+.palette-item.is-active {
+  background: var(--glass-hover);
+  color: var(--foreground);
+}
+.palette-kind,
+.palette-hint {
+  font-size: var(--text-xs);
+  color: var(--foreground-subtle);
+}
+.palette-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.palette-empty {
+  margin: 0;
+  padding: 16px;
+  color: var(--foreground-subtle);
+}

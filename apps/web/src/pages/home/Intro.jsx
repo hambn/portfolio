@@ -35,7 +35,10 @@ export default function Intro({ profile }) {
         />
         <div>
           <h1 className="home-name">{profile?.name || ''}</h1>
-          <p className="home-handle">@{profile?.handle || ''}</p>
+          <p className="home-handle">
+            @{profile?.handle || ''}
+            {profile?.title && <span className="home-role">{profile.title}</span>}
+          </p>
         </div>
       </div>
 

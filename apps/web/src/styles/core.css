@@ -368,6 +368,82 @@ html.theme-switching *::after {
   font-size: 14px;
   color: var(--success);
 }
+/* Right-hand end of the status line: the UTC clock, then the keys hint. */
+.site-footer-side {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.site-footer-clock {
+  font-variant-numeric: tabular-nums;
+}
+/* Keyboard shortcuts (components/Keys.jsx): a hint in the status line and the
+ * panel it opens. Hidden where there is no keyboard to use them with. */
+.keys {
+  position: relative;
+}
+.keys-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: color var(--transition-base);
+}
+.keys-hint:hover,
+.keys-hint[aria-expanded='true'] {
+  color: var(--foreground);
+}
+.keys kbd {
+  min-width: 18px;
+  padding: 0 5px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-sm);
+  background: var(--glass);
+  font: inherit;
+  line-height: 16px;
+  text-align: center;
+}
+.keys-panel {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 10px);
+  z-index: 60;
+  padding: 12px 14px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-lg);
+  background: var(--background-subtle);
+  box-shadow: 0 14px 34px var(--overlay);
+  font-size: var(--text-xs);
+  color: var(--foreground-muted);
+  white-space: nowrap;
+}
+.keys-panel dl {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+}
+.keys-panel dl > div {
+  display: grid;
+  grid-template-columns: 76px 1fr;
+  align-items: center;
+}
+.keys-panel dt {
+  display: flex;
+  gap: 4px;
+}
+.keys-panel dd {
+  margin: 0;
+}
+@media (hover: none) {
+  .keys {
+    display: none;
+  }
+}
 /* Inline failure notice with an optional retry (components/ErrorState.jsx). */
 .error-state {
   display: flex;
@@ -394,6 +470,41 @@ html.theme-switching *::after {
 .error-state-retry:hover {
   color: var(--foreground);
   border-color: var(--border-strong);
+}
+/* A URL with nothing behind it (components/NotFound.jsx): the shell session
+ * that says so, and the way back. */
+.not-found {
+  max-width: 760px;
+  margin: auto;
+  padding: 88px 24px;
+  font-size: var(--text-sm);
+}
+.not-found-session {
+  margin: 0 0 22px;
+  padding: 16px 18px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  background: var(--glass);
+  font: inherit;
+  line-height: 1.75;
+  color: var(--foreground);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.not-found-sigil {
+  color: var(--primary);
+}
+.not-found-error {
+  color: var(--destructive);
+}
+.not-found-back {
+  /* its prompt lines up with the ones in the session above */
+  margin-left: 19px;
+  color: var(--foreground-muted);
+  transition: color var(--transition-base);
+}
+.not-found-back:hover {
+  color: var(--foreground);
 }
 .page-loading {
   max-width: 760px;

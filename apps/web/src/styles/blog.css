@@ -23,6 +23,24 @@
   color: var(--foreground);
   scroll-margin-top: 80px;
 }
+/* `#` after a section heading links to it; it shows when the heading is
+ * pointed at or the link itself is focused. */
+.markdown-body .heading-anchor {
+  margin-left: 0.5em;
+  font-weight: 400;
+  color: var(--foreground-faint);
+  opacity: 0;
+  transition:
+    opacity var(--transition-base),
+    color var(--transition-base);
+}
+.markdown-body :is(h2, h3, h4):hover .heading-anchor,
+.markdown-body .heading-anchor:focus-visible {
+  opacity: 1;
+}
+.markdown-body .heading-anchor:hover {
+  color: var(--primary);
+}
 .markdown-body h1:first-child,
 .markdown-body h2:first-child,
 .markdown-body h3:first-child {
@@ -204,6 +222,22 @@
 }
 .markdown-body .code-block:hover .code-copy {
   opacity: 1;
+}
+/* the fence's language, in the corner the copy button takes over on hover */
+.markdown-body .code-lang {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  font-size: 11px;
+  color: var(--foreground-subtle);
+  pointer-events: none;
+  transition: opacity var(--transition-base);
+}
+@media (hover: hover) {
+  .markdown-body .code-block:hover .code-lang,
+  .markdown-body .code-block:focus-within .code-lang {
+    opacity: 0;
+  }
 }
 .markdown-body .code-copy:hover {
   color: var(--foreground);
@@ -433,10 +467,6 @@
   color: var(--foreground-muted);
   font-size: var(--text-sm);
 }
-.blog-missing {
-  color: var(--foreground-subtle);
-  font-size: var(--text-base);
-}
 .blog-back {
   background: none;
   border: none;
@@ -462,11 +492,31 @@
 .blog-head {
   margin-bottom: 28px;
 }
+.blog-head-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 6px;
+}
 .blog-title {
   font-size: var(--text-2xl);
   font-weight: 700;
   letter-spacing: -0.02em;
-  margin-bottom: 6px;
+}
+.blog-feed {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-xs);
+  color: var(--foreground-subtle);
+  transition: color var(--transition-base);
+}
+.blog-feed:hover {
+  color: var(--foreground);
+}
+.blog-feed > .icon {
+  font-size: 11px;
 }
 .blog-subtitle {
   color: var(--foreground-muted);
@@ -515,6 +565,33 @@
   transition:
     border-color var(--transition-base),
     box-shadow var(--transition-base);
+}
+/* The key that focuses the field (components/Keys.jsx), until it is in use. */
+.blog-search-key {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  z-index: 1;
+  transform: translateY(-50%);
+  min-width: 18px;
+  padding: 0 5px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 11px;
+  line-height: 16px;
+  text-align: center;
+  color: var(--foreground-subtle);
+  pointer-events: none;
+}
+.blog-search:focus ~ .blog-search-key,
+.blog-search:not(:placeholder-shown) ~ .blog-search-key {
+  display: none;
+}
+@media (hover: none) {
+  .blog-search-key {
+    display: none;
+  }
 }
 .blog-search::placeholder {
   color: var(--foreground-subtle);
@@ -718,6 +795,11 @@
   flex-shrink: 0;
   white-space: nowrap;
 }
+.post-row-read::before {
+  content: '·';
+  margin: 0 7px;
+  color: var(--foreground-faint);
+}
 .post-row-desc {
   font-size: var(--text-sm);
   color: var(--foreground-muted);
@@ -764,13 +846,78 @@
 }
 
 /* Single post header */
-/* a <time>, so it needs to be told it is a block */
 .post-date {
-  display: block;
   font-size: var(--text-xs);
   color: var(--foreground-subtle);
   margin-bottom: 8px;
   font-family: var(--font-mono);
+}
+.post-read::before {
+  content: '·';
+  margin: 0 8px;
+  color: var(--foreground-faint);
+}
+
+/* Where the post lives in the repository. */
+.post-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 48px;
+  font-size: var(--text-xs);
+  color: var(--foreground-subtle);
+  word-break: break-all;
+  transition: color var(--transition-base);
+}
+.post-source:hover {
+  color: var(--foreground);
+}
+.post-source > .icon-nudge {
+  font-size: 11px;
+}
+
+/* The posts either side of this one, at its foot. */
+.post-steps {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 24px;
+  border-top: 1px solid var(--hairline);
+}
+.post-step {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  transition:
+    border-color var(--transition-base),
+    background-color var(--transition-base);
+}
+.post-step:hover {
+  border-color: var(--hairline-strong);
+  background: var(--glass);
+}
+.post-step.is-newer {
+  text-align: right;
+}
+.post-step-label {
+  font-size: var(--text-xs);
+  color: var(--foreground-subtle);
+}
+.post-step-title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--foreground);
+}
+@media (max-width: 559px) {
+  .post-steps {
+    grid-template-columns: 1fr;
+  }
+  .post-steps > span {
+    display: none;
+  }
 }
 .post-title {
   font-size: clamp(1.6rem, 6vw, 2rem);
@@ -781,15 +928,6 @@
 }
 .post-header-tags {
   margin-bottom: 36px;
-}
-
-.blog-inline-code {
-  background: var(--background-muted);
-  padding: 1px 6px;
-  border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
-  color: var(--foreground-muted);
-  border: 1px solid var(--border);
 }
 
 .blog-tag {

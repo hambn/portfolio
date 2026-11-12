@@ -10,7 +10,7 @@ const NAV_ITEMS = ['projects', 'blog', 'links'];
 // The theme lives on <html data-theme> (set before first paint by index.html)
 // and the icons swap in CSS, so toggling needs no React state or re-render.
 let switching;
-function toggleTheme() {
+export function toggleTheme() {
   const root = document.documentElement;
   const next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
   storage.set('hambn-theme', next);

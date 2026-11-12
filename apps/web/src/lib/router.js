@@ -14,6 +14,9 @@ export function routeHref(page) {
   return (clean ? `${BASE_PATH}/${clean}/` : `${BASE_PATH}/`) + (query ? `?${query}` : '');
 }
 
+/** URL of the blog's RSS feed, written beside the pages by scripts/prerender.mjs. */
+export const feedHref = () => `${BASE_PATH}/feed.xml`;
+
 /** Push a route and notify the router. */
 export function navigate(page) {
   // Remember where the outgoing page was scrolled so Back can restore it.

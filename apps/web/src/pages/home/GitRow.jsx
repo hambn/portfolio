@@ -3,7 +3,12 @@ import React from 'react';
 // One line of the log: HEAD, a merge, the birth commit, or a commit.
 // Wide: the date sits in its own column, left of the graph. Narrow: there is no
 // room for it there, so it moves in above the message.
-export default function GitRow({ row, dim, rowRef }) {
+// Memoised: hovering the graph re-renders GitLog on every pointer move, and
+// only the rows whose `dim` flips have anything to redraw.
+function GitRow({ row, dim, index, rowRefs }) {
+  const rowRef = (el) => {
+    rowRefs.current[index] = el;
+  };
   const tone = row.lane ? row.lane.tone : '';
 
   const lead = (date) => (
@@ -84,3 +89,5 @@ export default function GitRow({ row, dim, rowRef }) {
     </div>
   );
 }
+
+export default React.memo(GitRow);

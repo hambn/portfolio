@@ -1,8 +1,10 @@
 // BlogPost.jsx — single post view: markdown rendering + syntax highlighting.
 import React, { useEffect, useRef, useState } from 'react';
 import { PortfolioData } from '../../lib/data.js';
+import { REPO } from '../../components/Footer.jsx';
 import Icon from '../../components/Icon.jsx';
-import { ClickableTag, fmtDate, goToTag } from './blog-ui.jsx';
+import { followRoute, routeHref } from '../../lib/router.js';
+import { ClickableTag, fmtDate, goToTag, readMinutes } from './blog-ui.jsx';
 
 // Post-process the rendered DOM: mermaid blocks, highlight.js, copy buttons.
 async function enhanceMarkdown(root) {
@@ -50,6 +52,15 @@ async function enhanceMarkdown(root) {
     pre.replaceWith(wrap);
     wrap.appendChild(pre);
 
+    // The language the fence was opened with, shown until the block is hovered.
+    const lang = /(?:^|\s)language-([\w+#.-]+)/.exec(code.className)?.[1];
+    if (lang && lang !== 'undefined') {
+      const label = document.createElement('span');
+      label.className = 'code-lang';
+      label.textContent = lang;
+      wrap.appendChild(label);
+    }
+
     const btn = document.createElement('button');
     btn.className = 'code-copy';
     btn.type = 'button';
@@ -70,6 +81,37 @@ async function enhanceMarkdown(root) {
     });
     wrap.appendChild(btn);
   });
+
+  // Give each section heading an id and a `#` link to it, then go to the one
+  // the URL asked for: the ids did not exist when the browser first looked.
+  const taken = new Set();
+  root.querySelectorAll('h2, h3, h4').forEach((heading) => {
+    if (heading.querySelector('.heading-anchor')) return;
+    const base =
+      heading.textContent
+        .trim()
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}]+/gu, '-')
+        .replace(/^-|-$/g, '') || 'section';
+    let id = base;
+    for (let n = 2; taken.has(id); n++) id = `${base}-${n}`;
+    taken.add(id);
+    heading.id = id;
+
+    const anchor = document.createElement('a');
+    anchor.className = 'heading-anchor';
+    anchor.href = `#${id}`;
+    anchor.textContent = '#';
+    anchor.setAttribute('aria-label', `link to “${heading.textContent.trim()}”`);
+    heading.appendChild(anchor);
+  });
+  let wanted = window.location.hash.slice(1);
+  try {
+    wanted = decodeURIComponent(wanted);
+  } catch {
+    // a malformed fragment matches no heading
+  }
+  if (wanted && taken.has(wanted)) document.getElementById(wanted)?.scrollIntoView();
 
   // 3. Wrap tables for horizontal scroll on mobile
   root.querySelectorAll('table').forEach((tbl) => {
@@ -101,7 +143,24 @@ async function enhanceMarkdown(root) {
   }
 }
 
-export default function PostView({ post, onBack }) {
+// A neighbouring post, at the foot of the one being read. `hotkey` is the key
+// components/Keys.jsx presses this link for.
+function PostStep({ post, hotkey, label, className = '' }) {
+  const route = `blog/${post.slug}`;
+  return (
+    <a
+      href={routeHref(route)}
+      onClick={followRoute(route)}
+      className={`post-step ${className}`}
+      data-hotkey={hotkey}
+    >
+      <span className="post-step-label">{label}</span>
+      <span className="post-step-title">{post.title}</span>
+    </a>
+  );
+}
+
+export default function PostView({ post, older, newer, onBack }) {
   const ref = useRef(null);
   const [html, setHtml] = useState(() => PortfolioData.peek('postHtml')?.[post.slug] ?? null);
 
@@ -135,9 +194,10 @@ export default function PostView({ post, onBack }) {
         all posts
       </button>
 
-      <time className="post-date" dateTime={post.date || undefined}>
-        {fmtDate(post.date)}
-      </time>
+      <p className="post-date">
+        <time dateTime={post.date || undefined}>{fmtDate(post.date)}</time>
+        <span className="post-read">{readMinutes(post.body)} min read</span>
+      </p>
       <h1 className="post-title">{post.title}</h1>
       {post.tags.length > 0 && (
         <div className="post-tags post-header-tags">
@@ -150,6 +210,26 @@ export default function PostView({ post, onBack }) {
       )}
 
       <div ref={ref} className="markdown-body" dangerouslySetInnerHTML={{ __html: html || '' }} />
+
+      {post.path && (
+        <a
+          className="post-source"
+          href={`${REPO}/blob/main/content/blogs/${post.path}`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <Icon name="git-commit" />
+          content/blogs/{post.path}
+          <Icon name="arrow-up-right" className="icon-nudge is-out" />
+        </a>
+      )}
+
+      {(older || newer) && (
+        <nav className="post-steps" aria-label="more posts">
+          {older ? <PostStep post={older} hotkey="[" label="← older" /> : <span />}
+          {newer && <PostStep post={newer} hotkey="]" label="newer →" className="is-newer" />}
+        </nav>
+      )}
     </main>
   );
 }
