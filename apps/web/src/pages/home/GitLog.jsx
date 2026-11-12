@@ -211,8 +211,9 @@ export default function GitLog({ branches, born }) {
         <GitRow
           key={row.key}
           row={row}
-          dim={hovered && row.lane && row.lane.id !== hovered.id}
-          rowRef={(el) => (rowRefs.current[i] = el)}
+          dim={Boolean(hovered && row.lane && row.lane.id !== hovered.id)}
+          index={i}
+          rowRefs={rowRefs}
         />
       ))}
     </div>

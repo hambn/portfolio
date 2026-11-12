@@ -264,6 +264,9 @@ function page({
   const url = abs(path);
   const data = { profile };
   if (!path || path === 'resume') data.resume = resume;
+  // Home lists the newest posts; it gets their headings, not the whole index.
+  if (!path)
+    data.recentPosts = posts.slice(0, 3).map(({ slug, title, date }) => ({ slug, title, date }));
   if (!path || ['projects', 'links', 'resume'].includes(path)) data.links = links;
   if (path === 'projects') data.projects = projects;
   if (path === 'blog' || path?.startsWith('blog/')) data.blogIndex = posts;

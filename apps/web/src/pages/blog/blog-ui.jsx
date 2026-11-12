@@ -10,7 +10,9 @@ export const fmtDate = (d) => {
   return date.toLocaleDateString('en', { year: 'numeric', month: 'long', day: 'numeric' });
 };
 
-export const InlineCode = ({ children }) => <code className="blog-inline-code">{children}</code>;
+/** Whole minutes to read a markdown body at an unhurried 220 words a minute. */
+export const readMinutes = (body) =>
+  Math.max(1, Math.round((body || '').split(/\s+/).filter(Boolean).length / 220));
 
 // A tag chip that navigates to the blog list filtered by that tag.
 export const ClickableTag = ({ children, onClick }) => (

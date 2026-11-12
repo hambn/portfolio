@@ -114,13 +114,17 @@ src/
 ├─ components/
 │  ├─ Shell.jsx         page frame: skip link + Nav + #content
 │  ├─ Nav.jsx           top nav + theme toggle (styles in core.css)
+│  ├─ Keys.jsx          keyboard shortcuts (g h/p/b/l/r, j/k, /, [ ], t, ?) + their footer panel
+│  ├─ Palette.jsx       command palette (ctrl/cmd+k or :), lazy-loaded with palette.css
+│  ├─ NotFound.jsx      the view for a URL with no page or post behind it
 │  ├─ ErrorState.jsx    shared load-failure message + retry button
 │  └─ card/             link-card chrome: HeaderButtons, cards.css, ContribGraph
 ├─ pages/               one folder per route (default exports)
 │  ├─ index.js          lazy page map (React.lazy) + preloadPage()
 │  ├─ home/             Home.jsx + Intro, Timeline/GitLog/GitRow (git-graph
 │  │                    timeline; git-graph.js lays it out, BranchCard.jsx is
-│  │                    the branch hover card), Stack, SectionHead,
+│  │                    the branch hover card), RecentPosts (newest three
+│  │                    posts), Stack, SectionHead,
 │  │                    FooterLinks, home.css
 │  ├─ projects/         Projects.jsx (featured cards from content, then one
 │  │                    /projects request for every host) + projects.css;

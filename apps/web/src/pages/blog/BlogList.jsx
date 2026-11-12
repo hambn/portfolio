@@ -1,8 +1,8 @@
 // BlogList.jsx — post list: search, tag filtering, pagination.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { followRoute, routeHref } from '../../lib/router.js';
+import { feedHref, followRoute, routeHref } from '../../lib/router.js';
 import Icon from '../../components/Icon.jsx';
-import { ClickableTag, fmtDate, goToTag, readUrlTags } from './blog-ui.jsx';
+import { ClickableTag, fmtDate, goToTag, readMinutes, readUrlTags } from './blog-ui.jsx';
 
 const POSTS_PER_PAGE = 15;
 
@@ -102,7 +102,13 @@ export default function PostList({ posts }) {
   return (
     <main className="blog-page">
       <div className="blog-head">
-        <h1 className="blog-title">blog</h1>
+        <div className="blog-head-row">
+          <h1 className="blog-title">blog</h1>
+          <a className="blog-feed" href={feedHref()} title="follow the blog in a feed reader">
+            rss
+            <Icon name="arrow-up-right" className="icon-nudge is-out" />
+          </a>
+        </div>
         <p className="blog-subtitle">notes on infra, tooling, and things i figure out</p>
       </div>
 
@@ -116,6 +122,9 @@ export default function PostList({ posts }) {
             aria-label="search posts"
             className="blog-search"
           />
+          <kbd className="blog-search-key" aria-hidden="true">
+            /
+          </kbd>
         </div>
 
         {allTags.length > 0 && (
@@ -193,9 +202,10 @@ export default function PostList({ posts }) {
               >
                 <span className="post-row-head">
                   <span className="post-row-title">{post.title}</span>
-                  <time className="post-row-date" dateTime={post.date || undefined}>
-                    {fmtDate(post.date)}
-                  </time>
+                  <span className="post-row-date">
+                    <time dateTime={post.date || undefined}>{fmtDate(post.date)}</time>
+                    <span className="post-row-read">{readMinutes(post.body)} min</span>
+                  </span>
                 </span>
                 {post.description && <span className="post-row-desc">{post.description}</span>}
               </a>

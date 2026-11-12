@@ -11,8 +11,7 @@ import React, { useEffect, useState } from 'react';
 import { PortfolioData } from '../../lib/data.js';
 import { navigate } from '../../lib/router.js';
 import ErrorState from '../../components/ErrorState.jsx';
-import Icon from '../../components/Icon.jsx';
-import { InlineCode } from './blog-ui.jsx';
+import NotFound from '../../components/NotFound.jsx';
 import BlogList from './BlogList.jsx';
 import BlogPost from './BlogPost.jsx';
 
@@ -61,19 +60,20 @@ export default function Blog({ route }) {
     );
 
   if (slug) {
-    const post = posts.find((p) => p.slug === slug);
-    if (post) return <BlogPost key={post.slug} post={post} onBack={() => navigate('blog')} />;
-    return (
-      <main className="blog-page">
-        <button type="button" className="blog-back" onClick={() => navigate('blog')}>
-          <Icon name="arrow-left" className="icon-nudge is-back" />
-          all posts
-        </button>
-        <p className="blog-missing">
-          no post found at <InlineCode>/blog/{slug}</InlineCode>
-        </p>
-      </main>
-    );
+    // The index is newest first, so the post after this one is the older one.
+    const at = posts.findIndex((p) => p.slug === slug);
+    const post = posts[at];
+    if (post)
+      return (
+        <BlogPost
+          key={post.slug}
+          post={post}
+          older={posts[at + 1]}
+          newer={posts[at - 1]}
+          onBack={() => navigate('blog')}
+        />
+      );
+    return <NotFound route={route} />;
   }
 
   return <BlogList posts={posts} />;
