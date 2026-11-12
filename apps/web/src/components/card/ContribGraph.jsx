@@ -1,272 +1,210 @@
-// GitHub / GitLab contribution graph.
-// GitHub data comes from the API's /github/contributions route (seeded by the
-// /links batch). GitLab has no public calendar, so its card draws a random
-// placeholder grid on every visit, as GitHub does when its data is unavailable.
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+// GitHub / GitLab contribution graph: a year of days as week columns.
+// Presentational only. The data comes from useContributions (below), which a
+// card calls so it can decide what to render around the graph. A source with
+// nothing to show renders nothing: the graph never draws invented activity.
+import React, { useMemo, useState } from 'react';
 import { apiUrl } from '../../lib/api.js';
+import { useCardSource } from '../../hooks/useCardSource.js';
 import { useCardFeed } from '../../pages/links/LinksFeed.jsx';
 
-const GH_MONTHS = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
-const GAP = '2.2px';
-const DAYW = '22px';
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const DAY_LABELS = ['', 'Mon', '', 'Wed', '', 'Fri', ''];
 
-export function ContribGraph({ username, source, levels, theme }) {
-  const [weeks, setWeeks] = useState(null);
-  const [hover, setHover] = useState(null); // tooltip label
-  // Seeded from the one-shot /links batch; freshness is judged inside the effect
-  // so a card expanded long after the batch settled still re-fetches.
-  const seed = useCardFeed('githubContributions');
-  const seedRef = useRef(seed);
-  seedRef.current = seed;
-  const synthetic = useRef(null);
-  // Only GitHub reads the feed; a synthetic grid has nothing to redo when it settles.
-  const generation = source === 'github' ? seed.generation : 0;
+const hasDays = (data) => Array.isArray(data?.contributions) && data.contributions.length > 0;
 
-  const buildWeeks = (days) => {
-    const wk = [];
-    let cur = [];
-    days.forEach((day, i) => {
-      const dow = new Date(day.date + 'T00:00:00').getDay();
-      if (i === 0) for (let k = 0; k < dow; k++) cur.push(null);
-      cur.push(day);
-      if (dow === 6) {
-        wk.push(cur);
-        cur = [];
-      }
-    });
-    if (cur.length) {
-      while (cur.length < 7) cur.push(null);
-      wk.push(cur);
+async function getJSON(url, signal) {
+  const response = await fetch(url, { signal });
+  if (!response.ok) throw new Error(`contributions ${response.status}`);
+  return response.json();
+}
+
+// Where a host's calendar can be read from the visitor's browser. GitHub's
+// goes through a public calendar service. GitLab serves its own without CORS
+// headers, so only this site's API can read it; without the API the GitLab
+// graph is left out.
+const DIRECT = {
+  github: (username) => (signal) =>
+    getJSON(
+      `https://github-contributions-api.jogruber.de/v4/${encodeURIComponent(username)}?y=last`,
+      signal,
+    ),
+};
+
+/**
+ * A year of contributions for `host` ('github' | 'gitlab'): `{ data, loading }`
+ * where data is `{ contributions: [{ date, count, level }], total? }` or null.
+ * `api` says whether the card is configured to read this site's API.
+ */
+export function useContributions({ host, username, api, enabled = true }) {
+  const seed = useCardFeed(`${host}Contributions`);
+  const direct = useMemo(
+    () => (username && DIRECT[host] ? DIRECT[host](username) : null),
+    [host, username],
+  );
+  return useCardSource({
+    api:
+      api && username
+        ? apiUrl(`/${host}/contributions?username=${encodeURIComponent(username)}`)
+        : null,
+    seed,
+    direct,
+    enabled,
+    cacheKey: username ? `contrib:v1:${host}:${username}` : null,
+    valid: hasDays,
+  });
+}
+
+// The year's total: the source's own figure when it sends one, else the sum.
+const yearTotal = (data) =>
+  typeof data?.total?.lastYear === 'number'
+    ? data.total.lastYear
+    : data.contributions.reduce((sum, day) => sum + (day.count || 0), 0);
+
+const dayOfWeek = (date) => new Date(`${date}T00:00:00`).getDay();
+
+function weeksOf(days) {
+  const weeks = [];
+  let week = Array(dayOfWeek(days[0].date)).fill(null);
+  for (const day of days) {
+    week.push(day);
+    if (week.length === 7) {
+      weeks.push(week);
+      week = [];
     }
-    return wk.slice(-53);
-  };
+  }
+  if (week.length) weeks.push([...week, ...Array(7 - week.length).fill(null)]);
+  return weeks.slice(-53);
+}
 
-  useEffect(() => {
-    if (!username) return;
-    let cancelled = false;
+// A label over the first week of each month, as GitHub places them. A month
+// with too few weeks before the next label (the partial one the year opens
+// with) is left unlabelled rather than crowded.
+function monthLabels(weeks) {
+  const labels = [];
+  let last = -1;
+  weeks.forEach((week, i) => {
+    const first = week.find(Boolean);
+    if (!first) return;
+    const month = new Date(`${first.date}T00:00:00`).getMonth();
+    if (month !== last) labels.push({ i, label: MONTHS[month] });
+    last = month;
+  });
+  return labels.filter(
+    (label, n) => (labels[n + 1]?.i ?? weeks.length) - label.i >= 3 || n === labels.length - 1,
+  );
+}
 
-    const synth = () => {
-      const days = [];
-      const end = new Date();
-      for (let i = 364; i >= 0; i--) {
-        const d = new Date(end);
-        d.setDate(end.getDate() - i);
-        // weekends quieter, weekdays busier — plausible-looking pattern
-        const dow = d.getDay();
-        const base = dow === 0 || dow === 6 ? 0.25 : 0.6;
-        const r = Math.random();
-        const count = r < 1 - base ? 0 : Math.floor(r * 12);
-        const level = count === 0 ? 0 : count < 3 ? 1 : count < 6 ? 2 : count < 10 ? 3 : 4;
-        days.push({ date: d.toISOString().slice(0, 10), count, level });
-      }
-      return days;
-    };
+/**
+ * `boxed` draws the graph as github.com does: a "N contributions in the last
+ * year" heading over a rounded box, instead of a full-bleed band under a rule.
+ * Colours come from the card's CSS: --cg-level-0…4, --cg-rule, --cg-faint,
+ * --cg-ring and --cg-accent (cards.css).
+ */
+export function ContribGraph({
+  data,
+  loading = false,
+  boxed = false,
+  help,
+  noun = 'contribution',
+}) {
+  const [hover, setHover] = useState(null); // tooltip line
+  const weeks = useMemo(() => (hasDays(data) ? weeksOf(data.contributions) : null), [data]);
+  const labels = useMemo(() => (weeks ? monthLabels(weeks) : []), [weeks]);
 
-    if (source === 'github') {
-      const fresh = seedRef.current;
-      if (fresh.status === 'pending') return undefined; // wait for the batch to settle
-      const seeded = fresh.status === 'ready' ? fresh.data?.contributions : null;
-      if (
-        Array.isArray(seeded) &&
-        seeded.length &&
-        Date.now() - fresh.receivedAt < (fresh.maxAgeMs || 0)
-      ) {
-        setWeeks(buildWeeks(seeded));
-        return undefined;
-      }
-      fetch(apiUrl(`/github/contributions?username=${encodeURIComponent(username)}`))
-        .then((r) => (r.ok ? r.json() : Promise.reject()))
-        .then((d) => {
-          if (cancelled) return;
-          const days = d?.contributions;
-          if (!Array.isArray(days) || !days.length) throw new Error('no data');
-          setWeeks(buildWeeks(days));
-        })
-        .catch(() => {
-          if (!cancelled) setWeeks(buildWeeks(synth()));
-        });
-    } else {
-      // Keep one synthetic grid per user so an unrelated feed update can't reshuffle it.
-      if (synthetic.current?.key !== `${source}:${username}`)
-        synthetic.current = { key: `${source}:${username}`, days: synth() };
-      setWeeks(buildWeeks(synthetic.current.days));
-    }
-
-    return () => {
-      cancelled = true;
-    };
-  }, [username, source, generation]);
-
-  // Month labels: every month, evenly distributed so gaps are uniform across the row.
-  const monthLabels = useMemo(() => {
-    const labels = [];
-    let lastMonth = -1;
-    weeks?.forEach((w, i) => {
-      const firstDay = w.find(Boolean);
-      if (!firstDay) return;
-      const m = new Date(firstDay.date + 'T00:00:00').getMonth();
-      if (m !== lastMonth) {
-        labels.push({ i, label: GH_MONTHS[m] });
-        lastMonth = m;
-      }
-    });
-    // Drop the leading partial-month label (it would duplicate the trailing month)
-    if (labels.length > 1 && labels[1].i - labels[0].i < 3) labels.shift();
-    return labels;
-  }, [weeks]);
-
-  // The ~371 cells only change with the data; hovering updates the tooltip line
-  // alone, and the ring is a CSS :hover (.cg-day in cards.css).
+  // The ~371 cells only change with the data; hovering updates the tooltip
+  // line alone, and the ring is a CSS :hover (.cg-day in cards.css).
   const grid = useMemo(
     () =>
-      weeks?.map((w, wi) => (
-        <div
-          key={wi}
-          style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: GAP }}
-        >
-          {w.map((day, di) => (
-            <div
-              key={di}
-              className={day ? 'cg-day' : undefined}
-              onMouseEnter={() =>
-                day &&
-                setHover(`${day.count} contribution${day.count === 1 ? '' : 's'} on ${day.date}`)
-              }
-              onMouseLeave={() => setHover(null)}
-              style={{
-                width: '100%',
-                aspectRatio: '1 / 1',
-                borderRadius: '2px',
-                background: day ? levels[day.level] : 'transparent',
-                outline: day ? '1px solid rgba(255,255,255,0.04)' : 'none',
-                outlineOffset: '-1px',
-              }}
-            />
-          ))}
+      weeks?.map((week, wi) => (
+        <div key={wi} className="cg-week">
+          {week.map((day, di) =>
+            day ? (
+              <i
+                key={di}
+                className={`cg-day cg-l${day.level}`}
+                data-day={`${day.count} ${day.date}`}
+              />
+            ) : (
+              <i key={di} className="cg-day cg-day--none" />
+            ),
+          )}
         </div>
       )),
-    [weeks, levels],
+    [weeks],
   );
 
-  if (!weeks) {
-    return (
-      <div
-        style={{
-          padding: '16px 20px',
-          borderTop: `1px solid ${theme.div}`,
-          fontSize: '12px',
-          color: theme.faint,
-        }}
-      >
-        loading contributions…
-      </div>
-    );
-  }
+  if (!weeks && !loading) return null;
 
-  return (
-    <div
-      style={{
-        padding: '14px 20px 16px',
-        borderTop: `1px solid ${theme.div}`,
-        '--cg-ring': theme.muted,
-      }}
-    >
-      {/* Month labels — evenly spaced */}
-      <div style={{ display: 'flex' }}>
-        <div style={{ width: DAYW, flexShrink: 0 }} />
-        <div
-          style={{
-            position: 'relative',
-            flex: 1,
-            minWidth: 0,
-            height: '13px',
-            containerType: 'inline-size',
-          }}
-        >
-          {monthLabels.map(({ label }, idx) => (
-            <span
-              key={idx}
-              style={{
-                position: 'absolute',
-                left: `${(idx / monthLabels.length) * 100}%`,
-                fontSize: 'clamp(6.5px, 3.6cqw, 10.5px)',
-                color: theme.faint,
-                whiteSpace: 'nowrap',
-                lineHeight: 1,
-              }}
-            >
-              {label}
-            </span>
+  // One listener for the whole grid instead of two per cell.
+  const onOver = (event) => {
+    const [count, date] = event.target.dataset?.day?.split(' ') || [];
+    setHover(date ? `${count} ${noun}${count === '1' ? '' : 's'} on ${date}` : null);
+  };
+  const total = weeks ? yearTotal(data) : null;
+  const frame = boxed ? 'cg cg--boxed' : 'cg cg--band';
+
+  const body = weeks ? (
+    <div className={frame}>
+      <div className="cg-months">
+        {labels.map(({ i, label }) => (
+          <span key={i} style={{ left: `${(i / weeks.length) * 100}%` }}>
+            {label}
+          </span>
+        ))}
+      </div>
+
+      <div className="cg-body">
+        <div className="cg-days" aria-hidden="true">
+          {DAY_LABELS.map((label, i) => (
+            <span key={i}>{label}</span>
           ))}
+        </div>
+        {/* Week columns flex, so the grid scales to fit and never scrolls. */}
+        <div
+          className="cg-weeks"
+          role="img"
+          aria-label={`${total.toLocaleString()} ${noun}s in the last year`}
+          onMouseOver={onOver}
+          onMouseLeave={() => setHover(null)}
+        >
+          {grid}
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: GAP }}>
-        {/* Day-of-week labels */}
-        <div
-          style={{ display: 'flex', flexDirection: 'column', gap: GAP, width: DAYW, flexShrink: 0 }}
-        >
-          {['', 'Mon', '', 'Wed', '', 'Fri', ''].map((d, i) => (
-            <span
-              key={i}
-              style={{
-                flex: 1,
-                fontSize: '8.5px',
-                lineHeight: 1,
-                color: theme.faint,
-                textAlign: 'right',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'flex-end',
-              }}
-            >
-              {d}
-            </span>
-          ))}
-        </div>
-
-        {/* Week columns — flex so the grid scales to fit, never scrolls */}
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', gap: GAP }}>{grid}</div>
-      </div>
-
-      {/* Legend + tooltip line */}
-      <div style={{ display: 'flex', alignItems: 'center', marginTop: '10px', minHeight: '15px' }}>
-        <span
-          style={{ fontSize: '11px', color: theme.muted, marginRight: 'auto', minHeight: '15px' }}
-        >
-          {hover || ''}
+      <div className="cg-foot">
+        <span className="cg-note">
+          {hover ||
+            (help ? (
+              <a href={help} target="_blank" rel="noopener noreferrer">
+                Learn how we count contributions
+              </a>
+            ) : (
+              !boxed &&
+              `${total.toLocaleString()} ${noun}${total === 1 ? '' : 's'} in the last year`
+            ))}
         </span>
-        <span style={{ fontSize: '10px', color: theme.faint, marginRight: '5px' }}>Less</span>
-        <div style={{ display: 'flex', gap: '3px' }}>
-          {levels.map((c, i) => (
-            <div
-              key={i}
-              style={{
-                width: '11px',
-                height: '11px',
-                borderRadius: '2px',
-                background: c,
-                outline: '1px solid rgba(255,255,255,0.04)',
-                outlineOffset: '-1px',
-              }}
-            />
+        <span>Less</span>
+        <div className="cg-legend">
+          {[0, 1, 2, 3, 4].map((level) => (
+            <i key={level} className={`cg-day cg-l${level}`} />
           ))}
         </div>
-        <span style={{ fontSize: '10px', color: theme.faint, marginLeft: '5px' }}>More</span>
+        <span>More</span>
       </div>
     </div>
+  ) : (
+    <div className={`${frame} cg-loading`}>loading contributions…</div>
+  );
+
+  if (!boxed) return body;
+  return (
+    <section className="cg-section" aria-label="Contributions">
+      <h3 className="cg-heading">
+        {total != null
+          ? `${total.toLocaleString()} ${noun}${total === 1 ? '' : 's'} in the last year`
+          : 'Contributions'}
+      </h3>
+      {body}
+    </section>
   );
 }

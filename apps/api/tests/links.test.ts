@@ -49,7 +49,7 @@ async function batch(path: string, services = batchServices()) {
 }
 
 test('batch answers every card, isolates failures and stays uncached', async () => {
-  const { response, body } = await batch('/links');
+  const { response, body } = await batch('/site');
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('Cache-Control'), 'no-store');
   assert.equal(body.generatedAt, 1000);
@@ -58,7 +58,9 @@ test('batch answers every card, isolates failures and stays uncached', async () 
     'github',
     'githubContributions',
     'gitlab',
+    'gitlabContributions',
     'linkedin',
+    'projects',
     'spotify',
     'steam',
     'telegram',
@@ -132,17 +134,18 @@ test('include and exclude select cards and ignore unknown keys', async () => {
   const only = await batch('/links?include=github,gitlab,bogus');
   assert.deepEqual(Object.keys(only.body.cards).sort(), ['github', 'gitlab']);
 
-  const without = await batch('/links?exclude=spotify,steam,linkedin,telegram,x,bogus');
+  const without = await batch('/links?exclude=spotify,steam,linkedin,telegram,x,projects,bogus');
   assert.deepEqual(Object.keys(without.body.cards).sort(), [
     'discord',
     'github',
     'githubContributions',
     'gitlab',
+    'gitlabContributions',
   ]);
 
   // An empty include is not a selection; it falls back to every card.
   const all = await batch('/links?include=');
-  assert.equal(Object.keys(all.body.cards).length, 9);
+  assert.equal(Object.keys(all.body.cards).length, 11);
 
   // Exclude wins over include for the same key.
   const conflict = await batch('/links?include=github,gitlab&exclude=gitlab');
@@ -163,11 +166,13 @@ test('batch warms the same cache entries the single-card routes use', async () =
     },
   });
   await handleRequest(request('/links?include=github'), services);
-  assert.equal(calls, 1);
+  // The profile fans out to its parts (user, repos, pull requests, page).
+  const warmed = calls;
+  assert.ok(warmed >= 1);
   // The single-card route now answers from the entry the batch populated.
   const single = await handleRequest(request('/github'), services);
   assert.equal(single.status, 200);
-  assert.equal(calls, 1);
+  assert.equal(calls, warmed);
 });
 
 test('batch honours HEAD, OPTIONS and rejects other methods', async () => {

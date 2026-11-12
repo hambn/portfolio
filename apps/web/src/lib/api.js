@@ -39,22 +39,67 @@ export function avatarImage(source, size) {
 const PROXIED_MEDIA = /\/media\/[a-z]+\/([A-Za-z0-9_-]+)$/;
 
 /**
- * Ask for a smaller rendition of an image the API has already proxied. The
- * upstream URL is base64 inside the proxy path, so decode it, let @portfolio/shared/media
- * apply whatever size lever that host understands, and re-encode. Hosts
- * without one — and anything that isn't a proxy URL — come back untouched.
- * `size` is in CSS pixels; the request is doubled to stay sharp on 2x screens.
+ * The provider's own URL for an image the API proxies, or null for anything
+ * that is not a proxy URL. The upstream URL is base64 inside the proxy path.
  */
-export function sizedMedia(url, size) {
+export function upstreamSource(url) {
   const id = typeof url === 'string' ? url.match(PROXIED_MEDIA)?.[1] : null;
-  if (!id) return url;
+  if (!id) return null;
   try {
     const source = atob(id.replace(/-/g, '+').replace(/_/g, '/'));
-    const resized = resizedSource(source, size * 2);
-    return resized === source ? url : (mediaUrl(resized) ?? url);
+    return source.startsWith('https://') ? source : null;
   } catch {
-    return url;
+    return null;
   }
+}
+
+/**
+ * Ask for a smaller rendition of an image the API has already proxied: decode
+ * the upstream URL, let @portfolio/shared/media apply whatever size lever that
+ * host understands, and re-encode. Hosts without one — and anything that isn't
+ * a proxy URL — come back untouched. `size` is in CSS pixels; the request is
+ * doubled to stay sharp on 2x screens.
+ */
+export function sizedMedia(url, size) {
+  const source = upstreamSource(url);
+  if (!source) return url;
+  const resized = resizedSource(source, size * 2);
+  return resized === source ? url : (mediaUrl(resized) ?? url);
+}
+
+/**
+ * `src` for a provider image drawn at `size` CSS pixels. Data that came from
+ * the API points at its media proxy; data the browser fetched from the
+ * provider itself (`direct`) uses the provider's URL as it is.
+ */
+export function cardImage(source, size, direct = false) {
+  if (!source) return undefined;
+  if (direct) return size ? resizedSource(source, size * 2) : source;
+  const url = mediaUrl(source);
+  return (size ? sizedMedia(url, size) : url) ?? undefined;
+}
+
+/**
+ * Images normally load through the API's media proxy. When the API is down,
+ * load the same image from the provider instead of leaving a broken one: one
+ * capturing listener for the whole document, plus a sweep for images that
+ * failed before this script ran (the prerendered avatar).
+ */
+export function installMediaFallback() {
+  const retry = (img) => {
+    const source = upstreamSource(img.currentSrc || img.src);
+    if (!source) return;
+    img.removeAttribute('srcset');
+    img.src = source;
+  };
+  document.addEventListener(
+    'error',
+    (event) => {
+      if (event.target instanceof HTMLImageElement) retry(event.target);
+    },
+    true,
+  );
+  for (const img of document.images) if (img.complete && !img.naturalWidth) retry(img);
 }
 
 /**

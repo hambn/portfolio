@@ -64,15 +64,6 @@
   font-size: 11px;
 }
 
-.dc-hdr-btn {
-  color: var(--dc-muted);
-}
-
-.dc-hdr-btn:hover {
-  color: var(--dc-text);
-  background: var(--dc-activity-hover);
-}
-
 .dc-profile {
   display: flex;
   align-items: center;

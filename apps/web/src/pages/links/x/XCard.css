@@ -182,14 +182,6 @@
   color: var(--x-muted);
 }
 
-/* Header chrome ----------------------------------------------------------- */
-.x-hdr-btn {
-  color: var(--x-muted);
-}
-.x-hdr-btn:hover {
-  color: var(--x-text);
-  background: var(--x-panel);
-}
 .x-style-1 :is(a, button):focus-visible {
   outline: 2px solid var(--x-blue);
   outline-offset: 3px;

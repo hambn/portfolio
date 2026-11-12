@@ -17,6 +17,8 @@
       "default": "./x.js"
     },
     "./media": "./media.ts",
+    "./github": "./github.ts",
+    "./gitlab": "./gitlab.ts",
     "./projects": "./projects.ts"
   }
 }

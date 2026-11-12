@@ -12,7 +12,6 @@
  *   title text:  `link-card-title` (+ brand title class, color only)
  *   spacer:      `link-card-spacer`
  *   actions:     wrap <HeaderButtons/> in `link-card-actions`
- *   buttons:     add `link-card-hdr-btn` to HeaderButtons btnClass
  */
 /* ── Page chrome ── */
 .links-page {
@@ -211,6 +210,24 @@
 .links-item {
   scroll-margin-top: 116px;
 }
+/* Cards below the fold rise into place as they scroll in. Tied to the scroll
+ * position itself, so it needs no script and a card already in view at load
+ * is simply there; browsers without view timelines show every card as is. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .links-item {
+      animation: links-item-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 220px;
+    }
+  }
+}
+@keyframes links-item-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+  }
+}
 
 /* One frame for every card, whatever the service inside it. The edge is a
  * ring laid over the card rather than a border around it: a border sits
@@ -229,6 +246,13 @@
   letter-spacing: normal;
   box-shadow: 0 14px 34px -26px var(--overlay);
 }
+/* Hovering a card only brightens its ring: animating the drop shadow would
+   repaint the whole card on every pass of the pointer down the page. */
+@media (hover: hover) {
+  .link-card:hover::after {
+    box-shadow: inset 0 0 0 1px var(--card-ring-hover);
+  }
+}
 .link-card::after {
   content: '';
   position: absolute;
@@ -236,13 +260,16 @@
   z-index: 3;
   border-radius: inherit;
   box-shadow: inset 0 0 0 1px var(--card-ring);
+  transition: box-shadow 0.2s var(--ease-default);
   pointer-events: none;
 }
 .links-list {
   --card-ring: rgba(255, 255, 255, 0.1);
+  --card-ring-hover: rgba(255, 255, 255, 0.18);
 }
 [data-theme='light'] .links-list {
   --card-ring: rgba(9, 9, 11, 0.13);
+  --card-ring-hover: rgba(9, 9, 11, 0.22);
 }
 /* A collapsed card is its header alone: no divider under it. */
 .link-card-header:has(+ .sc-body.closed) {
@@ -287,41 +314,75 @@
   align-items: center;
   gap: 6px;
 }
-/* Header buttons belong to their card: they are set in the service's own face
- * and take their outline and fill from the card's text colour, so they sit
- * right on any brand surface. Only the geometry is shared. */
-.link-card .link-card-hdr-btn {
-  height: 30px;
-  min-width: 30px;
-  padding: 0 10px;
-  gap: 6px;
+/* Header buttons are the same three controls on every card: one size, one
+ * face, one set of labels. Only their tint comes from the card, by way of its
+ * text colour, so they sit at the same strength on any brand surface. */
+.link-card-hdr-btn {
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
+  gap: 6px;
+  box-sizing: border-box;
+  height: 30px;
+  width: 76px;
+  padding: 0;
   border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
   border-radius: 8px;
   background: color-mix(in srgb, currentColor 4%, transparent);
-  /* currentColor here is the card's text colour, so every card's buttons sit
-     at the same strength against their own surface */
   color: color-mix(in srgb, currentColor 72%, transparent);
-  font-family: inherit;
+  font-family: var(--font-mono);
   font-size: 12.5px;
   font-weight: 500;
   letter-spacing: 0;
   line-height: 1;
-  opacity: 1;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    color 0.15s,
+    background-color 0.15s,
+    border-color 0.15s,
+    transform 0.1s;
 }
-.link-card .link-card-hdr-btn:active {
+.link-card-hdr-btn svg {
+  width: 14px;
+  height: 14px;
+}
+.link-card-hdr-toggle {
+  width: 30px;
+}
+.link-card-hdr-toggle svg {
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.link-card-hdr-toggle[aria-expanded='false'] svg {
+  transform: rotate(-90deg);
+}
+.link-card-hdr-btn.is-done {
+  color: var(--hdr-accent, currentColor);
+  border-color: color-mix(in srgb, var(--hdr-accent, currentColor) 45%, transparent);
+}
+@media (hover: hover) {
+  .link-card-hdr-btn:hover {
+    /* the mix is taken from the button's own tint, so restate the full one */
+    color: var(--hdr-ink, inherit);
+    background: color-mix(in srgb, currentColor 10%, transparent);
+    border-color: color-mix(in srgb, currentColor 26%, transparent);
+  }
+}
+.link-card-hdr-btn:active {
   transform: scale(0.96);
 }
 @container (max-width: 480px) {
   .link-card-header {
     padding: 14px 16px;
   }
-  .link-card-header .sc-hdr-label {
+  .link-card-hdr-label {
     display: none;
   }
-  .link-card .link-card-hdr-btn {
+  .link-card-hdr-btn {
     height: 34px;
-    min-width: 34px;
+    width: 34px;
   }
 }
 @media (max-width: 639px) {

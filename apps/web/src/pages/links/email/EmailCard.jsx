@@ -152,15 +152,11 @@ export const EmailCard = React.memo(function EmailCard({ address }) {
         <div className="em-style-6 link-card-spacer" />
         <div className="link-card-actions">
           <HeaderButtons
-            btnClass="sc-hdr-btn em-hdr-btn link-card-hdr-btn"
-            labelClass="sc-hdr-label"
             accent="var(--em-blue)"
             copied={copied}
             onCopy={copyAddr}
-            copyLabel="copy address"
             copyTitle="Copy email address"
             href={`mailto:${to}`}
-            openLabel="open in mail app"
             openTitle="Open in your mail app"
             collapsed={collapsed}
             onToggle={toggleCollapse}

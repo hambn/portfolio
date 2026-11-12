@@ -26,13 +26,6 @@
 .tg-header .link-card-brand {
   color: var(--tg-accent);
 }
-.tg-hdr-btn {
-  color: var(--tg-muted);
-}
-.tg-hdr-btn:hover {
-  color: var(--tg-text);
-  background: color-mix(in srgb, var(--tg-text) 8%, transparent);
-}
 .tg-wallpaper {
   position: relative;
   isolation: isolate;

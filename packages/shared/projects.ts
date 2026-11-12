@@ -179,3 +179,156 @@ export function projectAccounts(
   }
   return out;
 }
+
+/* ── git host payloads ──
+ * How each host's repository JSON becomes a Project. The API applies these to
+ * what it fetched and validated; the site applies the same ones when it lists
+ * a host straight from the visitor's browser because the API is unreachable. */
+
+/** A listed repository always has a host and a page. */
+export type Repo = Project & { host: GitHost; repo: string };
+
+export interface GitHubRepoPayload {
+  full_name: string;
+  description?: string | null;
+  homepage?: string | null;
+  language?: string | null;
+  stargazers_count?: number | null;
+  forks_count?: number | null;
+  topics?: string[] | null;
+  pushed_at?: string | null;
+  archived?: boolean | null;
+  fork?: boolean | null;
+}
+/** Forgejo, which Codeberg runs. */
+export interface CodebergRepoPayload {
+  full_name: string;
+  description?: string | null;
+  website?: string | null;
+  language?: string | null;
+  stars_count?: number | null;
+  forks_count?: number | null;
+  topics?: string[] | null;
+  updated_at?: string | null;
+  archived?: boolean | null;
+  fork?: boolean | null;
+}
+export interface GitLabRepoPayload {
+  path_with_namespace: string;
+  description?: string | null;
+  star_count?: number | null;
+  forks_count?: number | null;
+  topics?: string[] | null;
+  last_activity_at?: string | null;
+  archived?: boolean | null;
+  forked_from_project?: unknown;
+}
+
+const MAX_DESCRIPTION = 300;
+const MAX_TOPICS = 8;
+
+function normalize(
+  host: GitHost,
+  fullName: string,
+  fields: {
+    description?: string | null;
+    homepage?: string | null;
+    language?: string | null;
+    stars?: number | null;
+    forks?: number | null;
+    topics?: string[] | null;
+    pushedAt?: string | null;
+    archived?: boolean | null;
+    fork?: boolean;
+  },
+): Repo | null {
+  const ref = parseRepoUrl(`${GIT_HOSTS[host].origin}/${fullName}`);
+  if (!ref) return null;
+  const pushed = fields.pushedAt ? Date.parse(fields.pushedAt) : NaN;
+  return {
+    id: repoId(ref),
+    host,
+    name: ref.name,
+    description: fields.description?.trim().slice(0, MAX_DESCRIPTION) || null,
+    repo: ref.url,
+    homepage: webUrl(fields.homepage),
+    language: fields.language?.trim() || null,
+    stars: fields.stars ?? 0,
+    forks: fields.forks ?? 0,
+    topics: (fields.topics || []).slice(0, MAX_TOPICS),
+    pushedAt: Number.isNaN(pushed) ? null : new Date(pushed).toISOString(),
+    archived: fields.archived ?? false,
+    fork: fields.fork ?? false,
+  };
+}
+
+export const fromGitHub = (repo: GitHubRepoPayload) =>
+  normalize('github', repo.full_name, {
+    description: repo.description,
+    homepage: repo.homepage,
+    language: repo.language,
+    stars: repo.stargazers_count,
+    forks: repo.forks_count,
+    topics: repo.topics,
+    pushedAt: repo.pushed_at,
+    archived: repo.archived,
+    fork: repo.fork ?? false,
+  });
+export const fromCodeberg = (repo: CodebergRepoPayload) =>
+  normalize('codeberg', repo.full_name, {
+    description: repo.description,
+    homepage: repo.website,
+    language: repo.language,
+    stars: repo.stars_count,
+    forks: repo.forks_count,
+    topics: repo.topics,
+    pushedAt: repo.updated_at,
+    archived: repo.archived,
+    fork: repo.fork ?? false,
+  });
+// GitLab's listing carries no language and no homepage field.
+export const fromGitLab = (repo: GitLabRepoPayload) =>
+  normalize('gitlab', repo.path_with_namespace, {
+    description: repo.description,
+    stars: repo.star_count,
+    forks: repo.forks_count,
+    topics: repo.topics,
+    pushedAt: repo.last_activity_at,
+    archived: repo.archived,
+    fork: Boolean(repo.forked_from_project),
+  });
+
+/** One host payload as a Project, whichever host it came from. */
+export const fromHost = (host: GitHost, payload: unknown): Repo | null =>
+  host === 'github'
+    ? fromGitHub(payload as GitHubRepoPayload)
+    : host === 'codeberg'
+      ? fromCodeberg(payload as CodebergRepoPayload)
+      : fromGitLab(payload as GitLabRepoPayload);
+
+/** Every public repository of one account: one request, the first 100 (50 on Codeberg). */
+export function listReposUrl(host: GitHost, username: string): string {
+  const user = encodeURIComponent(username);
+  if (host === 'github')
+    return `https://api.github.com/users/${user}/repos?type=owner&sort=pushed&per_page=100`;
+  if (host === 'codeberg') return `https://codeberg.org/api/v1/users/${user}/repos?limit=50`;
+  return `https://gitlab.com/api/v4/users/${user}/projects?visibility=public&order_by=last_activity_at&per_page=100`;
+}
+
+/** One repository by reference. */
+export function repoApiUrl(ref: RepoRef): string {
+  const path = `${ref.owner.split('/').map(encodeURIComponent).join('/')}/${encodeURIComponent(ref.name)}`;
+  if (ref.host === 'github') return `https://api.github.com/repos/${path}`;
+  if (ref.host === 'codeberg') return `https://codeberg.org/api/v1/repos/${path}`;
+  return `https://gitlab.com/api/v4/projects/${encodeURIComponent(`${ref.owner}/${ref.name}`)}`;
+}
+
+/** Own work first, then by stars, then by most recent push. */
+export function byInterest(a: Project, b: Project): number {
+  const shelved = (repo: Project) => Number(repo.fork || repo.archived);
+  return (
+    shelved(a) - shelved(b) ||
+    b.stars - a.stars ||
+    (b.pushedAt || '').localeCompare(a.pushedAt || '')
+  );
+}

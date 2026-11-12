@@ -1,7 +1,7 @@
 import type { Services } from './contracts.js';
 import type { Handler } from './routes.js';
 import { json } from './lib/http.js';
-import { DISCORD_TTL, PROFILE_TTL, STEAM_TTL } from './lib/ttl.js';
+import { DISCORD_TTL, PROFILE_TTL, PROJECTS_RESPONSE_TTL, STEAM_TTL } from './lib/ttl.js';
 import { handle as spotify } from './providers/spotify.js';
 import { handle as steam } from './providers/steam.js';
 import { handle as discord } from './providers/discord.js';
@@ -10,8 +10,12 @@ import { handle as x } from './providers/x.js';
 import { handle as telegram } from './providers/telegram.js';
 import { handle as gitlab } from './providers/gitlab.js';
 import { handle as github } from './providers/github.js';
+import { handle as projects } from './providers/projects.js';
 
-// One request that answers every card on the links page. Each entry delegates
+// One request that answers everything the site shows from the API: every card
+// on the links page and the projects page's listing. The site asks for it once,
+// on whichever page is opened first (`/site`; `/links` is the same handler,
+// kept for pages cached before the rename). Each entry delegates
 // to the provider handler that already serves its single-card route, so
 // per-card caches, TTLs, cooldowns and snapshot rules are exactly the ones
 // those routes use — a batch call warms the same cache entries and never
@@ -31,9 +35,11 @@ const cards: Record<string, { path: string; handler: Handler; seedTtl: number }>
   github: { path: '/github', handler: github, seedTtl: PROFILE_TTL },
   githubContributions: { path: '/github/contributions', handler: github, seedTtl: PROFILE_TTL },
   gitlab: { path: '/gitlab', handler: gitlab, seedTtl: PROFILE_TTL },
+  gitlabContributions: { path: '/gitlab/contributions', handler: gitlab, seedTtl: PROFILE_TTL },
   linkedin: { path: '/linkedin', handler: linkedin, seedTtl: PROFILE_TTL },
   spotify: { path: '/spotify', handler: spotify, seedTtl: 0 },
   steam: { path: '/steam', handler: steam, seedTtl: STEAM_TTL },
+  projects: { path: '/projects', handler: projects, seedTtl: PROJECTS_RESPONSE_TTL },
 };
 
 interface Card {

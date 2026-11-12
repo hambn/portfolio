@@ -204,5 +204,23 @@ test('projects never takes its accounts from the request', async () => {
   const services = testServices({ fetch: upstream(calls) });
   await handleRequest(request('/projects?username=someone-else'), services);
   assert.ok(calls.every((url) => !url.includes('someone-else')));
-  assert.equal((await handleRequest(request('/github/repos'), services)).status, 404);
+});
+
+test('projects can be narrowed to some hosts, cached apart from the full answer', async () => {
+  const services = testServices({ now: () => 1_000_000, fetch: upstream([]) });
+  const full = (await read(services)).body;
+  assert.ok(full.sections.some((section) => section.host === 'github'));
+  const none = (await (
+    await handleRequest(request('/projects?host=codeberg'), services)
+  ).json()) as Body;
+  assert.deepEqual(none.sections, []);
+  // The featured cards are content and come back whole either way.
+  assert.equal(none.featured.length, full.featured.length);
+  const only = (await (
+    await handleRequest(request('/projects?host=github,bogus'), services)
+  ).json()) as Body;
+  assert.deepEqual(
+    only.sections.map((section) => section.host),
+    ['github'],
+  );
 });

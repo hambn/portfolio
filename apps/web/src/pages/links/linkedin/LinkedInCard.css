@@ -54,14 +54,6 @@
 [data-theme='light'] .li-wordmark {
   color: var(--li-blue);
 }
-.li-hdr-btn {
-  color: var(--li-muted);
-}
-.li-hdr-btn:hover {
-  color: var(--li-blue);
-  background: var(--li-hover);
-}
-
 /* Banner ------------------------------------------------------------------ */
 .li-banner {
   aspect-ratio: 4 / 1;

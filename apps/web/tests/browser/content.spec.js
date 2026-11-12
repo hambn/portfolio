@@ -4,9 +4,27 @@ const pixel = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=',
   'base64',
 );
+// The cards and the projects page ask a provider themselves when the API has
+// nothing for them. No test may reach the real ones: each is refused here, and
+// the tests about that fallback route the hosts they need over this.
+const PROVIDERS = [
+  'https://api.github.com/**',
+  'https://pinned.berrysauce.dev/**',
+  'https://github-contributions-api.jogruber.de/**',
+  'https://gitlab.com/**',
+  'https://codeberg.org/**',
+  'https://api.lanyard.rest/**',
+  'wss://api.lanyard.rest/**',
+];
+test.beforeEach(async ({ page }) => {
+  for (const pattern of PROVIDERS.filter((url) => url.startsWith('https')))
+    await page.route(pattern, (route) => route.abort());
+});
+
 test('rendered provider content and presence use only the configured host', async ({ page }) => {
   const external = [];
   const requested = [];
+  const siteRequests = [];
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
   page.on('request', (request) => {
@@ -86,6 +104,10 @@ test('rendered provider content and presence use only the configured host', asyn
       '/api/github': { login: 'hambn', avatar_url: '/api/media/github/test', name: 'Tester' },
       '/api/gitlab': [{ username: 'ham_bn', avatar_url: '/api/media/gitlab/test', name: 'Tester' }],
       '/api/github/contributions': { contributions: [{ date: '2026-09-17', count: 1, level: 1 }] },
+      '/api/gitlab/contributions': {
+        total: { lastYear: 7 },
+        contributions: [{ date: '2026-09-17', count: 7, level: 1 }],
+      },
       '/api/projects': {
         updatedAt: '2026-01-01T00:00:00.000Z',
         featured: [
@@ -133,10 +155,40 @@ test('rendered provider content and presence use only the configured host', asyn
         ],
       },
     };
+    // The site-wide request: every asked-for card, as its own route answers it.
+    if (url.pathname === '/api/site') {
+      const paths = {
+        githubContributions: '/api/github/contributions',
+        gitlabContributions: '/api/gitlab/contributions',
+      };
+      const keys = (url.searchParams.get('include') || '').split(',').filter(Boolean);
+      siteRequests.push(keys);
+      return route.fulfill({
+        json: {
+          generatedAt: Date.now(),
+          cards: Object.fromEntries(
+            keys.map((key) => {
+              const data = responses[paths[key] || `/api/${key}`];
+              return [key, data ? { maxAge: 300, data } : { maxAge: 0, error: 'unavailable' }];
+            }),
+          ),
+        },
+      });
+    }
     return route.fulfill({ json: responses[url.pathname] || {} });
   });
   await page.goto('/links/');
   await expect(page.getByText('Telegram Tester', { exact: true })).toBeVisible();
+  // The links page asks once, for its cards and the projects listing together.
+  expect(siteRequests).toHaveLength(1);
+  expect(siteRequests[0]).toEqual(
+    expect.arrayContaining(['github', 'gitlabContributions', 'telegram', 'projects']),
+  );
+  // GitLab's graph is the account's real activity, from the API.
+  await expect(page.locator('[data-card="gl"] .cg-weeks')).toHaveAttribute(
+    'aria-label',
+    '7 contributions in the last year',
+  );
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   await expect
     .poll(() => requested.some((path) => path.startsWith('/api/media/spotify/')))
@@ -158,7 +210,7 @@ test('rendered provider content and presence use only the configured host', asyn
     .poll(() => requested.some((path) => path.startsWith('/api/media/github/')))
     .toBe(true);
   await page.goto('/projects/');
-  // Everything the page needs arrives in one request.
+  // Everything the page needs arrives in the site-wide request.
   await expect(page.getByRole('link', { name: 'listed-repo' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'github', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'gitlab', exact: true })).toHaveCount(0);
@@ -166,7 +218,9 @@ test('rendered provider content and presence use only the configured host', asyn
   // Content decides the featured cards; the API answer cannot add one.
   await expect(page.getByText('stale-featured')).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'featured', exact: true })).toBeVisible();
-  expect(requested.filter((path) => path === '/api/projects')).toHaveLength(1);
+  expect(requested.filter((path) => path === '/api/projects')).toHaveLength(0);
+  // Once per page load (links, home, projects), never once per page section.
+  expect(siteRequests.filter((keys) => keys.includes('projects'))).toHaveLength(3);
   expect(requested.filter((path) => path.startsWith('/api/git'))).toEqual(
     requested.filter((path) => path.startsWith('/api/git') && !path.includes('repos')),
   );
@@ -233,7 +287,7 @@ test('a card with malformed provider data is hidden without blanking the page', 
     route.fulfill({ status: 503, json: { error: 'unavailable' } }),
   );
   await page.route('**/api/**', (route) => {
-    if (new URL(route.request().url()).pathname === '/api/links')
+    if (new URL(route.request().url()).pathname === '/api/site')
       return route.fulfill({
         json: { cards: { steam: { maxAge: 300, data: { recentActivity: 'not a list' } } } },
       });
@@ -242,7 +296,7 @@ test('a card with malformed provider data is hidden without blanking the page', 
   await page.goto('/links/');
   await expect(page.getByRole('heading', { name: 'links', level: 1 })).toBeVisible();
   await expect(page.locator('.em-style-1')).toBeVisible();
-  await expect(page.getByRole('navigation')).toBeVisible();
+  await expect(page.getByRole('navigation').first()).toBeVisible();
   expect(errors).toEqual([]);
 });
 
@@ -296,8 +350,8 @@ test('cards collapsed on a previous visit do not open and shut on load', async (
   expect(await page.evaluate(() => window.shift)).toBeLessThan(0.01);
 
   // Expanding one afterwards still opens it.
-  await page.locator('[data-card="gh"]').locator('xpath=..').getByTitle('Expand').click();
-  await expect(page.locator('[data-card="gh"]')).toBeVisible();
+  await page.locator('.sc-body[data-card="gh"]').locator('xpath=..').getByTitle('Expand').click();
+  await expect(page.locator('.sc-body[data-card="gh"]')).toBeVisible();
 });
 
 test('a host the API cannot reach keeps the section this browser saw last', async ({ page }) => {
@@ -338,7 +392,16 @@ test('a host the API cannot reach keeps the section this browser saw last', asyn
     },
   ];
   let served = 0;
-  await page.route('**/api/projects', (route) => route.fulfill({ json: answers[served++] }));
+  await page.route('**/api/site**', (route) => {
+    const keys = new URL(route.request().url()).searchParams.get('include') || '';
+    return route.fulfill({
+      json: {
+        cards: keys.split(',').includes('projects')
+          ? { projects: { maxAge: 300, data: answers[served++] } }
+          : {},
+      },
+    });
+  });
 
   await page.goto('/projects/');
   await expect(page.getByRole('link', { name: 'gh-repo' })).toBeVisible();
@@ -356,4 +419,78 @@ test('a host the API cannot reach keeps the section this browser saw last', asyn
   await expect(page.getByRole('link', { name: 'gl-repo' })).toBeVisible();
   await expect(page.getByText('github is not answering right now')).toBeVisible();
   await expect(page.getByRole('link', { name: 'gh-repo' })).toHaveCount(0);
+});
+
+test('with the API down, cards and projects ask the providers themselves', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.routeWebSocket('**/api/discord/socket', (socket) => socket.close());
+  await page.routeWebSocket('wss://api.lanyard.rest/socket', () => {});
+  await page.route('**/api/**', (route) => route.abort());
+  const json = (body) => (route) => route.fulfill({ json: body });
+  await page.route(
+    'https://api.github.com/users/hambn',
+    json({
+      login: 'hambn',
+      name: 'Direct Tester',
+      avatar_url: 'https://avatars.githubusercontent.com/u/1',
+      followers: 3,
+      following: 4,
+      public_repos: 1,
+    }),
+  );
+  await page.route(
+    'https://api.github.com/users/hambn/repos**',
+    json([
+      {
+        name: 'direct-repo',
+        full_name: 'hambn/direct-repo',
+        html_url: 'https://github.com/hambn/direct-repo',
+        owner: { login: 'hambn' },
+        language: 'Go',
+        stargazers_count: 2,
+      },
+    ]),
+  );
+  await page.route(
+    'https://github-contributions-api.jogruber.de/**',
+    json({ total: { lastYear: 5 }, contributions: [{ date: '2026-09-17', count: 5, level: 2 }] }),
+  );
+  await page.route(
+    'https://gitlab.com/api/v4/users?username=ham_bn',
+    json([{ username: 'ham_bn', name: 'GitLab Direct', avatar_url: null }]),
+  );
+  await page.route('https://gitlab.com/api/v4/users/ham_bn/projects**', json([]));
+  await page.route(
+    'https://api.lanyard.rest/v1/users/**',
+    json({
+      success: true,
+      data: {
+        discord_user: { id: '1', username: 'direct_discord', global_name: 'Discord Direct' },
+        discord_status: 'idle',
+        activities: [],
+      },
+    }),
+  );
+  await page.route('https://avatars.githubusercontent.com/**', (route) => route.abort());
+
+  await page.goto('/links/');
+  const github = page.locator('[data-card="gh"]');
+  await expect(github.getByText('Direct Tester')).toBeVisible();
+  // The pinned service is refused, so the most starred repositories stand in.
+  await expect(github.getByRole('link', { name: 'direct-repo' })).toBeVisible();
+  await expect(github.getByText('5 contributions in the last year')).toBeVisible();
+  await expect(page.locator('[data-card="gl"]').getByText('GitLab Direct')).toBeVisible();
+  // GitLab's calendar cannot be read cross-origin: no graph rather than a made-up one.
+  await expect(page.locator('[data-card="gl"] .cg')).toHaveCount(0);
+  await expect(page.locator('[data-card="dc"]').getByText('Discord Direct')).toBeVisible();
+  // Cards with no public source of their own say so and keep their links.
+  await expect(
+    page.getByRole('region', { name: 'LinkedIn profile' }).getByRole('status'),
+  ).toHaveText('Profile unavailable. You can still open LinkedIn.');
+
+  await page.goto('/projects/');
+  await expect(page.getByRole('link', { name: 'direct-repo' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'github', exact: true })).toBeVisible();
+  expect(errors).toEqual([]);
 });

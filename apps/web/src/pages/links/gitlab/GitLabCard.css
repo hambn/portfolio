@@ -11,17 +11,27 @@
     U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
     U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
-.gl-style-1 {
+.gl-card {
   --gl-bg: #1f1e24;
-  --gl-bgHead: #25212f;
+  --gl-bg-head: #25212f;
   --gl-border: #45424d;
-  --gl-div: #3b3844;
+  --gl-rule: #3b3844;
   --gl-orange: #fc6d26;
   --gl-text: #ececef;
   --gl-muted: #bfbcc8;
   --gl-faint: #aaa6b5;
   --gl-action: #7b58cf;
   --gl-accent: #cbb6ff;
+  /* The activity calendar, in GitLab's own purples. */
+  --cg-level-0: #333238;
+  --cg-level-1: #453771;
+  --cg-level-2: #6550a0;
+  --cg-level-3: #9475db;
+  --cg-level-4: #cbb6ff;
+  --cg-rule: var(--gl-rule);
+  --cg-faint: var(--gl-faint);
+  --cg-ring: var(--gl-muted);
+  background: var(--gl-bg);
   font-family:
     'GitLab Sans',
     -apple-system,
@@ -31,137 +41,130 @@
   color: var(--gl-text);
   color-scheme: dark;
 }
-[data-theme='light'] .gl-style-1 {
+[data-theme='light'] .gl-card {
   --gl-bg: #ffffff;
-  --gl-bgHead: #f5f1fc;
+  --gl-bg-head: #f5f1fc;
   --gl-border: #dcdcde;
-  --gl-div: #ececef;
-  --gl-orange: #fc6d26;
+  --gl-rule: #ececef;
   --gl-text: #333238;
   --gl-muted: #626168;
   --gl-faint: #626168;
   --gl-action: #6b4fbb;
   --gl-accent: #5943a0;
+  --cg-level-0: #ececef;
+  --cg-level-1: #e1d8f9;
+  --cg-level-2: #c0adf0;
+  --cg-level-3: #9475db;
+  --cg-level-4: #5943a0;
   color-scheme: light;
 }
-.gl-style-1 {
-  --gl-level-0: #333238;
-  --gl-level-1: #453771;
-  --gl-level-2: #6550a0;
-  --gl-level-3: #9475db;
-  --gl-level-4: #cbb6ff;
+.gl-card :is(a, button):focus-visible {
+  outline: 2px solid var(--gl-text);
+  outline-offset: 3px;
 }
-[data-theme='light'] .gl-style-1 {
-  --gl-level-0: #ececef;
-  --gl-level-1: #e1d8f9;
-  --gl-level-2: #c0adf0;
-  --gl-level-3: #9475db;
-  --gl-level-4: #5943a0;
+
+/* ── Header ── */
+.gl-head {
+  background: var(--gl-bg-head);
+  border-bottom: 1px solid var(--gl-border);
 }
-.gl-style-17 {
+.gl-head.is-collapsed {
+  border-bottom: none;
+}
+.gl-mark {
+  color: var(--gl-orange);
+}
+/* Wordmark — GitLab Sans semibold, matching gitlab.com's header. */
+.gl-card .gl-wordmark {
+  color: var(--gl-text);
+  font-weight: 600;
+  letter-spacing: -0.3px;
+}
+.gl-loading {
+  font-size: 11px;
+  color: var(--gl-faint);
+}
+
+/* ── Profile ── */
+.gl-profile {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 24px 20px;
+}
+.gl-avatar-link {
   flex-shrink: 0;
+  border-radius: 50%;
 }
-.gl-style-16 {
+.gl-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  border: 2px solid var(--gl-border);
+  border-radius: 50%;
+  background: var(--gl-bg-head);
+  color: var(--gl-orange);
+  object-fit: cover;
+}
+.gl-ident {
+  flex: 1;
+  min-width: 0;
+}
+.gl-profile-label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--gl-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+.gl-name {
+  display: block;
+  margin-bottom: 4px;
+  overflow: hidden;
+  color: var(--gl-text);
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gl-handle {
+  color: var(--gl-muted);
+  font-size: 13px;
+}
+.gl-open {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
   padding: 7px 14px;
-  border-radius: 6px;
   border: 1px solid var(--gl-action);
+  border-radius: 6px;
+  background: var(--gl-action);
   color: #fff;
   font-size: 12px;
   font-weight: 700;
   text-decoration: none;
-  transition: background 0.15s;
+  transition: filter 0.15s;
 }
-.gl-style-15 {
-  font-size: 12px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: normal;
+.gl-open:hover {
+  filter: brightness(1.1);
 }
-.gl-style-14 {
-  font-size: 13px;
-  margin-bottom: 3px;
-}
-.gl-style-13 {
-  display: block;
-  font-weight: 600;
-  font-size: 21px;
-  text-decoration: none;
-  line-height: 1.25;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  margin-bottom: 4px;
-}
-.gl-style-12 {
-  flex: 1;
-  min-width: 0;
-}
-.gl-style-11 {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: var(--gl-bgHead);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.gl-open svg {
   flex-shrink: 0;
-}
-.gl-style-10 {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  display: block;
-  object-fit: cover;
-}
-.gl-style-9 {
-  flex-shrink: 0;
-}
-.gl-style-8 {
-  padding: 24px 20px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-.gl-style-6 {
-  font-size: 11px;
-}
-.gl-hdr-btn:hover {
-  color: var(--gl-text);
-  background: var(--gl-div);
 }
 
-.gl-profile-label {
-  display: block;
-  color: var(--gl-muted);
-  font-size: 11px;
-  font-weight: 600;
-  margin-bottom: 5px;
-}
-.gl-style-1 :is(a, button):focus-visible {
-  outline: 2px solid var(--gl-text);
-  outline-offset: 3px;
-}
 @container (max-width: 480px) {
-  .gl-style-8 {
+  .gl-profile {
     flex-wrap: wrap;
     gap: 12px;
     padding: 18px 16px;
   }
-  .gl-style-16 {
+  .gl-open {
     margin-left: auto;
   }
-}
-
-.gl-style-16:hover {
-  filter: brightness(1.1);
-}
-
-/* Wordmark — GitLab Sans semibold, matching gitlab.com's header. */
-.gl-style-1 .gl-style-5 {
-  font-weight: 600;
-  letter-spacing: -0.3px;
 }

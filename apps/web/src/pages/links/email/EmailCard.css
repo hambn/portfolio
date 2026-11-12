@@ -42,13 +42,6 @@
   outline: 2px solid var(--em-blue);
   outline-offset: 2px;
 }
-.em-hdr-btn {
-  color: var(--em-muted);
-}
-.em-hdr-btn:hover {
-  color: var(--em-text);
-  background: var(--em-input);
-}
 .em-style-15 {
   font-size: 12px;
   text-decoration: none;

@@ -44,12 +44,7 @@ function cardList(config) {
     config.discord && {
       id: 'dc',
       label: 'Discord',
-      node: (
-        <DiscordCard
-          userId={config.discord.userId}
-          apiEndpoint={config.discord.apiEndpoint || apiUrl('/discord')}
-        />
-      ),
+      node: <DiscordCard userId={config.discord.userId} apiEndpoint={config.discord.apiEndpoint} />,
     },
     config.telegram && {
       id: 'tg',
@@ -71,12 +66,24 @@ function cardList(config) {
     config.github && {
       id: 'gh',
       label: 'GitHub',
-      node: <GitHubCard username={config.github.username} url={config.github.url} />,
+      node: (
+        <GitHubCard
+          username={config.github.username}
+          url={config.github.url}
+          api={Boolean(config.github.apiEndpoint)}
+        />
+      ),
     },
     config.gitlab && {
       id: 'gl',
       label: 'GitLab',
-      node: <GitLabCard username={config.gitlab.username} url={config.gitlab.url} />,
+      node: (
+        <GitLabCard
+          username={config.gitlab.username}
+          url={config.gitlab.url}
+          api={Boolean(config.gitlab.apiEndpoint)}
+        />
+      ),
     },
     config.linkedin && {
       id: 'li',

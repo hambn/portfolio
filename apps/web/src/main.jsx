@@ -8,6 +8,9 @@ import './styles/index.css';
 import App from './App.jsx';
 import { pages, preloadPage } from './pages/index.js';
 import { currentRoute } from './lib/router.js';
+import { installMediaFallback, upstreamSource } from './lib/api.js';
+
+installMediaFallback();
 
 // Round the square avatar into a circular tab favicon. It redraws whatever the
 // document already declares as its icon — written by prerender.mjs from
@@ -29,6 +32,12 @@ function roundFavicon(size) {
     ctx.drawImage(img, 0, 0, size, size);
     link.type = 'image/png';
     link.href = canvas.toDataURL('image/png');
+  };
+  // The declared icon goes through the API's media proxy; with the API down,
+  // draw from the provider's copy instead.
+  img.onerror = () => {
+    const source = upstreamSource(img.src);
+    if (source) img.src = source;
   };
   img.src = link.href;
 }

@@ -1,25 +1,3 @@
-.sc-hdr-btn {
-  opacity: 0.55;
-  transition:
-    opacity 0.15s,
-    color 0.15s,
-    background-color 0.15s,
-    transform 0.1s;
-  background: none;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 7px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-family: inherit;
-  white-space: nowrap;
-}
-.sc-hdr-btn:hover {
-  opacity: 1;
-}
 .sc-body {
   overflow: hidden;
   transition:
@@ -85,15 +63,135 @@ html[data-collapsed~='li'] .sc-body.open[data-card='li'] {
     height: 0;
   }
 }
-/* ContribGraph day cell; --cg-ring is the card's muted colour. */
-.cg-day:hover {
+/* ── ContribGraph ──
+ * Sized in container units of the graph itself, so the cells, their gaps and
+ * the labels shrink together on a narrow card. Each card sets the colours:
+ * --cg-level-0…4 for the cells, --cg-rule for the frame, --cg-faint for the
+ * labels, --cg-ring for the hovered cell and --cg-accent for the help link. */
+.cg {
+  container-type: inline-size;
+}
+.cg--boxed {
+  padding: 14px 16px 10px;
+  border: 1px solid var(--cg-rule);
+  border-radius: 6px;
+}
+.cg--band {
+  padding: 14px 20px 16px;
+  border-top: 1px solid var(--cg-rule);
+}
+.cg-loading {
+  font-size: 12px;
+  color: var(--cg-faint);
+}
+.cg-section {
+  margin-top: 24px;
+}
+.cg-heading {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+.cg-months,
+.cg-body {
+  --cg-gap: clamp(1.5px, 0.42cqw, 3px);
+  --cg-dayw: clamp(18px, 4.6cqw, 30px);
+  --cg-label: clamp(8px, 1.9cqw, 12px);
+}
+.cg-months {
+  position: relative;
+  height: calc(var(--cg-label) * 1.5);
+  margin-left: calc(var(--cg-dayw) + var(--cg-gap));
+  font-size: var(--cg-label);
+  line-height: 1;
+}
+.cg-months span {
+  position: absolute;
+  white-space: nowrap;
+}
+.cg-body {
+  display: flex;
+  gap: var(--cg-gap);
+}
+.cg-days {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cg-gap);
+  width: var(--cg-dayw);
+  flex-shrink: 0;
+  font-size: var(--cg-label);
+  line-height: 1;
+}
+.cg-days span {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+.cg-weeks {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: var(--cg-gap);
+}
+.cg-week {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--cg-gap);
+}
+.cg-day {
+  display: block;
+  aspect-ratio: 1;
+  border-radius: 2px;
+  outline: 1px solid color-mix(in srgb, currentColor 6%, transparent);
+  outline-offset: -1px;
+}
+.cg-day--none {
+  outline: none;
+}
+.cg-l0 {
+  background: var(--cg-level-0);
+}
+.cg-l1 {
+  background: var(--cg-level-1);
+}
+.cg-l2 {
+  background: var(--cg-level-2);
+}
+.cg-l3 {
+  background: var(--cg-level-3);
+}
+.cg-l4 {
+  background: var(--cg-level-4);
+}
+.cg-weeks .cg-day:not(.cg-day--none):hover {
   box-shadow: 0 0 0 1.5px var(--cg-ring);
 }
-@media (max-width: 540px) {
-  .sc-hdr-label {
-    display: none;
-  }
-  .sc-hdr-btn {
-    padding: 4px 5px;
-  }
+.cg-foot {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 18px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--cg-faint);
+}
+.cg-note {
+  margin-right: auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cg-foot .cg-note a:hover {
+  color: var(--cg-accent, inherit);
+}
+.cg-legend {
+  display: flex;
+  gap: 3px;
+}
+.cg-legend .cg-day {
+  width: 10px;
 }

@@ -29,8 +29,13 @@ test('routing, CORS, HEAD, OPTIONS and methods have consistent responses', async
   // The root lists what the API answers, under the prefix it was asked with.
   const index = (await (await handleRequest(request('/api/'), services)).json()) as {
     routes: string[];
+    index: { path: string; about?: string; query?: Record<string, string> }[];
   };
   assert.ok(index.routes.includes('/api/projects') && index.routes.includes('/api/links'));
+  // Every exact route is described, with the options it takes.
+  for (const path of index.routes.filter((route) => route !== '/api/health'))
+    assert.ok(index.index.find((entry) => entry.path === path)?.about, `${path} is described`);
+  assert.ok(index.index.find((entry) => entry.path === '/api/github/repos')?.query?.sort);
 });
 
 test('media cache hits, expiration, version invalidation, HEAD and local URL rewriting', async () => {
