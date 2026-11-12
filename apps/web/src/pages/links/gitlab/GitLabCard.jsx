@@ -1,198 +1,125 @@
-import { apiUrl, mediaUrl, sizedMedia } from '../../../lib/api.js';
+// GitLab card. With `apiEndpoint` set in links.json the profile and the year's
+// activity come from this site's API; without it, or when the API is down, the
+// visitor's browser asks gitlab.com for the profile itself. GitLab's calendar
+// cannot be read cross-origin, so the activity graph needs the API and is
+// simply left out without it.
+import { apiUrl, cardImage } from '../../../lib/api.js';
 import './GitLabCard.css';
-import React, { useState } from 'react';
+import React, { useMemo } from 'react';
+import { GITLAB_ORIGIN, gitlabPaths } from '@portfolio/shared/gitlab';
 import { useCollapsed } from '../../../hooks/useCollapsed.js';
 import { useCopy } from '../../../hooks/useCopy.js';
-import { usePolledJSON } from '../../../hooks/usePolledJSON.js';
+import { useCardSource } from '../../../hooks/useCardSource.js';
 import { useCardFeed } from '../LinksFeed.jsx';
-import { ContribGraph } from '../../../components/card/ContribGraph.jsx';
+import { ContribGraph, useContributions } from '../../../components/card/ContribGraph.jsx';
 import { HeaderButtons } from '../../../components/card/HeaderButtons.jsx';
 import { BRAND_ICON } from '../brandIcons.js';
-const GL = {
-  bg: 'var(--gl-bg)',
-  bgHead: 'var(--gl-bgHead)',
-  border: 'var(--gl-border)',
-  div: 'var(--gl-div)',
-  orange: 'var(--gl-orange)',
-  text: 'var(--gl-text)',
-  muted: 'var(--gl-muted)',
-  faint: 'var(--gl-faint)',
-  action: 'var(--gl-action)',
-  accent: 'var(--gl-accent)',
-};
-const GL_LEVELS = Array.from({ length: 5 }, (_, i) => `var(--gl-level-${i})`);
-const GL_GRAPH_THEME = { div: GL.div, faint: GL.faint, muted: GL.muted };
-const GL_ICON = BRAND_ICON.gl;
-export const GitLabCard = React.memo(function GitLabCard({ username, url }) {
-  const [profile, setProfile] = useState(null);
+
+const AVATAR = 52;
+const ext = { target: '_blank', rel: 'noopener noreferrer' };
+
+const Mark = ({ size, className }) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    width={size}
+    height={size}
+    className={className}
+    aria-hidden="true"
+  >
+    <path d={BRAND_ICON.gl} />
+  </svg>
+);
+
+// Both sources answer with GitLab's own one-element user list.
+const hasUser = (list) => Array.isArray(list) && Boolean(list[0]?.username);
+
+export const GitLabCard = React.memo(function GitLabCard({ username, url, api = false }) {
   const [collapsed, toggleCollapse] = useCollapsed('gl_card_collapsed');
-  const href = url || `https://gitlab.com/${username}`;
+  const href = url || `${GITLAB_ORIGIN}/${username}`;
   const [copied, copyLink] = useCopy(href);
-  const { loading } = usePolledJSON(
-    username && !collapsed ? apiUrl(`/gitlab?username=${encodeURIComponent(username)}`) : null,
-    0,
-    (d) => setProfile(Array.isArray(d) ? d[0] : null),
-    useCardFeed('gitlab'),
+  const direct = useMemo(
+    () =>
+      username
+        ? async (signal) => {
+            const response = await fetch(`${GITLAB_ORIGIN}${gitlabPaths.users(username)}`, {
+              signal,
+            });
+            if (!response.ok) throw new Error(`gitlab ${response.status}`);
+            return response.json();
+          }
+        : null,
+    [username],
   );
+  const { data, origin, loading } = useCardSource({
+    api: api && username ? apiUrl(`/gitlab?username=${encodeURIComponent(username)}`) : null,
+    seed: useCardFeed('gitlab'),
+    direct,
+    enabled: !collapsed,
+    cacheKey: username ? `gl:direct:v1:${username}` : null,
+    valid: hasUser,
+  });
+  const profile = data?.[0] || null;
+  const activity = useContributions({ host: 'gitlab', username, api, enabled: !collapsed });
+
   return (
-    <div
-      style={{
-        background: GL.bg,
-      }}
-      className="gl-style-1 link-card"
-    >
-      {/* Header */}
-      <div
-        style={{
-          background: GL.bgHead,
-          borderBottom: collapsed ? 'none' : `1px solid ${GL.border}`,
-        }}
-        className="gl-style-2 link-card-header"
-      >
-        <a
-          href={href}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="gl-style-3 link-card-brand"
-        >
-          <svg viewBox="0 0 24 24" fill={GL.orange} width={24} height={24} className="gl-style-4">
-            <path d={GL_ICON} />
-          </svg>
-          <span
-            style={{
-              color: GL.text,
-            }}
-            className="gl-style-5 link-card-title"
-          >
-            GitLab
-          </span>
+    <div className="gl-card link-card">
+      <div className={`gl-head link-card-header${collapsed ? ' is-collapsed' : ''}`}>
+        <a href={href} {...ext} className="link-card-brand">
+          <Mark size={24} className="gl-mark" />
+          <span className="gl-wordmark link-card-title">GitLab</span>
         </a>
-        {loading && !profile && (
-          <span
-            style={{
-              color: GL.faint,
-            }}
-            className="gl-style-6"
-          >
-            loading…
-          </span>
-        )}
-        <div className="gl-style-7 link-card-spacer" />
+        {loading && !profile && <span className="gl-loading">loading…</span>}
+        <div className="link-card-spacer" />
         <div className="link-card-actions">
           <HeaderButtons
-            btnClass="sc-hdr-btn gl-hdr-btn link-card-hdr-btn"
-            labelClass="sc-hdr-label"
-            accent={GL.accent}
+            accent="var(--gl-accent)"
             copied={copied}
             onCopy={copyLink}
-            copyLabel="copy profile link"
             copyTitle="Copy GitLab profile link"
             href={href}
-            openLabel="open on gitlab"
             openTitle="Open on GitLab"
             collapsed={collapsed}
             onToggle={toggleCollapse}
           />
         </div>
       </div>
-      {/* Body */}
       <div
         data-card="gl"
         className={`sc-body ${collapsed ? 'closed' : 'open'}`}
         inert={collapsed ? '' : undefined}
       >
-        <div
-          style={{
-            borderBottom: `1px solid ${GL.div}`,
-          }}
-          className="gl-style-8"
-        >
+        <div className="gl-profile">
           {profile?.avatar_url ? (
-            <a href={href} target="_blank" rel="noopener noreferrer" className="gl-style-9">
+            <a href={href} {...ext} className="gl-avatar-link">
               <img
-                src={sizedMedia(mediaUrl(profile.avatar_url), 52)}
+                src={cardImage(profile.avatar_url, AVATAR, origin === 'direct')}
                 alt={username}
-                width={52}
-                height={52}
+                width={AVATAR}
+                height={AVATAR}
                 loading="lazy"
                 decoding="async"
-                style={{
-                  border: `2px solid ${GL.border}`,
-                }}
-                className="gl-style-10"
+                className="gl-avatar"
               />
             </a>
           ) : (
-            <div
-              style={{
-                border: `2px solid ${GL.border}`,
-              }}
-              className="gl-style-11"
-            >
-              <svg viewBox="0 0 24 24" fill={GL.orange} width={26} height={26}>
-                <path d={GL_ICON} />
-              </svg>
-            </div>
+            <span className="gl-avatar">
+              <Mark size={26} />
+            </span>
           )}
-          <div className="gl-style-12">
+          <div className="gl-ident">
             <span className="gl-profile-label">Public profile</span>
-            <a
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                color: GL.text,
-              }}
-              className="gl-style-13"
-            >
+            <a href={href} {...ext} className="gl-name">
               {profile?.name || username}
             </a>
-            <div
-              style={{
-                color: GL.muted,
-              }}
-              className="gl-style-14"
-            >
-              @{profile?.username || username}
-            </div>
-            {profile?.bio && (
-              <div
-                style={{
-                  color: GL.muted,
-                }}
-                className="gl-style-15"
-              >
-                {profile.bio}
-              </div>
-            )}
+            <div className="gl-handle">@{profile?.username || username}</div>
           </div>
-          <a
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              background: GL.action,
-            }}
-            className="gl-style-16"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              width={13}
-              height={13}
-              className="gl-style-17"
-            >
-              <path d={GL_ICON} />
-            </svg>
+          <a href={href} {...ext} className="gl-open">
+            <Mark size={13} />
             <span>Profile</span>
           </a>
         </div>
-        <ContribGraph
-          username={username}
-          source="gitlab"
-          levels={GL_LEVELS}
-          theme={GL_GRAPH_THEME}
-        />
+        <ContribGraph data={activity.data} loading={activity.loading} />
       </div>
     </div>
   );

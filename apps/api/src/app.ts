@@ -1,7 +1,7 @@
 import type { Services } from './contracts.js';
 import { CORS, json, readBytes } from './lib/http.js';
 import { rewriteMedia } from '@portfolio/shared/media';
-import { allowedMethods, matchRoute, routePaths } from './routes.js';
+import { allowedMethods, matchRoute, routeIndex, routePaths } from './routes.js';
 
 // The only route that accepts a body accepts a small one; the cap lives here so
 // no handler can be reached with an unbounded upload behind it.
@@ -42,6 +42,8 @@ export async function handleRequest(request: Request, services: Services): Promi
       response = json({
         service: 'portfolio-api',
         routes: ['/health', ...routePaths()].map((path) => `${prefix}${path}`),
+        // The same routes with what each answers and the options it takes.
+        index: routeIndex(prefix),
       });
     else {
       // Handlers build the GET representation so HEAD never poisons a cache entry.

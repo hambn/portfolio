@@ -1,11 +1,12 @@
 import { mediaUrl } from '../../../lib/api.js';
 import '../link-fonts.css';
 import './DiscordCard.css';
-// Uses the API profile endpoint and its live presence relay.
-import React, { useEffect, useState } from 'react';
+// Uses the API profile endpoint and its live presence relay, and Lanyard
+// itself when the API is not configured or cannot be reached.
+import React, { useEffect, useMemo, useState } from 'react';
 import { useCollapsed } from '../../../hooks/useCollapsed.js';
 import { useCopy } from '../../../hooks/useCopy.js';
-import { usePolledJSON } from '../../../hooks/usePolledJSON.js';
+import { useCardSource } from '../../../hooks/useCardSource.js';
 import { useCardFeed } from '../LinksFeed.jsx';
 import { useLanyardPresence } from './useLanyardPresence.js';
 import { HeaderButtons } from '../../../components/card/HeaderButtons.jsx';
@@ -133,10 +134,31 @@ function ActivityArtwork({ src, alt, isGame }) {
   );
 }
 
+// Lanyard's own REST answer, for when the API is not configured or is down.
+// It arrives in the same shape as a socket frame, which the card already reads.
+const lanyardDirect = (userId) => async (signal) => {
+  const response = await fetch(`https://api.lanyard.rest/v1/users/${encodeURIComponent(userId)}`, {
+    signal,
+  });
+  if (!response.ok) throw new Error(`lanyard ${response.status}`);
+  return (await response.json())?.data ?? null;
+};
+const hasUser = (data) => Boolean(data?.username || data?.discord_user?.username);
+
 export function DiscordCard({ userId, apiEndpoint }) {
-  const [apiData, setApiData] = useState(null);
   const [collapsed, toggleCollapse] = useCollapsed('dc_card_collapsed');
-  const lanyardData = useLanyardPresence(userId, !collapsed);
+  const lanyardData = useLanyardPresence(userId, !collapsed, Boolean(apiEndpoint));
+  const direct = useMemo(() => (userId ? lanyardDirect(userId) : null), [userId]);
+  // While the socket is delivering presence, polling would only repeat it; a
+  // dropped socket clears lanyardData and polling picks up again at once.
+  const { data: apiData, loading } = useCardSource({
+    api: apiEndpoint || null,
+    seed: useCardFeed('discord'),
+    direct,
+    enabled: !collapsed && !lanyardData,
+    intervalMs: 30000,
+    valid: hasUser,
+  });
 
   // Lanyard is the live source when its WebSocket is connected. Keep the
   // polled API as a fallback for the first paint and reconnect gaps. The two
@@ -174,17 +196,6 @@ export function DiscordCard({ userId, apiEndpoint }) {
     return () => window.clearInterval(id);
   }, [hasTimedActivity, collapsed]);
 
-  // While the socket is delivering presence, polling would only repeat it; a
-  // dropped socket clears lanyardData and polling picks up again at once.
-  const { loading } = usePolledJSON(
-    collapsed || lanyardData ? null : apiEndpoint,
-    30000,
-    (data) => {
-      if (data?.username) setApiData(data);
-    },
-    useCardFeed('discord'),
-  );
-
   return (
     <div
       className="dc-card link-card"
@@ -214,15 +225,11 @@ export function DiscordCard({ userId, apiEndpoint }) {
         <div className="link-card-spacer" />
         <div className="link-card-actions">
           <HeaderButtons
-            btnClass="sc-hdr-btn dc-hdr-btn link-card-hdr-btn"
-            labelClass="sc-hdr-label"
             accent={DC.blurpleLt}
             copied={copied}
             onCopy={copyLink}
-            copyLabel="copy profile link"
             copyTitle="Copy Discord profile link"
             href={profileUrl}
-            openLabel="open in discord"
             openTitle="Open in Discord"
             collapsed={collapsed}
             onToggle={toggleCollapse}

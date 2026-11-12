@@ -343,21 +343,16 @@ export const SteamCard = React.memo(function SteamCard({ handle, url, apiEndpoin
             loading…
           </span>
         )}
-        {error && <span className="st-style-32">error</span>}
 
         <div className="st-style-33 link-card-spacer" />
 
         <div className="link-card-actions">
           <HeaderButtons
-            btnClass="sc-hdr-btn st-hdr-btn link-card-hdr-btn"
-            labelClass="sc-hdr-label"
             accent={ST.blue}
             copied={copied}
             onCopy={copyLink}
-            copyLabel="copy profile link"
             copyTitle="Copy Steam profile link"
             href={profileUrl}
-            openLabel="open in steam"
             openTitle="Open in Steam"
             collapsed={collapsed}
             onToggle={toggleCollapse}
@@ -366,7 +361,16 @@ export const SteamCard = React.memo(function SteamCard({ handle, url, apiEndpoin
       </div>
 
       {/* ── Collapsible body ── */}
-      <div data-card="st" className={`sc-body ${collapsed ? 'closed' : 'open'}`}>
+      <div
+        data-card="st"
+        className={`sc-body ${collapsed ? 'closed' : 'open'}`}
+        inert={collapsed ? '' : undefined}
+      >
+        {!data && (loading || error) && (
+          <p className="st-status" role="status">
+            {loading ? 'Loading profile…' : 'Profile unavailable. You can still open Steam.'}
+          </p>
+        )}
         {/* ── Profile row — status lives here, next to name ── */}
         {data && (
           <div

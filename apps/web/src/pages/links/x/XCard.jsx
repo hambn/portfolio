@@ -83,15 +83,11 @@ function XProfile({ username, apiEndpoint }) {
         <div className="x-style-6 link-card-spacer" />
         <div className="link-card-actions">
           <HeaderButtons
-            btnClass="sc-hdr-btn x-hdr-btn link-card-hdr-btn"
-            labelClass="sc-hdr-label"
             accent="var(--x-blue)"
             copied={copied}
             onCopy={copyLink}
-            copyLabel="copy profile link"
             copyTitle="Copy X profile link"
             href={href}
-            openLabel="open on x"
             openTitle="Open on X"
             collapsed={collapsed}
             onToggle={toggleCollapse}

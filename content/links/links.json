@@ -14,11 +14,13 @@
   },
   "github": {
     "username": "hambn",
-    "url": "https://github.com/hambn"
+    "url": "https://github.com/hambn",
+    "apiEndpoint": "https://api.portfolio.hgh.dev/github"
   },
   "gitlab": {
     "username": "ham_bn",
-    "url": "https://gitlab.com/ham_bn"
+    "url": "https://gitlab.com/ham_bn",
+    "apiEndpoint": "https://api.portfolio.hgh.dev/gitlab"
   },
   "steam": {
     "handle": "ham_bn",

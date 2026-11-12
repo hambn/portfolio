@@ -44,7 +44,13 @@ description), `intro` (paragraphs on the home page) and `avatar`.
   vendor-verified sending identity) and `provider`.
 - `discord.userId`, `spotify.userId`, `github.username`, `gitlab.username`,
   `steam.handle`, and `handle` + `url` for `x`, `telegram` and `linkedin`.
-- `apiEndpoint` points a card at the API route that serves it.
+- `apiEndpoint` points a card at the API route that serves it. A card with one
+  reads the API and falls back to the provider itself if the API is down; the
+  GitHub and GitLab cards work without one too, asking the provider straight
+  from the visitor's browser (GitHub then has no status, achievements or
+  README, GitLab no activity graph: only the API can read those). Discord
+  falls back to Lanyard. Steam, X, Telegram, LinkedIn and Spotify have no
+  public source a browser can read, so without the API they show their links.
 
 The API only serves the accounts named here; a request cannot ask it for any
 other.

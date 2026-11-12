@@ -62,15 +62,11 @@ function TelegramProfile({ username, apiEndpoint }) {
         <div className="link-card-spacer" />
         <div className="link-card-actions">
           <HeaderButtons
-            btnClass="sc-hdr-btn tg-hdr-btn link-card-hdr-btn"
-            labelClass="sc-hdr-label"
             accent="var(--tg-accent)"
             copied={copied}
             onCopy={copyLink}
-            copyLabel="copy profile link"
             copyTitle="Copy Telegram profile link"
             href={href}
-            openLabel="open in telegram"
             openTitle="Open in Telegram"
             collapsed={collapsed}
             onToggle={toggleCollapse}

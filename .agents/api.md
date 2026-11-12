@@ -10,12 +10,17 @@ time, and background tasks. Keep platform globals in adapters and entrypoints.
   `projects/projects.json`; the configured username per provider and the
   projects page's featured list and accounts. Never take an identity from a
   query parameter.
-- `src/links.ts`: the batch `/links` route; calls the same provider handlers the
-  single-card routes use, so caches, TTLs, and cooldowns are shared.
+- `src/links.ts`: the batch `/site` route (`/links` is its older name); calls
+  the same handlers the single routes use, the projects listing included, so
+  caches, TTLs, and cooldowns are shared.
 - `src/providers/`: provider requests and response shaping. `projects.ts` is
   the projects page's one route: it lists GitHub, Codeberg and GitLab, fetches
   featured repositories the listings do not cover, and serves the result from a
-  persisted snapshot.
+  persisted snapshot. `github.ts` builds the GitHub card from four parts (REST
+  user, repositories, recent public pull requests, the signed-out profile page)
+  and keeps a failed part's previous value; `github-page.ts` reads the page's
+  status, achievements, pinned repositories, organisations and README with
+  parse5. Bump `PROFILE_VERSION` when the stored shape changes.
 - `src/mail/`: the contact form. `provider.ts` is the swappable vendor interface,
   `address.ts` validates a sender without any verification service, `quota.ts`
   holds the form token and the send limits, `contact.ts` is the route.
@@ -116,6 +121,11 @@ produce mixed-content URLs. Separate frontend/API hosting uses an absolute
 
 ## Routes and cache policy
 
+A route is not left out because the site does not use it yet: what a provider
+module can answer cheaply is exposed and listed in the index. The response
+cache keys on the path alone, so a route whose answer depends on a query option
+passes `withCache` a `cachePath` that includes it.
+
 All HTTP routes accept GET, HEAD and OPTIONS; `/contact` also accepts POST and
 is the only route that reads a request body. HEAD sends no body. Other methods
 return 405. Unknown routes return 404. Navigation links still point to providers;
@@ -123,9 +133,9 @@ images, data requests, and the live presence socket go through the API.
 
 | Route | Cache / behavior |
 | --- | --- |
-| `/` | Uncached index: the service name and every exact route |
+| `/` | Uncached index: the service name, every exact route, and `index`: each route with what it answers and the query options it takes (`about` in `routes.ts`) |
 | `/health` | Uncached liveness |
-| `/links` | Uncached aggregate of every card; `include=`/`exclude=` filter by card key |
+| `/site`, `/links` | Uncached aggregate of every card and the projects listing; `include=`/`exclude=` filter by key |
 | `/contact` | GET mints a single-use form token; POST sends one message |
 | `/spotify` | Uncached aggregate library and playback |
 | `/spotify?playback=1` | Uncached playback only; preserves rate-limit response and Retry-After |
@@ -137,14 +147,20 @@ images, data requests, and the live presence socket go through the API.
 | `/linkedin/avatar`, `/linkedin/banner`, `/x/avatar`, `/x/banner` | 1 hour, persisted snapshot image |
 | `/telegram` | Uncached JSON from hourly persisted snapshot; stale limit 7 days |
 | `/telegram/avatar` | 1 hour, persisted snapshot image |
-| `/github`, `/github/contributions` | 1 hour, configured GitHub account only; the last good answer is kept and served if GitHub fails |
-| `/projects` | Whole projects page in one response, from an hourly persisted snapshot; 5 minutes |
+| `/github`, `/github/contributions` | 1 hour, configured GitHub account only; the last good answer is kept and served if GitHub fails. `/github` also carries stars, languages, recent PRs and the profile page's extras (`page`). `/github/contributions?year=2025` answers one calendar year instead of the last 12 months |
+| `/github/repos` | 1 hour; the account's public repositories in the projects page's shape. `sort=interest\|stars\|pushed\|name`, `limit=1..100`, `forks=0`, `archived=0`, `language=<name>` |
+| `/projects` | Whole projects page in one response, from an hourly persisted snapshot; 5 minutes. `host=github,gitlab` keeps only those hosts' sections |
 | `/gitlab` | 1 hour, configured GitLab account only; the last good answer is kept and served if GitLab fails |
+| `/gitlab/contributions` | 1 hour; the account's activity calendar for the last 12 months, in the same shape as `/github/contributions`. GitLab does not serve it cross-origin, so the card can only draw it through this route |
 | `/media/<provider>/<asset>` | 24 hours, allowlisted raster image proxy |
 
-`/links` is what the links page requests on load. It fans out to the same handlers
-the single-card routes use, so each card hits its own cache and a batch call warms
-it. A card that fails carries `{ maxAge: 0, error }` and never fails the envelope;
+`/site` is the one request the site makes per visit (`apps/web/src/lib/siteFeed.js`):
+whichever page opens first asks for the link cards and the projects listing
+together. It fans out to the same handlers the single routes use, so each entry
+hits its own cache and a batch call warms it. The GitHub profile's shaping
+(stars, languages, recent pull requests) lives in `packages/shared/github.ts`,
+because the web app applies the same shaping when the card is configured to ask
+GitHub directly. A card that fails carries `{ maxAge: 0, error }` and never fails the envelope;
 a card that succeeds carries its route's `Cache-Control` max-age, which the client
 uses to decide whether an expanded card still needs its own request.
 

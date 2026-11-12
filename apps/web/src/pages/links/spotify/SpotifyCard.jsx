@@ -304,15 +304,11 @@ export const SpotifyCard = React.memo(function SpotifyCard({ userId, apiEndpoint
         </ExternalLink>
         <div className="link-card-actions">
           <HeaderButtons
-            btnClass="sc-hdr-btn sp-hdr-btn link-card-hdr-btn"
-            labelClass="sc-hdr-label"
             accent="#1ed760"
             copied={copied}
             onCopy={copy}
             copyTitle="Copy Spotify profile link"
-            copyLabel="copy profile link"
             href={href}
-            openLabel="open in spotify"
             openTitle="Open in Spotify"
             collapsed={collapsed}
             onToggle={toggleCollapse}

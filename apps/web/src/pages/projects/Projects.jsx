@@ -2,40 +2,26 @@
 // per git host.
 //
 // The featured cards render from content/projects/projects.json alone, so the
-// page is complete in the prerendered HTML. One request to the API's /projects
-// then fills in what the hosts know (stars, language, homepage) and the
-// per-host listings. The API answers from its own hourly snapshot, and the
-// last answer is kept in localStorage, so a slow or rate-limited git host is
-// never something a visitor waits on.
-import React, { useEffect, useState } from 'react';
+// page is complete in the prerendered HTML. The `projects` entry of the site's
+// one API request (lib/siteFeed.js) then fills in what the hosts know (stars,
+// language, homepage) and the per-host listings; the page makes a request of
+// its own only when no other page has already. The API answers from its own
+// hourly snapshot, and the last answer is kept in localStorage, so a slow or
+// rate-limited git host is never something a visitor waits on. When the API
+// itself cannot be reached, the visitor's browser lists the hosts directly
+// (directProjects.js), so the page still fills in.
+import React, { useEffect, useMemo, useState } from 'react';
 import { GIT_HOSTS, featuredProjects, projectAccounts } from '@portfolio/shared/projects';
 import { PortfolioData } from '../../lib/data.js';
-import { apiUrl } from '../../lib/api.js';
+import { ensureCards, useSiteCard } from '../../lib/siteFeed.js';
 import { storage } from '../../lib/storage.js';
 import Icon from '../../components/Icon.jsx';
 import './projects.css';
-
-const LANG_COLORS = {
-  JavaScript: '#f1e05a',
-  TypeScript: '#3178c6',
-  Python: '#3572A5',
-  Nix: '#7e7eff',
-  Go: '#00ADD8',
-  Shell: '#89e051',
-  Rust: '#dea584',
-  YAML: '#cb171e',
-  HTML: '#e34c26',
-  CSS: '#563d7c',
-  Dockerfile: '#384d54',
-  Lua: '#000080',
-  Ruby: '#701516',
-  'C++': '#f34b7d',
-  C: '#555555',
-  Makefile: '#427819',
-};
+import { loadProjectsDirect } from './directProjects.js';
+import { LANG_COLORS } from '../../lib/languages.js';
 
 const STORAGE_KEY = 'projects:v1';
-const TIMEOUT_MS = 10000;
+const DIRECT_TTL_MS = 3600 * 1000;
 
 const monthYear = new Intl.DateTimeFormat('en', {
   month: 'short',
@@ -184,58 +170,72 @@ export default function Projects() {
   // First render is content only, exactly what the prerendered HTML holds.
   const [content, setContent] = useState(() => PortfolioData.peek('projects'));
   const [answer, setAnswer] = useState(null);
-  // 'loading' until the API answers; 'failed' only matters when nothing is
-  // stored either, because otherwise the page already shows the last answer.
-  const [status, setStatus] = useState('loading');
-  const [attempt, setAttempt] = useState(0);
+  // Fresh from the visit's one API request when another page already made it;
+  // otherwise this asks for it now (during render, so the entry reads as
+  // pending rather than missing on the way in).
+  useMemo(() => ensureCards(['projects']), []);
+  const feed = useSiteCard('projects');
+  const body = feed.status === 'ready' ? feed.data : null;
+  const usable = Array.isArray(body?.featured) && Array.isArray(body?.sections);
+
+  // 'loading' | 'failed' | null: the git hosts asked directly, when the API
+  // had no listing to give.
+  const [direct, setDirect] = useState(null);
 
   useEffect(() => {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+    if (feed.status === 'pending') {
+      // The last answer this browser saw, shown while the new one is on its
+      // way. Read after hydration so the first render matches the HTML.
+      const last = stored();
+      if (last) setAnswer((current) => current || last);
+      return undefined;
+    }
+    if (usable) {
+      const data = merge(body, stored());
+      setDirect(null);
+      setAnswer(data);
+      // Only an answer that carries host data is worth keeping for next time.
+      if (data.updatedAt) storage.set(STORAGE_KEY, JSON.stringify(data));
+      return undefined;
+    }
+    // The API is unreachable. The featured cards and the account links come
+    // from content, and the git hosts are asked for the listings themselves,
+    // at most once an hour per browser (GitHub allows 60 anonymous requests).
     let alive = true;
-    (async () => {
-      try {
-        setStatus('loading');
-        // The last answer this browser saw, shown while the new one is on its
-        // way. Read after hydration so the first render matches the HTML.
-        const last = stored();
-        if (last) setAnswer((current) => current || last);
-        const response = await fetch(apiUrl('/projects'), { signal: ctrl.signal });
-        if (!response.ok) throw new Error(`projects ${response.status}`);
-        const body = await response.json();
+    const last = stored();
+    if (last) setAnswer((current) => current || last);
+    if (last && Date.now() - Date.parse(last.updatedAt) < DIRECT_TTL_MS) return undefined;
+    setDirect('loading');
+    PortfolioData.getProjects()
+      .then((loaded) => {
+        if (alive) setContent(loaded);
+        return loadProjectsDirect(loaded);
+      })
+      .then((data) => {
         if (!alive) return;
-        if (!Array.isArray(body?.featured) || !Array.isArray(body?.sections))
-          throw new Error('projects: unexpected response');
-        const data = merge(body, last);
-        setAnswer(data);
-        setStatus('ready');
-        // Only an answer that carries host data is worth keeping for next time.
-        if (data.updatedAt) storage.set(STORAGE_KEY, JSON.stringify(data));
-      } catch {
-        if (!alive) return;
-        setStatus('failed');
-        // Opened by in-app navigation with the API unreachable: the featured
-        // cards and the account links can still come from content.
-        PortfolioData.getProjects()
-          .then((value) => alive && setContent(value))
-          .catch(() => {});
-      } finally {
-        clearTimeout(timer);
-      }
-    })();
+        const merged = merge(data, stored());
+        setDirect(null);
+        setAnswer(merged);
+        storage.set(STORAGE_KEY, JSON.stringify(merged));
+      })
+      .catch(() => {
+        if (alive) setDirect('failed');
+      });
     return () => {
       alive = false;
-      clearTimeout(timer);
-      ctrl.abort();
     };
-  }, [attempt]);
+  }, [feed, body, usable]);
 
+  // 'failed' only matters when nothing is stored either, because otherwise
+  // the page already shows the last answer.
+  const status =
+    feed.status === 'pending' || direct === 'loading' ? 'loading' : usable ? 'ready' : 'failed';
   const shown = view(content, answer);
   const featured = shown?.featured || [];
   const sections = (shown?.sections || []).filter((section) => section.repos?.length);
   const accounts = projectAccounts(content);
   const pending = !sections.length && status === 'loading' && (accounts.length > 0 || !content);
-  const unreachable = !sections.length && status === 'failed';
+  const unreachable = !sections.length && direct === 'failed';
   // Hosts the API has not heard from yet, while others are already listed.
   const waiting = sections.length ? shown?.unavailable || [] : [];
 
@@ -322,7 +322,7 @@ export default function Projects() {
           <button
             type="button"
             className="error-state-retry"
-            onClick={() => setAttempt((value) => value + 1)}
+            onClick={() => ensureCards(['projects'], { force: true })}
           >
             retry
           </button>

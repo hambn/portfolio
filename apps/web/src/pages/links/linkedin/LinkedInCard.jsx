@@ -62,15 +62,11 @@ function LinkedInProfile({ username, apiEndpoint }) {
         <div className="link-card-spacer" />
         <div className="link-card-actions">
           <HeaderButtons
-            btnClass="sc-hdr-btn li-hdr-btn link-card-hdr-btn"
-            labelClass="sc-hdr-label"
             accent="#0a66c2"
             copied={copied}
             onCopy={copyLink}
-            copyLabel="copy profile link"
             copyTitle="Copy LinkedIn profile link"
             href={href}
-            openLabel="open on linkedin"
             openTitle="Open on LinkedIn"
             collapsed={collapsed}
             onToggle={toggleCollapse}

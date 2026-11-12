@@ -6,6 +6,7 @@ import { pages, preloadPage } from './pages/index.js';
 
 import { currentRoute, routeOf } from './lib/router.js';
 import { PortfolioData } from './lib/data.js';
+import { warmSite } from './lib/siteFeed.js';
 import { routeMetadata, updateDocumentMetadata, updateNotFoundMetadata } from './lib/metadata.js';
 
 // Unknown first segments render home, as they always have (404.html boots it).
@@ -44,6 +45,16 @@ export default function App({ initialRoute, initialPage }) {
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
+  // After the first paint, fetch what the other pages open with: the API's
+  // one answer for the links and projects pages, the blog index, and every
+  // route's code.
+  useEffect(() => {
+    warmSite({
+      content: PortfolioData,
+      preload: () => Object.keys(pages).forEach((name) => preloadPage(name)?.catch(() => {})),
+    });
   }, []);
 
   // Start downloading a route's code as soon as a link to it is pointed at,

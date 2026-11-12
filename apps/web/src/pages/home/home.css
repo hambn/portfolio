@@ -146,9 +146,7 @@
   background: var(--primary-solid);
   color: var(--primary-foreground);
   border-color: var(--primary-solid);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.18),
-    0 6px 18px -8px var(--primary);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 .btn-default:hover:not(:disabled) {
   background: var(--primary-hover);
@@ -165,8 +163,6 @@
 }
 .btn-outline {
   background: var(--glass);
-  -webkit-backdrop-filter: var(--blur-glass);
-  backdrop-filter: var(--blur-glass);
   box-shadow: var(--glass-edge);
   color: var(--foreground);
   border-color: var(--hairline-strong);
@@ -186,9 +182,6 @@
   height: 72px;
   border-radius: 50%;
   border: 1px solid var(--hairline-strong);
-  box-shadow:
-    0 0 0 4px var(--hairline),
-    0 10px 30px -12px var(--primary);
   background: var(--border);
   flex-shrink: 0;
 }

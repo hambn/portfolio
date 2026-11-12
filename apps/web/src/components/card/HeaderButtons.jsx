@@ -1,119 +1,87 @@
-// Copy / open / collapse button trio shared by every link card header.
+// Copy / open / collapse: the three controls every link card header ends
+// with. They look the same on every card (link-cards.css); what each one
+// does on a given card is spelled out in its tooltip and accessible name.
 import React from 'react';
 
-const CheckIcon = ({ color }) => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke={color}
-    strokeWidth="2.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    width="14"
-    height="14"
-  >
-    <polyline points="20 6 9 17 4 12" />
-  </svg>
-);
-const CopyIcon = () => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    width="14"
-    height="14"
-  >
-    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-  </svg>
-);
-const ExternalIcon = () => (
+const GLYPHS = {
+  check: <polyline points="20 6 9 17 4 12" />,
+  copy: (
+    <>
+      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </>
+  ),
+  open: (
+    <>
+      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+      <polyline points="15 3 21 3 21 9" />
+      <line x1="10" y1="14" x2="21" y2="3" />
+    </>
+  ),
+  chevron: <polyline points="6 9 12 15 18 9" />,
+};
+
+const Glyph = ({ name }) => (
   <svg
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
-    strokeWidth="2"
+    strokeWidth={name === 'copy' || name === 'open' ? 2 : 2.5}
     strokeLinecap="round"
     strokeLinejoin="round"
-    width="14"
-    height="14"
+    aria-hidden="true"
   >
-    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-    <polyline points="15 3 21 3 21 9" />
-    <line x1="10" y1="14" x2="21" y2="3" />
-  </svg>
-);
-const ChevronIcon = ({ collapsed }) => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    width="15"
-    height="15"
-    style={{
-      transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
-      transition: 'transform 0.25s',
-    }}
-  >
-    <polyline points="6 9 12 15 18 9" />
+    {GLYPHS[name]}
   </svg>
 );
 
-/** The copy / open / collapse button trio every card header shares.
- *  Omit `href` to skip the open button (e.g. EmailCard). */
+/** Omit `href` to leave out the open button. `accent` tints the copied state. */
 export function HeaderButtons({
-  btnClass,
-  labelClass,
   accent,
   copied,
   onCopy,
-  copyLabel = 'copy link',
   copyTitle = 'Copy link',
   href,
-  openLabel = 'open',
   openTitle = 'Open',
   collapsed,
   onToggle,
 }) {
   return (
     <>
-      <button type="button" onClick={onCopy} className={btnClass} title={copyTitle}>
-        {copied ? <CheckIcon color={accent} /> : <CopyIcon />}
-        <span className={labelClass} style={{ color: copied ? accent : 'inherit' }}>
-          {copied ? 'copied!' : copyLabel}
+      <button
+        type="button"
+        onClick={onCopy}
+        className={`link-card-hdr-btn${copied ? ' is-done' : ''}`}
+        style={accent ? { '--hdr-accent': accent } : undefined}
+        title={copyTitle}
+        aria-label={copyTitle}
+      >
+        <Glyph name={copied ? 'check' : 'copy'} />
+        <span className="link-card-hdr-label" aria-live="polite">
+          {copied ? 'copied' : 'copy'}
         </span>
       </button>
       {href && (
-        <button
-          type="button"
-          className={btnClass}
+        // A real link: a mailto: goes to the mail app, anything else to a new tab.
+        <a
+          className="link-card-hdr-btn"
+          href={href}
           title={openTitle}
-          onClick={() =>
-            // mailto: has no page to open in a tab — hand it to the OS handler.
-            href.startsWith('mailto:')
-              ? (window.location.href = href)
-              : window.open(href, '_blank', 'noopener,noreferrer')
-          }
+          aria-label={openTitle}
+          {...(href.startsWith('mailto:') ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
         >
-          <ExternalIcon />
-          <span className={labelClass}>{openLabel}</span>
-        </button>
+          <Glyph name="open" />
+          <span className="link-card-hdr-label">open</span>
+        </a>
       )}
       <button
         type="button"
         onClick={onToggle}
-        className={btnClass}
+        className="link-card-hdr-btn link-card-hdr-toggle"
         title={collapsed ? 'Expand' : 'Collapse'}
         aria-expanded={!collapsed}
-        style={{ padding: '4px 5px' }}
       >
-        <ChevronIcon collapsed={collapsed} />
+        <Glyph name="chevron" />
       </button>
     </>
   );

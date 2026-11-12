@@ -1,10 +1,14 @@
-// Lanyard presence over the API's WebSocket relay (INIT_STATE arrives on
-// subscribe). Held only while the card is expanded (`enabled`) and the tab is
-// in the foreground; a collapsed card or a backgrounded tab holds no socket.
+// Lanyard presence over a WebSocket (INIT_STATE arrives on subscribe). With
+// `relay` the socket is the API's relay, and Lanyard's own socket takes over
+// for as long as the relay cannot be reached; without it Lanyard is asked
+// directly. Held only while the card is expanded (`enabled`) and the tab is in
+// the foreground; a collapsed card or a backgrounded tab holds no socket.
 import { useEffect, useState } from 'react';
 import { socketUrl } from '../../../lib/api.js';
 
-export function useLanyardPresence(userId, enabled) {
+const LANYARD_SOCKET = 'wss://api.lanyard.rest/socket';
+
+export function useLanyardPresence(userId, enabled, relay = true) {
   const [data, setData] = useState(null);
   useEffect(() => {
     if (!userId || !enabled) return;
@@ -34,7 +38,8 @@ export function useLanyardPresence(userId, enabled) {
       // Offline, the 'online' listener below reconnects when it can succeed.
       if (cancelled || document.hidden || navigator.onLine === false) return;
       teardown();
-      const socket = new WebSocket(socketUrl());
+      // Every other attempt after a failure tries the other end.
+      const socket = new WebSocket(relay && failures % 2 === 0 ? socketUrl() : LANYARD_SOCKET);
       ws = socket;
       // A socket can remain CONNECTING after a network change.
       handshake = setTimeout(() => socket.close(), 15000);
@@ -66,8 +71,10 @@ export function useLanyardPresence(userId, enabled) {
         if (!cancelled) {
           setData(null);
           // 4 s, doubling to a minute, with jitter so many open tabs do not
-          // reconnect in step while the relay is down.
-          const delay = Math.min(60000, 4000 * 2 ** failures++);
+          // reconnect in step while the relay is down. The first failure of
+          // the relay moves to Lanyard's socket straight away.
+          const delay = relay && failures === 0 ? 0 : Math.min(60000, 4000 * 2 ** failures);
+          failures++;
           reconnect = setTimeout(connect, delay / 2 + Math.random() * (delay / 2));
         }
       };
@@ -89,6 +96,6 @@ export function useLanyardPresence(userId, enabled) {
       document.removeEventListener('visibilitychange', resume);
       teardown();
     };
-  }, [userId, enabled]);
+  }, [userId, enabled, relay]);
   return data;
 }

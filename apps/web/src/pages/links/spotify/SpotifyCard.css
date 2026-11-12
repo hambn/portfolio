@@ -47,13 +47,6 @@
 .sp-brand > svg {
   color: var(--sp-green);
 }
-.sp-hdr-btn {
-  color: var(--sp-muted);
-}
-.sp-hdr-btn:hover {
-  color: #fff;
-  background: #292929;
-}
 .sp-profile {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;

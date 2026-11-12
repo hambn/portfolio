@@ -1,5 +1,5 @@
 const hosts: Record<string, string[]> = {
-  github: ['avatars.githubusercontent.com'],
+  github: ['avatars.githubusercontent.com', 'github.githubassets.com'],
   gitlab: ['gitlab.com', 'assets.gitlab-static.net', 'secure.gravatar.com', 'www.gravatar.com'],
   spotify: [
     'i.scdn.co',
@@ -26,6 +26,8 @@ const hosts: Record<string, string[]> = {
 // media.discordapp.net stays open: activity art arrives as mp:attachments/… keys.
 const paths: Record<string, string[]> = {
   'gitlab.com': ['/uploads/'],
+  // GitHub's static assets: only the achievement badges are drawn.
+  'github.githubassets.com': ['/assets/'],
   'cdn.discordapp.com': ['/avatars/', '/embed/avatars/', '/app-assets/', '/app-icons/'],
   'pbs.twimg.com': ['/profile_images/', '/profile_banners/'],
 };

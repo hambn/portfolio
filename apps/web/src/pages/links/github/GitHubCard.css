@@ -1,175 +1,670 @@
-.gh-style-1 {
+/* GitHub card — Primer's dark and light tokens and GitHub's own type stacks,
+ * so the card reads like a slice of github.com/<user>. */
+.gh-card {
   --gh-bg: #0d1117;
-  --gh-bgHead: #161b22;
-  --gh-border: #30363d;
-  --gh-div: #21262d;
-  --gh-blue: #58a6ff;
-  --gh-green: #238636;
-  --gh-text: #e6edf3;
+  --gh-bg-head: #151b23;
+  --gh-bg-inset: #010409;
+  --gh-border: #3d444d;
+  --gh-border-muted: #3d444db3;
+  --gh-text: #f0f6fc;
   --gh-muted: #9198a1;
-  --gh-faint: #9198a1;
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+  --gh-accent: #4493f8;
+  --gh-success: #3fb950;
+  --gh-done: #ab7df8;
+  --gh-danger: #f85149;
+  --gh-btn: #212830;
+  --gh-btn-hover: #262c36;
+  --gh-shadow: 0 0 0 1px #3d444d, 0 6px 12px -3px #01040966;
+  --cg-level-0: #151b23;
+  --cg-level-1: #033a16;
+  --cg-level-2: #196c2e;
+  --cg-level-3: #2ea043;
+  --cg-level-4: #56d364;
+  --cg-rule: var(--gh-border);
+  --cg-faint: var(--gh-muted);
+  --cg-ring: var(--gh-muted);
+  --cg-accent: var(--gh-accent);
+  --gh-font:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif,
+    'Apple Color Emoji', 'Segoe UI Emoji';
+  --gh-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  background: var(--gh-bg);
+  font-family: var(--gh-font);
+  font-size: 14px;
+  line-height: 1.5;
   color: var(--gh-text);
   color-scheme: dark;
 }
-[data-theme='light'] .gh-style-1 {
+[data-theme='light'] .gh-card {
   --gh-bg: #ffffff;
-  --gh-bgHead: #f6f8fa;
+  --gh-bg-head: #f6f8fa;
+  --gh-bg-inset: #f6f8fa;
   --gh-border: #d1d9e0;
-  --gh-div: #d1d9e0;
-  --gh-blue: #0969da;
-  --gh-green: #1f883d;
+  --gh-border-muted: #d1d9e0b3;
   --gh-text: #1f2328;
   --gh-muted: #59636e;
-  --gh-faint: #59636e;
+  --gh-accent: #0969da;
+  --gh-success: #1a7f37;
+  --gh-done: #8250df;
+  --gh-danger: #d1242f;
+  --gh-btn: #f6f8fa;
+  --gh-btn-hover: #eff2f5;
+  --gh-shadow: 0 0 0 1px #d1d9e0, 0 6px 12px -3px #25292e0a;
+  --cg-level-0: #eff2f5;
+  --cg-level-1: #aceebb;
+  --cg-level-2: #4ac26b;
+  --cg-level-3: #2da44e;
+  --cg-level-4: #116329;
   color-scheme: light;
 }
-.gh-style-1 {
-  --gh-level-0: #161b22;
-  --gh-level-1: #0e4429;
-  --gh-level-2: #006d32;
-  --gh-level-3: #26a641;
-  --gh-level-4: #39d353;
-}
-[data-theme='light'] .gh-style-1 {
-  --gh-level-0: #eff2f5;
-  --gh-level-1: #aceebb;
-  --gh-level-2: #4ac26b;
-  --gh-level-3: #2da44e;
-  --gh-level-4: #116329;
-}
-.gh-style-21 {
-  font-size: 12px;
-  text-transform: none;
-  letter-spacing: normal;
-}
-.gh-style-20 {
-  font-weight: 700;
-  font-size: 21px;
-  color: var(--gh-text);
-  transition: color 0.12s;
-}
-.gh-style-19 {
+.gh-card a {
+  color: inherit;
   text-decoration: none;
-  display: flex;
-  align-items: baseline;
-  gap: 5px;
 }
-.gh-style-19:hover .gh-style-20 {
-  color: var(--gh-blue);
+.gh-card :is(a, button):focus-visible {
+  outline: 2px solid var(--gh-accent);
+  outline-offset: 2px;
+  border-radius: 6px;
 }
-.gh-style-18 {
-  padding: 14px 20px;
+.gh-octicon {
+  flex-shrink: 0;
+  color: var(--gh-muted);
+  vertical-align: text-bottom;
+}
+.gh-muted {
+  color: var(--gh-muted);
+}
+
+/* ── Header ── */
+.gh-head {
+  background: var(--gh-bg-head);
+  border-bottom: 1px solid var(--gh-border);
+}
+.gh-head.is-collapsed {
+  border-bottom: none;
+}
+.gh-mark {
+  color: var(--gh-text);
+}
+/* GitHub's own UI sets the "GitHub" lockup at semibold, not black. */
+.gh-card .gh-wordmark {
+  color: var(--gh-text);
+  font-weight: 600;
+  letter-spacing: -0.25px;
+}
+.gh-loading {
+  font-size: 11px;
+  color: var(--gh-muted);
+}
+/* ── Layout ──
+ * One column, as github.com stacks a profile on a narrow screen: identity,
+ * facts, then the overview (README, pinned repositories, the year's graph)
+ * at the card's full width, and the languages, achievements and organisations
+ * side by side underneath. */
+.gh-body {
+  padding: 20px 16px;
+}
+
+/* ── Profile ── */
+.gh-profile {
   display: flex;
-  gap: 24px;
   flex-wrap: wrap;
   align-items: center;
+  gap: 16px;
 }
-.gh-style-17 {
+.gh-avatar-link {
+  position: relative;
   flex-shrink: 0;
-}
-.gh-style-16 {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-  padding: 7px 14px;
-  border-radius: 6px;
-  border: 1px solid rgba(240, 246, 252, 0.1);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: background 0.15s;
-}
-.gh-style-15 {
-  font-size: 12px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: normal;
-}
-.gh-style-14 {
-  font-size: 13px;
-  margin-bottom: 3px;
-}
-.gh-style-13 {
   display: block;
-  font-weight: 600;
-  font-size: 21px;
-  text-decoration: none;
-  line-height: 1.25;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  margin-bottom: 4px;
-}
-.gh-style-12 {
-  flex: 1;
-  min-width: 0;
-}
-.gh-style-11 {
-  width: 52px;
-  height: 52px;
+  width: 72px;
   border-radius: 50%;
-  background: var(--gh-bgHead);
+}
+.gh-avatar {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px var(--gh-border);
+  background: var(--gh-bg-head);
+}
+.gh-avatar-empty {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  color: var(--gh-muted);
 }
-.gh-style-10 {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  display: block;
-  object-fit: cover;
-}
-.gh-style-9 {
-  flex-shrink: 0;
-}
-.gh-style-8 {
-  padding: 24px 20px;
+/* The status sits on the avatar's edge as on github.com: the emoji alone at
+ * rest, opening to the message when the avatar is hovered or focused. */
+.gh-status-bubble {
+  position: absolute;
+  left: 100%;
+  bottom: 4%;
+  margin-left: -26px;
   display: flex;
   align-items: center;
-  gap: 14px;
+  height: 28px;
+  min-width: 28px;
+  max-width: 28px;
+  padding: 0 6px;
+  box-sizing: border-box;
+  overflow: hidden;
+  border-radius: 14px;
+  background: var(--gh-bg);
+  box-shadow: 0 0 0 1px var(--gh-border);
+  font-size: 14px;
+  line-height: 1;
+  white-space: nowrap;
+  transition:
+    max-width 0.28s cubic-bezier(0.33, 1, 0.68, 1),
+    box-shadow 0.2s;
 }
-.gh-style-6 {
-  font-size: 11px;
+.gh-status-text {
+  margin-left: 6px;
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity 0.2s;
 }
-.gh-hdr-btn:hover {
-  color: var(--gh-text);
-  background: var(--gh-div);
+.gh-ident {
+  flex: 1;
+  min-width: 0;
 }
-
-.gh-profile-label {
+.gh-name {
   display: block;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.gh-name:hover {
+  color: var(--gh-accent);
+}
+.gh-login {
+  font-size: 18px;
+  font-weight: 300;
+  line-height: 1.3;
   color: var(--gh-muted);
+  overflow-wrap: anywhere;
+}
+/* Primer's default button: GitHub's Follow is grey, not green. */
+.gh-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 0 100%;
+  height: 32px;
+  padding: 0 16px;
+  border: 1px solid var(--gh-border);
+  border-radius: 6px;
+  background: var(--gh-btn);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    background-color 80ms cubic-bezier(0.33, 1, 0.68, 1),
+    border-color 80ms cubic-bezier(0.33, 1, 0.68, 1);
+}
+.gh-card .gh-btn {
+  color: var(--gh-text);
+}
+.gh-btn:hover {
+  background: var(--gh-btn-hover);
+}
+.gh-btn:active {
+  transform: scale(0.99);
+}
+.gh-bio {
+  margin: 16px 0 0;
+  max-width: 68ch;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+.gh-details .gh-social {
+  gap: 6px;
+  color: var(--gh-muted);
+}
+.gh-social a {
+  white-space: nowrap;
+}
+.gh-card .gh-social a {
+  color: var(--gh-muted);
+}
+.gh-social strong {
+  color: var(--gh-text);
+  font-weight: 600;
+}
+.gh-card .gh-social a:hover,
+.gh-card .gh-social a:hover strong {
+  color: var(--gh-accent);
+}
+.gh-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.gh-details li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.gh-details li:not(.gh-social) > :last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gh-card .gh-details a:hover {
+  color: var(--gh-accent);
+  text-decoration: underline;
+}
+
+/* Languages, achievements and organisations: as many columns as fit. */
+.gh-extras {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px 32px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--gh-border-muted);
+}
+.gh-extras:empty {
+  display: none;
+}
+.gh-extra {
+  min-width: 0;
+}
+.gh-extra-h {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.gh-h-plain:hover {
+  color: var(--gh-accent);
+}
+.gh-badges,
+.gh-orgs,
+.gh-langs {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.gh-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.gh-badge {
+  position: relative;
+  display: block;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  transition: transform 0.2s cubic-bezier(0.33, 1, 0.68, 1);
+}
+.gh-badge img {
+  display: block;
+  width: 64px;
+  height: 64px;
+}
+.gh-badge-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--gh-btn);
+  box-shadow: 0 0 0 1px var(--gh-border);
+  color: var(--gh-muted);
+  font-weight: 600;
+}
+.gh-badge-tier {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  padding: 0 6px;
+  border-radius: 999px;
   font-size: 11px;
   font-weight: 600;
-  margin-bottom: 5px;
+  line-height: 18px;
+  color: #1f2328;
+  background: #e1e4e8;
+  box-shadow: 0 1px 2px #01040966;
 }
-.gh-style-1 :is(a, button):focus-visible {
-  outline: 2px solid var(--gh-text);
-  outline-offset: 3px;
+.gh-tier-bronze {
+  background: #f9bd98;
 }
-@container (max-width: 480px) {
-  .gh-style-8 {
-    flex-wrap: wrap;
-    gap: 12px;
-    padding: 18px 16px;
-  }
-  .gh-style-16 {
-    margin-left: auto;
-  }
+.gh-tier-silver {
+  background: #d1d9e0;
 }
-
-.gh-style-16:hover {
-  filter: brightness(1.1);
+.gh-tier-gold {
+  background: #fae17d;
 }
-
-/* Wordmark — GitHub's own UI sets the "GitHub" lockup at semibold, not black. */
-.gh-style-1 .gh-style-5 {
+.gh-orgs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.gh-orgs a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  box-shadow: 0 0 0 1px var(--gh-border);
+  overflow: hidden;
+  color: var(--gh-muted);
+}
+.gh-orgs img {
+  display: block;
+  width: 32px;
+  height: 32px;
+}
+.gh-langbar {
+  display: flex;
+  height: 8px;
+  margin: 2px 0 10px;
+  border-radius: 6px;
+  overflow: hidden;
+  gap: 2px;
+}
+.gh-langbar span {
+  display: block;
+  min-width: 4px;
+}
+.gh-langs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  font-size: 12px;
+}
+.gh-langs a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.gh-lang-dot {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px #ffffff1f;
+}
+.gh-langs .gh-lang-dot {
+  width: 8px;
+  height: 8px;
+}
+.gh-langs-name {
   font-weight: 600;
-  letter-spacing: -0.25px;
+}
+.gh-langs-pct {
+  color: var(--gh-muted);
+}
+.gh-card .gh-langs a:hover .gh-langs-name {
+  color: var(--gh-accent);
+}
+
+/* Placeholder bars while the first answer is on its way. */
+.gh-skeleton {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+.gh-skeleton span {
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--gh-btn) 25%, var(--gh-btn-hover) 45%, var(--gh-btn) 65%);
+  background-size: 300% 100%;
+  animation: gh-shimmer 1.4s ease-in-out infinite;
+}
+@keyframes gh-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+
+/* ── Overview column ── */
+/* GitHub's underline nav: the profile's tabs, each a link to the real one. */
+.gh-tabs {
+  display: flex;
+  gap: 4px;
+  margin-top: 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  box-shadow: inset 0 -1px var(--gh-border-muted);
+}
+.gh-tabs::-webkit-scrollbar {
+  display: none;
+}
+.gh-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+  height: 40px;
+  white-space: nowrap;
+}
+.gh-tab::before {
+  content: '';
+  position: absolute;
+  inset: 5px 0 7px;
+  border-radius: 6px;
+  transition: background-color 0.12s;
+}
+.gh-tab > * {
+  position: relative;
+}
+.gh-tab.is-current {
+  font-weight: 600;
+  box-shadow: inset 0 -2px #f78166;
+}
+.gh-counter {
+  min-width: 20px;
+  padding: 0 6px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  background: var(--gh-btn-hover);
+  box-shadow: inset 0 0 0 1px var(--gh-border-muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 20px;
+  text-align: center;
+}
+.gh-section {
+  margin-top: 20px;
+}
+.gh-h {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+.gh-box {
+  border: 1px solid var(--gh-border);
+  border-radius: 6px;
+}
+.gh-label {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 7px;
+  border: 1px solid var(--gh-border);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--gh-muted);
+  white-space: nowrap;
+}
+
+/* README */
+.gh-readme {
+  padding: 16px 20px 18px;
+}
+.gh-readme-path {
+  margin-bottom: 12px;
+  font-family: var(--gh-mono);
+  font-size: 12px;
+}
+.gh-card .gh-readme-path a:hover {
+  color: var(--gh-accent);
+  text-decoration: underline;
+}
+.gh-readme-path > span:first-of-type {
+  padding: 0 2px;
+  color: var(--gh-muted);
+}
+.gh-readme-body {
+  margin: 0;
+  font-size: 15px;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+/* Pinned */
+.gh-pinned {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.gh-pin {
+  display: flex;
+  flex-direction: column;
+  padding: 14px 16px;
+  min-width: 0;
+  transition: border-color 0.15s;
+}
+.gh-pin-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.gh-pin-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.gh-card .gh-pin-name {
+  color: var(--gh-accent);
+}
+.gh-pin-name:hover {
+  text-decoration: underline;
+}
+.gh-pin-owner {
+  font-weight: 400;
+}
+.gh-pin-desc {
+  flex: 1;
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--gh-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.gh-pin-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: var(--gh-muted);
+}
+.gh-pin-meta:empty {
+  display: none;
+}
+.gh-lang {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.gh-pin-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.gh-card .gh-pin-stat {
+  color: var(--gh-muted);
+}
+.gh-card .gh-pin-stat:hover,
+.gh-card .gh-pin-stat:hover .gh-octicon {
+  color: var(--gh-accent);
+}
+
+@media (hover: hover) {
+  .gh-avatar-link:hover .gh-status-bubble,
+  .gh-avatar-link:focus-visible .gh-status-bubble {
+    max-width: 260px;
+    box-shadow:
+      0 0 0 1px var(--gh-border),
+      0 8px 24px #01040966;
+  }
+  .gh-avatar-link:hover .gh-status-text,
+  .gh-avatar-link:focus-visible .gh-status-text {
+    opacity: 1;
+  }
+  .gh-badge:hover {
+    transform: translateY(-2px) scale(1.05);
+  }
+  .gh-tab:hover::before {
+    background: var(--gh-btn);
+  }
+  .gh-pin:hover {
+    border-color: var(--gh-muted);
+  }
+}
+
+/* ── Wide cards ── */
+@container (min-width: 520px) {
+  .gh-body {
+    padding: 24px;
+  }
+  .gh-profile {
+    flex-wrap: nowrap;
+    gap: 20px;
+  }
+  .gh-avatar-link {
+    width: 96px;
+  }
+  .gh-name {
+    font-size: 24px;
+  }
+  .gh-login {
+    font-size: 20px;
+  }
+  .gh-btn {
+    flex: 0 0 auto;
+    min-width: 120px;
+  }
+  .gh-pinned {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gh-skeleton span {
+    animation: none;
+  }
+  .gh-status-bubble,
+  .gh-badge {
+    transition: none;
+  }
 }

@@ -13,7 +13,9 @@ import { useEffect, useRef, useState } from 'react';
  * `seed` (from useCardFeed) lets the one batch /links response stand in for the
  * initial request. While it is 'pending' the hook waits rather than racing the
  * batch; a 'ready' seed still inside its max-age is delivered without any
- * request at all. A stale, missing or errored seed falls through to fetching.
+ * request at all. A stale, missing or errored seed falls through to fetching,
+ * except when the batch found the API itself unreachable: that is reported at
+ * once, so the card can turn to another source, and retried one interval on.
  */
 export function usePolledJSON(url, intervalMs, onData, seed) {
   const [loading, setLoading] = useState(false);
@@ -97,6 +99,13 @@ export function usePolledJSON(url, intervalMs, onData, seed) {
       setLoading(false);
       setError(null);
       // Live cards still poll, just starting one interval out instead of now.
+      if (intervalMs > 0) timer = setTimeout(load, intervalMs);
+    } else if (fresh?.status === 'missing' && fresh.unreachable) {
+      // The batch just found the API unreachable: asking it again for this one
+      // card would only spend another timeout. Report it now, so the caller
+      // can turn to another source, and try again on the card's own schedule.
+      setLoading(false);
+      setError('API unreachable');
       if (intervalMs > 0) timer = setTimeout(load, intervalMs);
     } else {
       load();

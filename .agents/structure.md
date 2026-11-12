@@ -57,7 +57,12 @@ TypeScript API for the link cards. An npm-workspaces monorepo (Node 24, see
 ├─ packages/
 │  └─ shared/              @portfolio/shared — used by both apps, via its exports
 │                          map: `@portfolio/shared/{linkedin,telegram,x}` (.js +
-│                          .d.ts) and `@portfolio/shared/media` (media.ts: the
+│                          .d.ts), `@portfolio/shared/github` (profile shaping the
+│                          API and the direct-to-GitHub card share),
+                          `@portfolio/shared/gitlab` (GitLab paths and the
+                          activity calendar), `@portfolio/shared/projects`
+                          (content model and the git hosts' repo mappers) and
+│                          `@portfolio/shared/media` (media.ts: the
 │                          media source allowlist and asset URL encoding)
 │
 ├─ content/                ← all editable content (served at <base>/contents/)
@@ -95,11 +100,17 @@ src/
 │  │                    shared by the prerenderer and client navigation
 │  ├─ router.js         navigate() / currentRoute() / routeHref() / followRoute()
 │  │                    history helpers
+│  ├─ siteFeed.js       the one API request per visit: /site answers every
+│  │                    link card and the projects listing; ensureCards(),
+│  │                    useSiteCard(), warmSite() (also preloads the other
+│  │                    pages' content and code on idle)
 │  ├─ storage.js        safe localStorage get/set (never throws)
 │  ├─ cardState.js      shared collapsed-card store (useSyncExternalStore)
 │  ├─ highlight.js      highlight.js/lib/common + extra languages
+│  ├─ languages.js      GitHub linguist colours (projects + GitHub card)
 │  └─ markdown.js       self-hosted marked + highlight.js (lazy chunk)
-├─ hooks/               useMediaQuery, useCollapsed, useCopy, usePolledJSON
+├─ hooks/               useMediaQuery, useCollapsed, useCopy, usePolledJSON,
+│                       useCardSource (API first, provider as fallback)
 ├─ components/
 │  ├─ Shell.jsx         page frame: skip link + Nav + #content
 │  ├─ Nav.jsx           top nav + theme toggle (styles in core.css)
@@ -112,7 +123,9 @@ src/
 │  │                    the branch hover card), Stack, SectionHead,
 │  │                    FooterLinks, home.css
 │  ├─ projects/         Projects.jsx (featured cards from content, then one
-│  │                    /projects request for every host) + projects.css
+│  │                    /projects request for every host) + projects.css;
+│  │                    directProjects.js lists the hosts from the browser
+│  │                    when the API is unreachable
 │  ├─ resume/           Resume.jsx + resume.css (screen + @media print)
 │  ├─ blog/
 │  │  ├─ Blog.jsx       container: list ↔ post routing
@@ -121,15 +134,16 @@ src/
 │  │  └─ blog-ui.jsx    fmtDate, InlineCode, ClickableTag, tag-nav helpers
 │  └─ links/
 │     ├─ Links.jsx      composes the cards; reads links.json
-│     ├─ LinksFeed.jsx  one /links request per visit; seeds every card
-│     │                 (useCardFeed) so a fresh card needs no request
+│     ├─ LinksFeed.jsx  asks lib/siteFeed.js for the cards not already fresh;
+│     │                 seeds every card (useCardFeed) so it needs no request
 │     ├─ link-cards.css  shared card header geometry for every provider card
 │     ├─ link-fonts.css  brand faces the cards share (DM Sans, Roboto)
 │     └─ <provider>/    Email, Discord, Telegram, X, GitHub, GitLab,
 │                       LinkedIn, Spotify, Steam (JSX + CSS per folder;
 │                       gitlab/fonts/ holds a latin subset of GitLab Sans;
 │                       spotify/ adds useSpotifyPlayback.js + playbackClock.js,
-│                       discord/ useLanyardPresence.js, the live socket)
+│                       discord/ useLanyardPresence.js, the live socket,
+│                       github/ octicons.js, the MIT Octicon paths)
 └─ styles/
    ├─ index.css         imports fonts.css + tokens/ + core.css
    ├─ fonts.css         JetBrains Mono @font-face (latin subset only)
@@ -208,6 +222,16 @@ with `apps/`, `packages/` or `content/`.
   prerendered pages; on client navigation it loads as a link. Each inlined file
   also gets a script-created disabled `<link>`, so Vite's preload helper sees
   it as present and does not download it again before rendering a route.
+- **The site works without the API.** Content renders every page; the API only
+  adds live data. Anything a browser can read from the provider is fetched
+  there when the API is unreachable: GitHub, GitLab and Discord cards
+  (`hooks/useCardSource.js`), the projects listing
+  (`pages/projects/directProjects.js`) and every proxied image
+  (`installMediaFallback` in `lib/api.js` swaps a failed `/media/…` URL for the
+  provider's own). Shaping shared by both sources lives in `packages/shared`
+  (`github`, `gitlab`, `projects`), so a card gets one shape either way. A card
+  with no source shows its links and says so; nothing is ever invented (the
+  contribution graph is left out rather than drawn from placeholder data).
 - **The projects page makes one request.** Its featured cards are prerendered
   from `content/projects/projects.json`; `/projects` on the API then supplies
   stars, languages and every host's repository list in a single response. The
@@ -228,6 +252,19 @@ with `apps/`, `packages/` or `content/`.
 
 - New blog post → add `content/blogs/<name>.md` with frontmatter.
 - Change a social link → edit `content/links/links.json`.
+- Choose where a card's data comes from → `apiEndpoint` in `links.json`. Set,
+  the card reads this site's API (cached; GitHub with the status, achievements,
+  pinned repositories and README only the profile page shows, GitLab with its
+  real activity calendar) and falls back to the provider if the API fails.
+  Removed from `github` or `gitlab`, the visitor's browser asks the provider
+  itself and the API is never asked for that card (`hooks/useCardSource.js`;
+  answers are kept in localStorage for an hour).
+- Card header buttons (copy / open / collapse) are one component and one set of
+  rules for every card: `components/card/HeaderButtons.jsx` and
+  `.link-card-hdr-btn` in `pages/links/link-cards.css`. A card passes its accent
+  and titles only, never its own button classes.
+- Need API data on a page → add it to the `cards` table in `apps/api/src/links.ts`
+  and read it with `useSiteCard(key)`; do not add a per-page fetch.
 - Update bio / resume → `content/home/*.json`.
 - Feature a project, reorder them, or add a git account →
   `content/projects/projects.json` (see `content/README.md`); redeploy the API

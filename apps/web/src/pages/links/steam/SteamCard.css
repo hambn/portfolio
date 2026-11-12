@@ -194,9 +194,11 @@
   align-items: flex-start;
   gap: 18px;
 }
-.st-style-32 {
-  font-size: 11px;
-  color: #e87c2a;
+.st-status {
+  margin: 0;
+  padding: 22px 20px;
+  font-size: 13px;
+  color: #8b9bad;
 }
 .st-style-31 {
   font-size: 11px;
@@ -366,14 +368,6 @@
 .st-style-1 {
   flex-shrink: 0;
   display: block;
-}
-.st-hdr-btn {
-  color: #8f98a0;
-}
-/* The background matches the other cards: the collapse chevron gets a hover plate too. */
-.st-hdr-btn:hover {
-  color: #c7d5e0;
-  background: rgba(103, 193, 245, 0.12);
 }
 .st-game-row {
   transition: background 0.1s;
