@@ -1,4 +1,4 @@
-export function xUsername(value) {
+export function xUsername(value: unknown): string | null {
   if (typeof value !== 'string') return null;
   let candidate = value.trim();
   if (/^https?:\/\//i.test(candidate)) {

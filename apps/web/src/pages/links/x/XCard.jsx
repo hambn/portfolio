@@ -1,6 +1,7 @@
 import './XCard.css';
 import React, { useState } from 'react';
 import { apiUrl } from '../../../lib/api.js';
+import { EXTERNAL } from '../../../lib/external.js';
 import { usePolledJSON } from '../../../hooks/usePolledJSON.js';
 import { useCardFeed } from '../LinksFeed.jsx';
 import { xUsername } from '@portfolio/shared/x';
@@ -43,44 +44,15 @@ function XProfile({ username, apiEndpoint }) {
   const banner = profile?.banner ? new URL(profile.banner, endpoint).href : null;
   const [copied, copyLink] = useCopy(href);
   return (
-    <div
-      style={{
-        background: 'var(--x-bg)',
-      }}
-      className="x-style-1 link-card"
-    >
-      <div
-        style={{
-          background: 'var(--x-bgHead)',
-          borderBottom: collapsed ? 'none' : '1px solid var(--x-border)',
-        }}
-        className="x-style-2 link-card-header"
-      >
-        <a
-          href={href}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="x-style-3 link-card-brand"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill="var(--x-text)"
-            width={24}
-            height={24}
-            className="x-style-4"
-          >
+    <div className="x-card link-card">
+      <div className="x-header link-card-header">
+        <a href={href} {...EXTERNAL} className="link-card-brand">
+          <svg viewBox="0 0 24 24" width={24} height={24} className="x-logo">
             <path d={X_ICON} />
           </svg>
-          <span
-            style={{
-              color: 'var(--x-text)',
-            }}
-            className="x-style-5 link-card-title"
-          >
-            X
-          </span>
+          <span className="x-wordmark link-card-title">X</span>
         </a>
-        <div className="x-style-6 link-card-spacer" />
+        <div className="link-card-spacer" />
         <div className="link-card-actions">
           <HeaderButtons
             accent="var(--x-blue)"
@@ -120,14 +92,7 @@ function XProfile({ username, apiEndpoint }) {
             {/* Goes to the same profile as the "Follow" link beside it, and
                 holds only a decorative avatar, so it has no accessible name to
                 give. Hide it from assistive tech and from the tab order. */}
-            <a
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="x-avatar-ring"
-              aria-hidden="true"
-              tabIndex={-1}
-            >
+            <a href={href} {...EXTERNAL} className="x-avatar-ring" aria-hidden="true" tabIndex={-1}>
               {avatar && avatar !== failedAvatar ? (
                 <img
                   className="x-avatar"
@@ -140,12 +105,12 @@ function XProfile({ username, apiEndpoint }) {
                   onError={() => setFailedAvatar(avatar)}
                 />
               ) : (
-                <svg viewBox="0 0 24 24" fill="var(--x-text)" className="x-avatar-fallback">
+                <svg viewBox="0 0 24 24" className="x-avatar-fallback">
                   <path d={X_ICON} />
                 </svg>
               )}
             </a>
-            <a href={href} target="_blank" rel="noopener noreferrer" className="x-follow">
+            <a href={href} {...EXTERNAL} className="x-follow">
               <svg viewBox="0 0 24 24" fill="currentColor" width={13} height={13}>
                 <path d={X_ICON} />
               </svg>
@@ -169,7 +134,7 @@ function XProfile({ username, apiEndpoint }) {
                 <svg viewBox="0 0 24 24" fill="currentColor" width={18} height={18}>
                   <path d={LINK_ICON} />
                 </svg>
-                <a href={profile.website} target="_blank" rel="noopener noreferrer">
+                <a href={profile.website} {...EXTERNAL}>
                   {profile.websiteLabel || profile.website}
                 </a>
               </span>
@@ -185,17 +150,17 @@ function XProfile({ username, apiEndpoint }) {
           </div>
           <div className="x-profile-counts">
             {profile?.following != null && (
-              <a href={`${href}/following`} target="_blank" rel="noopener noreferrer">
+              <a href={`${href}/following`} {...EXTERNAL}>
                 <strong>{profile.following}</strong> <span>Following</span>
               </a>
             )}
             {profile?.followers != null && (
-              <a href={`${href}/verified_followers`} target="_blank" rel="noopener noreferrer">
+              <a href={`${href}/verified_followers`} {...EXTERNAL}>
                 <strong>{profile.followers}</strong> <span>Followers</span>
               </a>
             )}
             {profile?.posts != null && (
-              <a href={href} target="_blank" rel="noopener noreferrer">
+              <a href={href} {...EXTERNAL}>
                 <strong>{profile.posts}</strong> <span>Posts</span>
               </a>
             )}

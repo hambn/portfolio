@@ -14,9 +14,9 @@ import { useCardFeed } from '../LinksFeed.jsx';
 import { ContribGraph, useContributions } from '../../../components/card/ContribGraph.jsx';
 import { HeaderButtons } from '../../../components/card/HeaderButtons.jsx';
 import { BRAND_ICON } from '../brandIcons.js';
+import { EXTERNAL } from '../../../lib/external.js';
 
 const AVATAR = 52;
-const ext = { target: '_blank', rel: 'noopener noreferrer' };
 
 const Mark = ({ size, className }) => (
   <svg
@@ -65,7 +65,7 @@ export const GitLabCard = React.memo(function GitLabCard({ username, url, api = 
   return (
     <div className="gl-card link-card">
       <div className={`gl-head link-card-header${collapsed ? ' is-collapsed' : ''}`}>
-        <a href={href} {...ext} className="link-card-brand">
+        <a href={href} {...EXTERNAL} className="link-card-brand">
           <Mark size={24} className="gl-mark" />
           <span className="gl-wordmark link-card-title">GitLab</span>
         </a>
@@ -91,7 +91,7 @@ export const GitLabCard = React.memo(function GitLabCard({ username, url, api = 
       >
         <div className="gl-profile">
           {profile?.avatar_url ? (
-            <a href={href} {...ext} className="gl-avatar-link">
+            <a href={href} {...EXTERNAL} className="gl-avatar-link">
               <img
                 src={cardImage(profile.avatar_url, AVATAR, origin === 'direct')}
                 alt={username}
@@ -109,12 +109,12 @@ export const GitLabCard = React.memo(function GitLabCard({ username, url, api = 
           )}
           <div className="gl-ident">
             <span className="gl-profile-label">Public profile</span>
-            <a href={href} {...ext} className="gl-name">
+            <a href={href} {...EXTERNAL} className="gl-name">
               {profile?.name || username}
             </a>
             <div className="gl-handle">@{profile?.username || username}</div>
           </div>
-          <a href={href} {...ext} className="gl-open">
+          <a href={href} {...EXTERNAL} className="gl-open">
             <Mark size={13} />
             <span>Profile</span>
           </a>

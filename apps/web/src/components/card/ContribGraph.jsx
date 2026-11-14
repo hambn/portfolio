@@ -6,6 +6,7 @@ import React, { useMemo, useState } from 'react';
 import { apiUrl } from '../../lib/api.js';
 import { useCardSource } from '../../hooks/useCardSource.js';
 import { useCardFeed } from '../../pages/links/LinksFeed.jsx';
+import { EXTERNAL } from '../../lib/external.js';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const DAY_LABELS = ['', 'Mon', '', 'Wed', '', 'Fri', ''];
@@ -175,7 +176,7 @@ export function ContribGraph({
         <span className="cg-note">
           {hover ||
             (help ? (
-              <a href={help} target="_blank" rel="noopener noreferrer">
+              <a href={help} {...EXTERNAL}>
                 Learn how we count contributions
               </a>
             ) : (

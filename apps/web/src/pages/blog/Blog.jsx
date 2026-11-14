@@ -7,8 +7,8 @@
 // Features: search, tag filtering, GitHub-flavored rendering with syntax
 // highlighting (highlight.js), mermaid diagrams, copy-to-clipboard, tables.
 import '../../styles/blog.css';
-import React, { useEffect, useState } from 'react';
-import { PortfolioData } from '../../lib/data.js';
+import React from 'react';
+import { useContent } from '../../hooks/useContent.js';
 import { navigate } from '../../lib/router.js';
 import ErrorState from '../../components/ErrorState.jsx';
 import NotFound from '../../components/NotFound.jsx';
@@ -16,46 +16,21 @@ import BlogList from './BlogList.jsx';
 import BlogPost from './BlogPost.jsx';
 
 export default function Blog({ route }) {
-  const [posts, setPosts] = useState(() => PortfolioData.peek('blogIndex') || []);
-  const [loading, setLoading] = useState(() => !PortfolioData.peek('blogIndex'));
-  const [error, setError] = useState(false);
-  const [attempt, setAttempt] = useState(0);
+  const { data: posts, error, retry } = useContent('blogIndex');
 
   // route looks like "blog" or "blog/<slug>"
   const slug = (route || 'blog').split('/').slice(1).join('/') || null;
 
-  useEffect(() => {
-    let alive = true;
-    setLoading(!PortfolioData.peek('blogIndex'));
-    setError(false);
-    PortfolioData.getBlogIndex()
-      .then((data) => {
-        if (alive) {
-          setPosts(data);
-          setLoading(false);
-        }
-      })
-      .catch(() => {
-        if (alive) {
-          setError(true);
-          setLoading(false);
-        }
-      });
-    return () => {
-      alive = false;
-    };
-  }, [attempt]);
-
-  if (loading)
-    return (
-      <main className="blog-page">
-        <p className="blog-status">loading...</p>
-      </main>
-    );
   if (error)
     return (
       <main className="blog-page">
-        <ErrorState message="failed to load posts." onRetry={() => setAttempt((a) => a + 1)} />
+        <ErrorState message="failed to load posts." onRetry={retry} />
+      </main>
+    );
+  if (!posts)
+    return (
+      <main className="blog-page">
+        <p className="blog-status">loading...</p>
       </main>
     );
 

@@ -3,7 +3,7 @@
 // is opened, with its styles, so no other visit pays for it.
 import './palette.css';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { PortfolioData } from '../lib/data.js';
+import { useContent } from '../hooks/useContent.js';
 import { feedHref, navigate } from '../lib/router.js';
 import { REPO } from './Footer.jsx';
 import { toggleTheme } from './Nav.jsx';
@@ -17,18 +17,8 @@ const matches = (item, words) => {
 export default function Palette({ go, onClose }) {
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
-  const [posts, setPosts] = useState(() => PortfolioData.peek('blogIndex') || []);
+  const { data: posts } = useContent('blogIndex');
   const listRef = useRef(null);
-
-  useEffect(() => {
-    let alive = true;
-    PortfolioData.getBlogIndex()
-      .then((index) => alive && setPosts(index))
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, []);
 
   // Closing hands focus back to whatever had it, unless a command moved it.
   useEffect(() => {
@@ -48,7 +38,7 @@ export default function Palette({ go, onClose }) {
         hint: `g ${key}`,
         run: () => navigate(page),
       })),
-      ...posts.map((post) => ({
+      ...(posts || []).map((post) => ({
         id: `post-${post.slug}`,
         kind: 'post',
         label: post.title,

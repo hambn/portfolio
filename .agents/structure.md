@@ -58,8 +58,8 @@ TypeScript API for the link cards. An npm-workspaces monorepo (Node 24, see
 │
 ├─ packages/
 │  └─ shared/              @portfolio/shared — used by both apps, via its exports
-│                          map: `@portfolio/shared/{linkedin,telegram,x}` (.js +
-│                          .d.ts), `@portfolio/shared/github` (profile shaping the
+│                          map: `@portfolio/shared/{linkedin,telegram,x}` (username
+│                          parsing), `@portfolio/shared/github` (profile shaping the
 │                          API and the direct-to-GitHub card share),
                           `@portfolio/shared/gitlab` (GitLab paths and the
                           activity calendar), `@portfolio/shared/projects`
@@ -108,9 +108,11 @@ src/
 │  │                    pages' content and code on idle)
 │  ├─ storage.js        safe localStorage get/set (never throws)
 │  ├─ cardState.js      shared collapsed-card store (useSyncExternalStore)
+│  ├─ external.js       EXTERNAL — the target/rel props every off-site link spreads
 │  └─ languages.js      GitHub linguist colours (projects + GitHub card)
 ├─ hooks/               useMediaQuery, useCollapsed, useCopy, usePolledJSON,
-│                       useCardSource (API first, provider as fallback)
+│                       useCardSource (API first, provider as fallback),
+│                       useContent (one piece of content: data, error, retry)
 ├─ components/
 │  ├─ Shell.jsx         page frame: skip link + Nav + #content
 │  ├─ Nav.jsx           top nav + theme toggle (styles in core.css)
@@ -138,6 +140,8 @@ src/
 │  │  └─ blog-ui.jsx    fmtDate, InlineCode, ClickableTag, tag-nav helpers
 │  └─ links/
 │     ├─ Links.jsx      composes the cards; reads links.json
+│     ├─ JumpBar.jsx    the chip per card that jumps to it and opens/collapses it
+│     ├─ useIsland.js   docks the jump bar into the nav (shape: islandShape.js)
 │     ├─ LinksFeed.jsx  asks lib/siteFeed.js for the cards not already fresh;
 │     │                 seeds every card (useCardFeed) so it needs no request
 │     ├─ link-cards.css  shared card header geometry for every provider card

@@ -1,7 +1,7 @@
 import { xUsername } from '@portfolio/shared/x';
 import { identities } from '../identities.js';
 import type { Services } from '../contracts.js';
-import { allowedHost, json, readBytes, fetchAllowed } from '../lib/http.js';
+import { allowedHost, json, readBytes, fetchAllowed, expectOk } from '../lib/http.js';
 import {
   PROFILE_HEADERS,
   cachedImage,
@@ -101,10 +101,7 @@ export async function refreshX(services: Services): Promise<Snapshot | undefined
     allowedProfile,
     { headers: PROFILE_HEADERS },
   );
-  if (!response.ok) {
-    await response.body?.cancel();
-    throw new Error('X profile fetch failed');
-  }
+  await expectOk(response, 'X profile fetch failed');
   const bytes = await readBytes(response, 2 * 1024 * 1024);
   const profile = bytes && parseXProfile(new TextDecoder().decode(bytes), configuredXUsername);
   if (!profile) throw new Error('X profile HTML unavailable');

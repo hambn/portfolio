@@ -1,4 +1,4 @@
-export function telegramUsername(value) {
+export function telegramUsername(value: unknown): string | null {
   if (value == null) return null;
   let candidate = String(value).trim();
   try {

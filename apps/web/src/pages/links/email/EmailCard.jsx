@@ -122,34 +122,16 @@ export const EmailCard = React.memo(function EmailCard({ address }) {
 
   const initials = (to.split('@')[0] || 'me')[0].toUpperCase();
   return (
-    <div
-      style={{
-        background: 'var(--em-bg)',
-      }}
-      className="em-style-1 link-card"
-    >
+    <div className="em-card link-card">
       {/* Header — email top bar */}
-      <div
-        style={{
-          background: 'var(--em-bgHead)',
-        }}
-        className="em-style-2 link-card-header"
-      >
-        <a href={`mailto:${to}`} className="em-style-3 link-card-brand">
-          <svg
-            viewBox="0 0 24 24"
-            fill="var(--em-logo)"
-            width={24}
-            height={24}
-            className="em-style-4"
-          >
+      <div className="em-header link-card-header">
+        <a href={`mailto:${to}`} className="link-card-brand">
+          <svg viewBox="0 0 24 24" width={24} height={24} className="em-logo">
             <path d={ENV} />
           </svg>
-          <span style={{ color: 'var(--em-text)' }} className="em-style-5 link-card-title">
-            Email
-          </span>
+          <span className="em-wordmark link-card-title">Email</span>
         </a>
-        <div className="em-style-6 link-card-spacer" />
+        <div className="link-card-spacer" />
         <div className="link-card-actions">
           <HeaderButtons
             accent="var(--em-blue)"
@@ -166,7 +148,7 @@ export const EmailCard = React.memo(function EmailCard({ address }) {
       {/* Body — compose window */}
       <div data-card="email" className={`sc-body ${collapsed ? 'closed' : 'open'}`}>
         <div className="em-compose-bar">New message</div>
-        <form onSubmit={send} className="em-style-7" noValidate>
+        <form onSubmit={send} className="em-form" noValidate>
           <div className="em-row em-field-row">
             <label htmlFor={fromId} className="em-row-label">
               From
@@ -223,19 +205,11 @@ export const EmailCard = React.memo(function EmailCard({ address }) {
               rows={4}
               maxLength={5000}
               onChange={(e) => setBody(e.target.value)}
-              className="em-row-field em-style-12"
+              className="em-row-field em-body-field"
             />
           </div>
-          <div className="em-style-13">
-            <button
-              type="submit"
-              disabled={sending}
-              style={{
-                background: 'var(--em-blue)',
-                color: 'var(--em-sendText)',
-              }}
-              className="em-style-14"
-            >
+          <div className="em-actions">
+            <button type="submit" disabled={sending} className="em-send">
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
@@ -251,7 +225,7 @@ export const EmailCard = React.memo(function EmailCard({ address }) {
               </svg>
               {sending ? 'Sending…' : 'Send'}
             </button>
-            <a href={mailto} style={{ color: 'var(--em-muted)' }} className="em-style-15">
+            <a href={mailto} className="em-mailto">
               or open in your mail app
             </a>
             {status && (

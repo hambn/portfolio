@@ -249,6 +249,8 @@ Readers without JavaScript now get highlighted code, anchors and scrollable
 tables too. `marked` and `highlight.js` moved to devDependencies. The 404 page
 no longer inlines home's resume, links and recent posts, which it never shows.
 
-Not done: `public/assets/telegram/pattern.svg` is 232 KB (70 KB gzip) on
-`/links/`. It is already at one-decimal precision, so the remaining saving
-needs an SVG optimizer run and a visual comparison.
+`public/assets/telegram/pattern.svg` went from 232 KB (70 KB gzip) to 110 KB
+(43.5 KB gzip) on `/links/`: editor metadata and the eight near-identical
+stroke classes are gone, the plain strokes are one path, and coordinates are
+whole units (0.3 px at the 420 px tile the card draws). Rasterised at twice
+that size, 0.16% of the inked pixels differ from the original.

@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { calendarDays, gitlabPaths, GITLAB_ORIGIN } from '@portfolio/shared/gitlab';
 import { identities } from '../identities.js';
 import type { Services } from '../contracts.js';
-import { fetchWithTimeout, readJSON, json } from '../lib/http.js';
+import { fetchWithTimeout, readJSON, json, expectOk } from '../lib/http.js';
 import { withCache } from '../lib/cache.js';
 import { persistedResponse, readPersisted } from '../lib/persisted.js';
 import { PROFILE_TTL } from '../lib/ttl.js';
@@ -15,10 +15,7 @@ async function get<T extends z.ZodType>(services: Services, path: string, schema
   const response = await fetchWithTimeout(services, `${GITLAB_ORIGIN}${path}`, {
     headers: { 'User-Agent': 'portfolio-api', Accept: 'application/json' },
   });
-  if (!response.ok) {
-    await response.body?.cancel();
-    throw new Error(`gitlab_${response.status}`);
-  }
+  await expectOk(response, `gitlab_${response.status}`);
   return readJSON(response, schema);
 }
 

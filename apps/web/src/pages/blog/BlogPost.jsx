@@ -5,6 +5,7 @@ import { REPO } from '../../components/Footer.jsx';
 import Icon from '../../components/Icon.jsx';
 import { followRoute, routeHref } from '../../lib/router.js';
 import { ClickableTag, fmtDate, goToTag, readMinutes } from './blog-ui.jsx';
+import { EXTERNAL } from '../../lib/external.js';
 
 // The post's HTML arrives finished from the build (scripts/render-post.mjs):
 // highlighted, with its code-block chrome, heading anchors and table wrappers.
@@ -143,8 +144,7 @@ export default function PostView({ post, older, newer, onBack }) {
         <a
           className="post-source"
           href={`${REPO}/blob/main/content/blogs/${post.path}`}
-          target="_blank"
-          rel="noopener noreferrer"
+          {...EXTERNAL}
         >
           <Icon name="git-commit" />
           content/blogs/{post.path}

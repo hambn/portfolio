@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Icon from './Icon.jsx';
 import Keys from './Keys.jsx';
+import { EXTERNAL } from '../lib/external.js';
 
 export const REPO = 'https://github.com/hambn/portfolio';
 // Set at build time by scripts/build-info.mjs; empty without a git checkout.
@@ -32,8 +33,7 @@ export default function Footer() {
       <a
         className="site-footer-build"
         href={SHA ? `${REPO}/commit/${SHA}` : REPO}
-        target="_blank"
-        rel="noopener noreferrer"
+        {...EXTERNAL}
         title="the commit this site was built from"
       >
         <Icon name="git-commit" />

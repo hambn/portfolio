@@ -9,6 +9,7 @@ import { langColor } from '../../../lib/languages.js';
 import { BRAND_ICON } from '../brandIcons.js';
 import { OCTICON } from './octicons.js';
 import { useGitHubProfile } from './useGitHubProfile.js';
+import { EXTERNAL } from '../../../lib/external.js';
 
 const GH_ICON = BRAND_ICON.gh;
 const AVATAR = 96;
@@ -34,8 +35,6 @@ function Octicon({ name, size = 16, className = 'gh-octicon' }) {
   );
 }
 
-const ext = { target: '_blank', rel: 'noopener noreferrer' };
-
 // A website as the profile lists it: an http(s) URL, shown without its scheme.
 function website(blog) {
   if (!blog) return null;
@@ -59,7 +58,7 @@ function Pinned({ repos, username, title }) {
           <li key={`${repo.owner}/${repo.name}`} className="gh-box gh-pin">
             <div className="gh-pin-head">
               <Octicon name="repo" />
-              <a href={repo.url} {...ext} className="gh-pin-name">
+              <a href={repo.url} {...EXTERNAL} className="gh-pin-name">
                 {repo.owner !== username && <span className="gh-pin-owner">{repo.owner}/</span>}
                 {repo.name}
               </a>
@@ -77,7 +76,7 @@ function Pinned({ repos, username, title }) {
                 </span>
               )}
               {repo.forks > 0 && (
-                <a href={`${repo.url}/forks`} {...ext} className="gh-pin-stat">
+                <a href={`${repo.url}/forks`} {...EXTERNAL} className="gh-pin-stat">
                   <Octicon name="repoForked" />
                   {repo.forks.toLocaleString()}
                 </a>
@@ -110,7 +109,7 @@ function Languages({ languages, href }) {
           <li key={language.name}>
             <a
               href={`${href}?tab=repositories&language=${encodeURIComponent(language.name.toLowerCase())}`}
-              {...ext}
+              {...EXTERNAL}
             >
               <span className="gh-lang-dot" style={{ background: langColor(language.name) }} />
               <span className="gh-langs-name">{language.name}</span>
@@ -128,7 +127,7 @@ function Achievements({ achievements, href, image }) {
   return (
     <div className="gh-extra">
       <h3 className="gh-extra-h">
-        <a href={`${href}?tab=achievements`} {...ext} className="gh-h-plain">
+        <a href={`${href}?tab=achievements`} {...EXTERNAL} className="gh-h-plain">
           Achievements
         </a>
       </h3>
@@ -137,7 +136,7 @@ function Achievements({ achievements, href, image }) {
           <li key={badge.slug}>
             <a
               href={`${href}?achievement=${badge.slug}&tab=achievements`}
-              {...ext}
+              {...EXTERNAL}
               className="gh-badge"
               title={badge.count ? `${badge.name} ${badge.count}` : badge.name}
             >
@@ -174,7 +173,7 @@ function Organizations({ organizations, image }) {
       <ul className="gh-orgs">
         {organizations.map((org) => (
           <li key={org.login}>
-            <a href={org.url} {...ext} title={org.login}>
+            <a href={org.url} {...EXTERNAL} title={org.login}>
               {org.image ? (
                 <img
                   src={image(org.image, 32)}
@@ -233,7 +232,7 @@ export const GitHubCard = React.memo(function GitHubCard({ username, url, api = 
     <div className="gh-card link-card">
       {/* Header */}
       <div className={`gh-head link-card-header${collapsed ? ' is-collapsed' : ''}`}>
-        <a href={href} {...ext} className="gh-brand link-card-brand">
+        <a href={href} {...EXTERNAL} className="gh-brand link-card-brand">
           <svg viewBox="0 0 24 24" fill="currentColor" width={24} height={24} className="gh-mark">
             <path d={GH_ICON} />
           </svg>
@@ -263,7 +262,12 @@ export const GitHubCard = React.memo(function GitHubCard({ username, url, api = 
       >
         <div className="gh-body">
           <div className="gh-profile">
-            <a href={href} {...ext} className="gh-avatar-link" aria-label={`${login} on GitHub`}>
+            <a
+              href={href}
+              {...EXTERNAL}
+              className="gh-avatar-link"
+              aria-label={`${login} on GitHub`}
+            >
               {profile?.avatar_url ? (
                 <img
                   src={image(profile.avatar_url, AVATAR)}
@@ -289,12 +293,12 @@ export const GitHubCard = React.memo(function GitHubCard({ username, url, api = 
               )}
             </a>
             <div className="gh-ident">
-              <a href={href} {...ext} className="gh-name">
+              <a href={href} {...EXTERNAL} className="gh-name">
                 {profile?.name || login}
               </a>
               <div className="gh-login">{login}</div>
             </div>
-            <a href={href} {...ext} className="gh-btn gh-follow">
+            <a href={href} {...EXTERNAL} className="gh-btn gh-follow">
               Follow
             </a>
           </div>
@@ -307,11 +311,11 @@ export const GitHubCard = React.memo(function GitHubCard({ username, url, api = 
               <ul className="gh-details">
                 <li className="gh-social">
                   <Octicon name="people" />
-                  <a href={`${href}?tab=followers`} {...ext}>
+                  <a href={`${href}?tab=followers`} {...EXTERNAL}>
                     <strong>{(profile.followers ?? 0).toLocaleString()}</strong> followers
                   </a>
                   <span aria-hidden="true">·</span>
-                  <a href={`${href}?tab=following`} {...ext}>
+                  <a href={`${href}?tab=following`} {...EXTERNAL}>
                     <strong>{(profile.following ?? 0).toLocaleString()}</strong> following
                   </a>
                 </li>
@@ -347,7 +351,7 @@ export const GitHubCard = React.memo(function GitHubCard({ username, url, api = 
                     >
                       <path d={BRAND_ICON.x} />
                     </svg>
-                    <a href={`https://x.com/${profile.twitter_username}`} {...ext}>
+                    <a href={`https://x.com/${profile.twitter_username}`} {...EXTERNAL}>
                       @{profile.twitter_username}
                     </a>
                   </li>
@@ -363,18 +367,18 @@ export const GitHubCard = React.memo(function GitHubCard({ username, url, api = 
           )}
 
           <div className="gh-tabs">
-            <a href={href} {...ext} className="gh-tab is-current">
+            <a href={href} {...EXTERNAL} className="gh-tab is-current">
               <Octicon name="book" />
               Overview
             </a>
-            <a href={`${href}?tab=repositories`} {...ext} className="gh-tab">
+            <a href={`${href}?tab=repositories`} {...EXTERNAL} className="gh-tab">
               <Octicon name="repo" />
               Repositories
               {profile?.public_repos != null && (
                 <span className="gh-counter">{profile.public_repos.toLocaleString()}</span>
               )}
             </a>
-            <a href={`${href}?tab=stars`} {...ext} className="gh-tab">
+            <a href={`${href}?tab=stars`} {...EXTERNAL} className="gh-tab">
               <Octicon name="star" />
               Stars
             </a>
@@ -384,7 +388,7 @@ export const GitHubCard = React.memo(function GitHubCard({ username, url, api = 
             <section className="gh-section" aria-label="Profile README">
               <div className="gh-box gh-readme">
                 <div className="gh-readme-path">
-                  <a href={`https://github.com/${login}/${login}`} {...ext}>
+                  <a href={`https://github.com/${login}/${login}`} {...EXTERNAL}>
                     {login}
                   </a>
                   <span> / </span>README<span className="gh-muted">.md</span>

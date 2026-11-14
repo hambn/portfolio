@@ -4,6 +4,7 @@
 import './home.css';
 import React, { useEffect, useState } from 'react';
 import { PortfolioData } from '../../lib/data.js';
+import { useContent } from '../../hooks/useContent.js';
 import FooterLinks from './FooterLinks.jsx';
 import Intro from './Intro.jsx';
 import RecentPosts, { RECENT_COUNT } from './RecentPosts.jsx';
@@ -11,9 +12,9 @@ import Stack from './Stack.jsx';
 import Timeline from './Timeline.jsx';
 
 export default function Home() {
-  const [profile, setProfile] = useState(() => PortfolioData.peek('profile'));
-  const [resume, setResume] = useState(() => PortfolioData.peek('resume'));
-  const [links, setLinks] = useState(() => PortfolioData.peek('links'));
+  const { data: profile } = useContent('profile');
+  const { data: resume } = useContent('resume');
+  const { data: links } = useContent('links');
   // The prerendered page carries just the newest posts; without them (dev, or
   // a page opened by navigation) they come from the blog index.
   const [recent, setRecent] = useState(
@@ -24,21 +25,17 @@ export default function Home() {
   );
 
   useEffect(() => {
-    PortfolioData.getProfile()
-      .then(setProfile)
+    if (recent) return undefined;
+    let alive = true;
+    PortfolioData.getBlogIndex()
+      .then((posts) => {
+        if (alive) setRecent(posts.slice(0, RECENT_COUNT));
+      })
       .catch(() => {});
-    PortfolioData.getResume()
-      .then(setResume)
-      .catch(() => {});
-    PortfolioData.getLinks()
-      .then(setLinks)
-      .catch(() => {});
-    if (!recent)
-      PortfolioData.getBlogIndex()
-        .then((posts) => setRecent(posts.slice(0, RECENT_COUNT)))
-        .catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    return () => {
+      alive = false;
+    };
+  }, [recent]);
 
   return (
     <main className="home-page">

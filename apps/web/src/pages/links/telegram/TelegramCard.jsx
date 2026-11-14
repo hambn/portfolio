@@ -9,6 +9,7 @@ import { useCardFeed } from '../LinksFeed.jsx';
 import { HeaderButtons } from '../../../components/card/HeaderButtons.jsx';
 import { telegramUsername } from '@portfolio/shared/telegram';
 import { BRAND_ICON } from '../brandIcons.js';
+import { EXTERNAL } from '../../../lib/external.js';
 
 const TG_ICON = BRAND_ICON.tg;
 
@@ -53,7 +54,7 @@ function TelegramProfile({ username, apiEndpoint }) {
   return (
     <section className="tg-card link-card" aria-label="Telegram profile">
       <div className="tg-header link-card-header">
-        <a className="link-card-brand" href={href} target="_blank" rel="noopener noreferrer">
+        <a className="link-card-brand" href={href} {...EXTERNAL}>
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d={TG_ICON} />
           </svg>
@@ -107,7 +108,7 @@ function TelegramProfile({ username, apiEndpoint }) {
                 {profile.description}
               </p>
             )}
-            <a className="tg-message" href={href} target="_blank" rel="noopener noreferrer">
+            <a className="tg-message" href={href} {...EXTERNAL}>
               Send Message
             </a>
             <p className="tg-contact">

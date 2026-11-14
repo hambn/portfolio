@@ -1,4 +1,5 @@
 import { mediaUrl } from '../../../lib/api.js';
+import { EXTERNAL } from '../../../lib/external.js';
 import './SteamCard.css';
 import React, { useState } from 'react';
 import { useCollapsed } from '../../../hooks/useCollapsed.js';
@@ -17,53 +18,38 @@ const HEADER_H = 215;
 const HERO_W = 1920;
 const HERO_H = 620;
 
-// ── Palette (always dark — Steam brand) ───────────────────────────────────────
-const ST = {
-  bg: 'linear-gradient(145deg,#233448 0%,#1b2838 55%,#171d25 100%)',
-  bgHead: '#171d25',
-  border: '#344659',
-  div: 'rgba(61,90,115,0.45)',
-  blue: '#66c0f4',
-  white: '#e5e9ed',
-  muted: '#8f98a0',
-  faint: '#8b9bad',
-  surf: 'rgba(102,192,244,0.07)',
-  ingame: '#90ba3c',
-  online: '#57cbde',
-};
+const storeUrl = (appid) => `https://store.steampowered.com/app/${appid}`;
 
-// ── Steam icon ────────────────────────────────────────────────────────────────
-const ST_ICON_PATH = BRAND_ICON.st;
-function StIcon({ size, color }) {
+// Colours come from SteamCard.css: blue by default, the surrounding text
+// colour inside the header and the profile button.
+function StIcon({ size = 16 }) {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      fill={color || ST.blue}
-      width={size || 16}
-      height={size || 16}
-      className="st-style-1"
-    >
-      <path d={ST_ICON_PATH} />
+    <svg viewBox="0 0 24 24" width={size} height={size} className="st-icon">
+      <path d={BRAND_ICON.st} />
     </svg>
   );
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function stFmtHrs(h) {
-  if (h == null) return null;
-  const n = parseFloat(h);
+function formatHours(hours) {
+  if (hours == null) return null;
+  const n = parseFloat(hours);
   if (n >= 1000) return `${(n / 1000).toFixed(1)}k hrs`;
   if (n < 1) return `${Math.round(n * 60)} min`;
   return `${n % 1 === 0 ? n : n.toFixed(1)} hrs`;
 }
 
-// ── Game Row ──────────────────────────────────────────────────────────────────
-function StGameRow({ game, showRecent }) {
-  if (!game) return null;
-  const href = `https://store.steampowered.com/app/${game.appid}`;
+// "12.5 hrs past 2 weeks" across every recent game, or null when Steam sent no
+// two-week figures at all.
+function recentTotal(games) {
+  if (!games.some((game) => game.playtime_2weeks_hours != null)) return null;
+  const hours = games.reduce((sum, game) => sum + (Number(game.playtime_2weeks_hours) || 0), 0);
+  return `${formatHours(hours)} past 2 weeks`;
+}
+
+function StGameRow({ game }) {
+  const total = game.playtime_total_hours ?? game.playtime_hours;
   return (
-    <a href={href} target="_blank" rel="noopener noreferrer" className="st-game-row st-style-2">
-      {/* library_hero as subtle background */}
+    <a href={storeUrl(game.appid)} {...EXTERNAL} className="st-game-row">
       {game.images?.hero && (
         <img
           src={mediaUrl(game.images.hero)}
@@ -71,7 +57,7 @@ function StGameRow({ game, showRecent }) {
           aria-hidden="true"
           loading="lazy"
           decoding="async"
-          className="st-style-3"
+          className="st-game-bg"
         />
       )}
       {game.images?.header ? (
@@ -82,95 +68,49 @@ function StGameRow({ game, showRecent }) {
           height={HEADER_H}
           loading="lazy"
           decoding="async"
-          className="st-style-5"
+          className="st-game-art"
         />
       ) : (
-        <div
-          style={{
-            background: ST.surf,
-          }}
-          className="st-style-6"
-        >
-          <StIcon size={16} />
+        <div className="st-game-art-empty">
+          <StIcon />
         </div>
       )}
-      <div className="st-style-7">
-        <div
-          style={{
-            color: ST.white,
-          }}
-          className="st-style-8"
-        >
-          {game.name}
-        </div>
-        <div className="st-style-9">
-          {showRecent && game.playtime_2weeks_hours != null && (
-            <span
-              style={{
-                color: ST.blue,
-              }}
-              className="st-style-10"
-            >
-              {stFmtHrs(game.playtime_2weeks_hours)} past 2 weeks
+      <div className="st-game-info">
+        <div className="st-game-name">{game.name}</div>
+        <div className="st-game-times">
+          {game.playtime_2weeks_hours != null && (
+            <span className="st-game-recent">
+              {formatHours(game.playtime_2weeks_hours)} past 2 weeks
             </span>
           )}
-          {(game.playtime_total_hours != null || game.playtime_hours != null) && (
-            <span
-              style={{
-                color: ST.muted,
-              }}
-              className="st-style-11"
-            >
-              {stFmtHrs(game.playtime_total_hours ?? game.playtime_hours)} on record
-            </span>
-          )}
+          {total != null && <span className="st-game-total">{formatHours(total)} on record</span>}
         </div>
       </div>
     </a>
   );
 }
 
-// ── Section label ─────────────────────────────────────────────────────────────
-function StSectionLabel({ children, detail }) {
+function StSection({ title, detail, children }) {
   return (
-    <div
-      style={{
-        color: ST.white,
-      }}
-      className="st-style-12"
-    >
-      <span>{children}</span>
-      {detail && <span className="st-section-detail">{detail}</span>}
+    <div className="st-showcase">
+      <div className="st-section-label">
+        <span>{title}</span>
+        {detail && <span className="st-section-detail">{detail}</span>}
+      </div>
+      {children}
     </div>
   );
 }
 
-// ── Recent Activity section ───────────────────────────────────────────────────
-function StRecentSection({ items }) {
-  return (
-    <div className="st-style-14">
-      {items.map((game, i) => (
-        <StGameRow key={game.appid || i} game={game} showRecent={true} />
-      ))}
-    </div>
-  );
-}
-
-// ── Favorite Game section ─────────────────────────────────────────────────────
-function StFavoriteSection({ game }) {
-  if (!game) return null;
-  const href = `https://store.steampowered.com/app/${game.appid}`;
+function StFavorite({ game }) {
+  const href = storeUrl(game.appid);
+  const hours = game.playtime_hours ?? game.playtime_total_hours;
   return (
     <div className="st-favorite">
       {(game.images?.hero || game.images?.header) && (
-        <a
-          href={href}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="st-hero-link st-style-15"
-        >
+        <a href={href} {...EXTERNAL} className="st-hero-link">
           <img
-            className="st-hero-img st-style-16"
+            className="st-hero-img"
             src={mediaUrl(game.images.hero || game.images.header)}
             alt={game.name}
             width={game.images.hero ? HERO_W : HEADER_W}
@@ -180,16 +120,15 @@ function StFavoriteSection({ game }) {
           />
         </a>
       )}
-      <div className="st-style-17">
+      <div className="st-favorite-body">
         {game.images?.header && (
           // A thumbnail shortcut to the same page as the game-name link next to
           // it. Hidden from assistive tech (and from tab order, so focus can't
           // land on a nameless link) rather than given a duplicate name.
           <a
             href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="st-style-18"
+            {...EXTERNAL}
+            className="st-favorite-thumb"
             aria-hidden="true"
             tabIndex={-1}
           >
@@ -200,34 +139,19 @@ function StFavoriteSection({ game }) {
               height={HEADER_H}
               loading="lazy"
               decoding="async"
-              className="st-style-19"
+              className="st-favorite-thumb-img"
             />
           </a>
         )}
-        <div className="st-style-20">
-          <a
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              color: ST.white,
-            }}
-            className="st-style-21"
-          >
+        <div className="st-favorite-title">
+          <a href={href} {...EXTERNAL} className="st-favorite-name">
             {game.name}
           </a>
         </div>
-        {(game.playtime_hours != null || game.playtime_total_hours != null) && (
-          <div
-            style={{
-              color: ST.blue,
-            }}
-            className="st-style-22"
-          >
+        {hours != null && (
+          <div className="st-favorite-hours">
             <span className="st-hours-value">
-              {Number(game.playtime_hours ?? game.playtime_total_hours).toLocaleString('en-US', {
-                maximumFractionDigits: 1,
-              })}
+              {Number(hours).toLocaleString('en-US', { maximumFractionDigits: 1 })}
             </span>
             <span className="st-hours-label">Hours played</span>
           </div>
@@ -237,7 +161,132 @@ function StFavoriteSection({ game }) {
   );
 }
 
-// ── Main SteamCard ────────────────────────────────────────────────────────────
+// The banner for the game being played right now. Steam sends either the full
+// game or, when it knows nothing more, just its name.
+function StNowPlaying({ game }) {
+  const current = typeof game === 'string' ? { name: game } : game;
+  return (
+    <div className="st-now">
+      {current.images?.hero && (
+        <img
+          src={mediaUrl(current.images.hero)}
+          alt=""
+          aria-hidden="true"
+          loading="lazy"
+          decoding="async"
+          className="st-now-bg"
+        />
+      )}
+      <div className="st-now-shade" />
+      <div className="st-now-body">
+        <span className="st-now-dot" />
+        {current.images?.header && current.appid && (
+          <a href={storeUrl(current.appid)} {...EXTERNAL} className="st-now-art-link">
+            <img
+              src={mediaUrl(current.images.header)}
+              alt={current.name}
+              width={HEADER_W}
+              height={HEADER_H}
+              loading="lazy"
+              decoding="async"
+              className="st-now-art"
+            />
+          </a>
+        )}
+        <div>
+          <div className="st-now-label">now playing</div>
+          <div className="st-now-name">{current.name}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Avatar, name and presence, with the level and the profile button beside them.
+function StProfile({ data, profileUrl }) {
+  const inGame = Boolean(data.currentGame);
+  const online = inGame || (data.status || '').toLowerCase() === 'online';
+  const status = inGame ? 'ingame' : online ? 'online' : 'offline';
+  return (
+    <div className="st-profile" data-status={status}>
+      {data.avatar?.large ? (
+        <a href={profileUrl} {...EXTERNAL} className="st-avatar-link">
+          <img
+            src={mediaUrl(data.avatar.large)}
+            alt={data.displayName}
+            width={88}
+            height={88}
+            loading="lazy"
+            decoding="async"
+            className="st-avatar"
+          />
+        </a>
+      ) : (
+        <div className="st-avatar-empty">
+          <StIcon size={24} />
+        </div>
+      )}
+
+      <div className="st-profile-main">
+        <div className="st-name-row">
+          <a href={profileUrl} {...EXTERNAL} className="st-name">
+            {data.displayName}
+          </a>
+          <span className="st-presence">
+            <span className="st-presence-dot" />
+            {inGame ? 'In-Game' : data.status || 'offline'}
+          </span>
+        </div>
+        <div className="st-meta">
+          {data.totalGames != null && (
+            <span className="st-games">
+              <span className="st-games-count">{data.totalGames}</span> games
+            </span>
+          )}
+          {data.memberSince && (
+            <span className="st-member-since">
+              Member since {new Date(data.memberSince).getFullYear()}
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="st-profile-side">
+        {data.level != null && (
+          <span className="st-level">
+            Level <span className="st-level-badge">{data.level}</span>
+          </span>
+        )}
+        {/* The label has to contain the visible "View profile" text —
+            a voice-control user says what they can see. */}
+        <a
+          href={profileUrl}
+          {...EXTERNAL}
+          aria-label="View profile on Steam"
+          className="st-open-btn"
+        >
+          <StIcon size={14} />
+          <span className="st-open-label">View profile</span>
+        </a>
+      </div>
+    </div>
+  );
+}
+
+// The card when no API endpoint is configured: one link to the profile.
+function StSimpleCard({ href, handle }) {
+  return (
+    <a href={href} {...EXTERNAL} className="st-simple">
+      <StIcon size={20} />
+      <div>
+        <div className="st-simple-name">steam</div>
+        <div className="st-simple-handle">@{handle}</div>
+      </div>
+      <span className="st-simple-open">open →</span>
+    </a>
+  );
+}
+
 export const SteamCard = React.memo(function SteamCard({ handle, url, apiEndpoint }) {
   const [data, setData] = useState(null);
   const [collapsed, toggleCollapse] = useCollapsed('st_card_collapsed');
@@ -249,106 +298,27 @@ export const SteamCard = React.memo(function SteamCard({ handle, url, apiEndpoin
   const { loading, error } = usePolledJSON(
     collapsed ? null : apiEndpoint,
     60000,
-    (d) => setData(d),
+    setData,
     useCardFeed('steam'),
   );
-  const isInGame = !!data?.currentGame;
-  const statusStr = (data?.status || '').toLowerCase();
-  const isOnline = statusStr === 'online' || isInGame;
-  const dotColor = isInGame ? ST.ingame : isOnline ? ST.online : ST.faint;
-  const statusLabel = isInGame ? `In-Game` : data?.status || 'offline';
 
-  // ── Simple card ───────────────────────────────────────────────────────────
-  if (!apiEndpoint) {
-    return (
-      <a
-        href={url || `https://steamcommunity.com/id/${handle}/`}
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{
-          background: ST.bg,
-          border: `1px solid ${ST.border}`,
-        }}
-        className="st-style-23"
-      >
-        <StIcon size={20} />
-        <div>
-          <div
-            style={{
-              color: ST.blue,
-            }}
-            className="st-style-24"
-          >
-            steam
-          </div>
-          <div
-            style={{
-              color: ST.faint,
-            }}
-            className="st-style-25"
-          >
-            @{handle}
-          </div>
-        </div>
-        <span
-          style={{
-            color: ST.faint,
-          }}
-          className="st-style-26"
-        >
-          open →
-        </span>
-      </a>
-    );
-  }
+  if (!apiEndpoint) return <StSimpleCard href={profileUrl} handle={handle} />;
+
   return (
-    <div
-      style={{
-        background: ST.bg,
-      }}
-      className="st-style-27 link-card"
-    >
-      {/* ── Brand header — always visible ── */}
-      <div
-        style={{
-          background: ST.bgHead,
-          borderBottom: collapsed ? 'none' : `1px solid ${ST.border}`,
-        }}
-        className="st-style-28 link-card-header"
-      >
-        <a
-          href={profileUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="st-style-29 link-card-brand"
-        >
-          <StIcon size={24} color="#dcdedf" />
-          <span
-            style={{
-              color: '#dcdedf',
-            }}
-            className="st-style-30 link-card-title"
-          >
-            Steam
-          </span>
+    <div className="st-card link-card">
+      <div className="st-header link-card-header">
+        <a href={profileUrl} {...EXTERNAL} className="st-brand link-card-brand">
+          <StIcon size={24} />
+          <span className="st-wordmark link-card-title">Steam</span>
         </a>
 
-        {loading && !data && (
-          <span
-            style={{
-              color: ST.faint,
-            }}
-            className="st-style-31"
-          >
-            loading…
-          </span>
-        )}
+        {loading && !data && <span className="st-loading">loading…</span>}
 
-        <div className="st-style-33 link-card-spacer" />
+        <div className="link-card-spacer" />
 
         <div className="link-card-actions">
           <HeaderButtons
-            accent={ST.blue}
+            accent="var(--st-blue)"
             copied={copied}
             onCopy={copyLink}
             copyTitle="Copy Steam profile link"
@@ -360,7 +330,6 @@ export const SteamCard = React.memo(function SteamCard({ handle, url, apiEndpoin
         </div>
       </div>
 
-      {/* ── Collapsible body ── */}
       <div
         data-card="st"
         className={`sc-body ${collapsed ? 'closed' : 'open'}`}
@@ -371,229 +340,23 @@ export const SteamCard = React.memo(function SteamCard({ handle, url, apiEndpoin
             {loading ? 'Loading profile…' : 'Profile unavailable. You can still open Steam.'}
           </p>
         )}
-        {/* ── Profile row — status lives here, next to name ── */}
+        {data && <StProfile data={data} profileUrl={profileUrl} />}
+        {data?.currentGame && <StNowPlaying game={data.currentGame} />}
         {data && (
-          <div
-            style={{
-              borderBottom: `1px solid ${ST.div}`,
-            }}
-            className="st-style-34"
-          >
-            {data.avatar?.large ? (
-              <a
-                href={profileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="st-style-35"
-              >
-                <img
-                  src={mediaUrl(data.avatar.large)}
-                  alt={data.displayName}
-                  width={88}
-                  height={88}
-                  loading="lazy"
-                  decoding="async"
-                  style={{
-                    border: `2px solid ${dotColor}`,
-                  }}
-                  className="st-style-36"
-                />
-              </a>
-            ) : (
-              <div
-                style={{
-                  border: `2px solid ${ST.faint}`,
-                }}
-                className="st-style-37"
-              >
-                <StIcon size={24} />
-              </div>
-            )}
-
-            <div className="st-style-38">
-              {/* Name + status on the same line */}
-              <div className="st-style-39">
-                <a
-                  href={profileUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    color: ST.white,
-                  }}
-                  className="st-style-40"
-                >
-                  {data.displayName}
-                </a>
-                {/* Status badge next to name */}
-                <span
-                  style={{
-                    color: dotColor,
-                  }}
-                  className="st-style-41"
-                >
-                  <span
-                    style={{
-                      background: dotColor,
-                      boxShadow: isOnline ? `0 0 6px ${dotColor}99` : 'none',
-                    }}
-                    className="st-style-42"
-                  ></span>
-                  {statusLabel}
-                </span>
-              </div>
-
-              {/* Meta row: level, game count, member since */}
-              <div className="st-style-43">
-                {data.totalGames != null && (
-                  <span
-                    style={{
-                      color: ST.muted,
-                    }}
-                    className="st-style-45"
-                  >
-                    <span
-                      style={{
-                        color: ST.white,
-                      }}
-                      className="st-style-46"
-                    >
-                      {data.totalGames}
-                    </span>{' '}
-                    games
-                  </span>
-                )}
-                {data.memberSince && (
-                  <span
-                    style={{
-                      color: ST.faint,
-                    }}
-                    className="st-style-47"
-                  >
-                    Member since {new Date(data.memberSince).getFullYear()}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div className="st-profile-side">
-              {data.level != null && (
-                <span className="st-level">
-                  Level <span className="st-style-44">{data.level}</span>
-                </span>
-              )}
-              {/* The label has to contain the visible "View profile" text —
-                  a voice-control user says what they can see. */}
-              <a
-                href={profileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="View profile on Steam"
-                className="st-open-btn st-style-48"
-              >
-                <StIcon size={14} color="#fff" />
-                <span className="st-open-label">View profile</span>
-              </a>
-            </div>
-          </div>
-        )}
-
-        {/* Currently in-game banner */}
-        {data?.currentGame &&
-          (() => {
-            const cg =
-              typeof data.currentGame === 'string'
-                ? {
-                    name: data.currentGame,
-                  }
-                : data.currentGame;
-            const cgHref = cg.appid ? `https://store.steampowered.com/app/${cg.appid}` : null;
-            return (
-              <div
-                style={{
-                  borderBottom: `1px solid ${ST.div}`,
-                }}
-                className="st-style-49"
-              >
-                {/* library_hero full-bleed background */}
-                {cg.images?.hero && (
-                  <img
-                    src={mediaUrl(cg.images.hero)}
-                    alt=""
-                    aria-hidden="true"
-                    loading="lazy"
-                    decoding="async"
-                    className="st-style-50"
-                  />
-                )}
-                {/* dark gradient overlay so text stays readable */}
-                <div className="st-style-51"></div>
-                {/* content */}
-                <div className="st-style-52">
-                  <span
-                    style={{
-                      background: ST.ingame,
-                      boxShadow: `0 0 7px ${ST.ingame}99`,
-                    }}
-                    className="st-style-53"
-                  ></span>
-                  {/* header capsule */}
-                  {cg.images?.header && cgHref && (
-                    <a
-                      href={cgHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="st-style-54"
-                    >
-                      <img
-                        src={mediaUrl(cg.images.header)}
-                        alt={cg.name}
-                        width={HEADER_W}
-                        height={HEADER_H}
-                        loading="lazy"
-                        decoding="async"
-                        className="st-style-55"
-                      />
-                    </a>
-                  )}
-                  <div>
-                    <div className="st-style-56">now playing</div>
-                    <div
-                      style={{
-                        color: ST.ingame,
-                      }}
-                      className="st-style-57"
-                    >
-                      {cg.name}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
-
-        {/* ── Sections stacked — no tabs ── */}
-        {data && (
-          <div className="st-style-58">
+          <div className="st-sections">
             {data.recentActivity?.length > 0 && (
-              <div className="st-showcase">
-                <StSectionLabel
-                  detail={
-                    data.recentActivity.some((game) => game.playtime_2weeks_hours != null)
-                      ? `${stFmtHrs(data.recentActivity.reduce((total, game) => total + (Number(game.playtime_2weeks_hours) || 0), 0))} past 2 weeks`
-                      : null
-                  }
-                >
-                  Recent activity
-                </StSectionLabel>
-                <StRecentSection items={data.recentActivity} />
-              </div>
+              <StSection title="Recent activity" detail={recentTotal(data.recentActivity)}>
+                <div className="st-recent">
+                  {data.recentActivity.map((game, i) => (
+                    <StGameRow key={game.appid || i} game={game} />
+                  ))}
+                </div>
+              </StSection>
             )}
-
             {data.favoriteGame && (
-              <div className="st-showcase">
-                <StSectionLabel>Favorite game</StSectionLabel>
-                <StFavoriteSection game={data.favoriteGame} />
-              </div>
+              <StSection title="Favorite game">
+                <StFavorite game={data.favoriteGame} />
+              </StSection>
             )}
           </div>
         )}
