@@ -32,3 +32,21 @@ jobs:
       - uses: actions/checkout@v7
       - run: docker build -f apps/web/Dockerfile -t portfolio-web .
       - run: docker build -f apps/api/Dockerfile -t portfolio-api .
+
+  # Dependabot can only open PRs, so land them for it: once both jobs above
+  # pass, squash-merge into main. A merge made with GITHUB_TOKEN does not fire
+  # push workflows, so the deploy is dispatched explicitly.
+  dependabot-merge:
+    needs: [check, images]
+    if: github.actor == 'dependabot[bot]' && github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - run: gh pr merge "${{ github.event.pull_request.number }}" --squash --delete-branch
+      - run: gh workflow run deploy.yml --ref main
