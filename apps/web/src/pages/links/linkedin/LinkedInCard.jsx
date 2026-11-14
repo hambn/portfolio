@@ -8,6 +8,7 @@ import { useCopy } from '../../../hooks/useCopy.js';
 import { HeaderButtons } from '../../../components/card/HeaderButtons.jsx';
 import { linkedinUsername } from '@portfolio/shared/linkedin';
 import { BRAND_ICON } from '../brandIcons.js';
+import { EXTERNAL } from '../../../lib/external.js';
 const LI_ICON = BRAND_ICON.li;
 
 export const LinkedInCard = React.memo(function LinkedInCard({ handle, url, apiEndpoint }) {
@@ -48,12 +49,7 @@ function LinkedInProfile({ username, apiEndpoint }) {
   return (
     <section className="li-card link-card" aria-label="LinkedIn profile">
       <div className="li-header link-card-header">
-        <a
-          className="link-card-brand li-brand"
-          href={href}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
+        <a className="link-card-brand li-brand" href={href} {...EXTERNAL}>
           <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true">
             <path d={LI_ICON} />
           </svg>
@@ -150,7 +146,7 @@ function LinkedInProfile({ username, apiEndpoint }) {
             )}
           </div>
           <div className="li-buttons">
-            <a className="li-button" href={href} target="_blank" rel="noopener noreferrer">
+            <a className="li-button" href={href} {...EXTERNAL}>
               View profile
             </a>
             <button className="li-button li-button-ghost" type="button" onClick={copyLink}>

@@ -1,4 +1,4 @@
-.em-style-1 {
+.em-card {
   --em-bg: #1e1f20;
   --em-bgHead: #131314;
   --em-border: #444746;
@@ -21,9 +21,10 @@
     'Segoe UI',
     sans-serif;
   color: var(--em-text);
+  background: var(--em-bg);
   color-scheme: dark;
 }
-[data-theme='light'] .em-style-1 {
+[data-theme='light'] .em-card {
   --em-bg: #ffffff;
   --em-bgHead: #f8fafd;
   --em-border: #dadce0;
@@ -38,18 +39,25 @@
   --em-sendH: #1765cc;
   color-scheme: light;
 }
-.em-style-1 :is(a, button):focus-visible {
+.em-card :is(a, button):focus-visible {
   outline: 2px solid var(--em-blue);
   outline-offset: 2px;
 }
-.em-style-15 {
+.em-header {
+  background: var(--em-bgHead);
+}
+.em-logo {
+  fill: var(--em-logo);
+}
+.em-mailto {
   font-size: 12px;
+  color: var(--em-muted);
   text-decoration: none;
 }
-.em-style-15:hover {
+.em-mailto:hover {
   text-decoration: underline;
 }
-.em-style-14 {
+.em-send {
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -59,16 +67,18 @@
   font-size: 14px;
   font-weight: 500;
   font-family: inherit;
+  background: var(--em-blue);
+  color: var(--em-sendText);
   cursor: pointer;
   transition:
     background 0.15s,
     box-shadow 0.15s;
 }
-.em-style-14:hover {
-  background: var(--em-sendH) !important;
+.em-send:hover {
+  background: var(--em-sendH);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.24);
 }
-.em-style-13 {
+.em-actions {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -76,7 +86,7 @@
   padding-top: 16px;
   border-top: 1px solid var(--em-div);
 }
-.em-style-12 {
+.em-body-field {
   resize: vertical;
   display: block;
   width: 100%;
@@ -111,7 +121,7 @@
 .em-row-field::placeholder {
   color: var(--em-faint);
 }
-.em-style-7 {
+.em-form {
   position: relative;
   padding: 8px 24px 20px;
   display: flex;
@@ -191,7 +201,7 @@
 .em-status.is-sent {
   color: var(--em-blue);
 }
-.em-style-14:disabled {
+.em-send:disabled {
   opacity: 0.6;
   cursor: progress;
 }
@@ -203,11 +213,11 @@
 .em-message:focus-within {
   border-left-color: var(--em-blue);
 }
-.em-style-1 .em-row-field:focus-visible {
+.em-card .em-row-field:focus-visible {
   outline: none;
 }
 @container (max-width: 480px) {
-  .em-style-7 {
+  .em-form {
     padding: 8px 16px 16px;
   }
   .em-row-field {
@@ -216,7 +226,8 @@
 }
 
 /* Wordmark — Google sets its product names in medium weight, not bold. */
-.em-style-1 .em-style-5 {
+.em-card .em-wordmark {
+  color: var(--em-text);
   font-weight: 500;
   letter-spacing: -0.1px;
 }

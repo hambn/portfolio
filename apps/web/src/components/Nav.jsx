@@ -1,6 +1,6 @@
 // Nav.jsx — top navigation + theme toggle.
-import React, { useEffect, useState } from 'react';
-import { PortfolioData } from '../lib/data.js';
+import React from 'react';
+import { useContent } from '../hooks/useContent.js';
 import { followRoute, routeHref } from '../lib/router.js';
 import { storage } from '../lib/storage.js';
 import Icon from './Icon.jsx';
@@ -23,13 +23,7 @@ export function toggleTheme() {
 }
 
 export default function Nav({ page }) {
-  const [profile, setProfile] = useState(() => PortfolioData.peek('profile'));
-
-  useEffect(() => {
-    PortfolioData.getProfile()
-      .then(setProfile)
-      .catch(() => {});
-  }, []);
+  const { data: profile } = useContent('profile');
 
   // Everything visual lives in core.css; the active route is expressed as
   // aria-current so CSS and assistive tech read it from the same attribute.

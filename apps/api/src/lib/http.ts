@@ -68,6 +68,13 @@ export async function readBytes(
   return bytes;
 }
 
+/** Throws `error` for a failed response, releasing its unread body first. */
+export async function expectOk(response: Response, error: string): Promise<void> {
+  if (response.ok) return;
+  await response.body?.cancel();
+  throw new Error(error);
+}
+
 export async function readJSON<T extends z.ZodType>(
   response: Response,
   schema: T,

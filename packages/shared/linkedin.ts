@@ -1,4 +1,4 @@
-export function linkedinUsername(value) {
+export function linkedinUsername(value: unknown): string | null {
   if (typeof value !== 'string') return null;
   let candidate = value.trim();
   if (/^https?:\/\//i.test(candidate)) {

@@ -267,8 +267,8 @@ test('the contact form waits out a new token and retries a refused one', async (
   await page.goto('/links/');
   await page.getByPlaceholder('your@email.com').fill('visitor@example.com');
   await page.getByLabel('Message').fill('A message that is long enough.');
-  await page.locator('.em-style-1 button[type="submit"]').click();
-  await expect(page.locator('.em-style-1').getByRole('status')).toContainText('Sent', {
+  await page.locator('.em-card button[type="submit"]').click();
+  await expect(page.locator('.em-card').getByRole('status')).toContainText('Sent', {
     timeout: 15000,
   });
 
@@ -295,7 +295,7 @@ test('a card with malformed provider data is hidden without blanking the page', 
   });
   await page.goto('/links/');
   await expect(page.getByRole('heading', { name: 'links', level: 1 })).toBeVisible();
-  await expect(page.locator('.em-style-1')).toBeVisible();
+  await expect(page.locator('.em-card')).toBeVisible();
   await expect(page.getByRole('navigation').first()).toBeVisible();
   expect(errors).toEqual([]);
 });

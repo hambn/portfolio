@@ -1,9 +1,10 @@
 // Resume.jsx — printable CV, integrated into the SPA router
 import './resume.css';
-import React, { useEffect, useState } from 'react';
-import { PortfolioData } from '../../lib/data.js';
+import React from 'react';
+import { useContent } from '../../hooks/useContent.js';
 import ErrorState from '../../components/ErrorState.jsx';
 import Icon from '../../components/Icon.jsx';
+import { EXTERNAL } from '../../lib/external.js';
 
 function ResumeSectionLabel({ text }) {
   return (
@@ -74,32 +75,12 @@ function ResumeSection({ label, items }) {
 }
 
 export default function Resume() {
-  const [resume, setResume] = useState(() => PortfolioData.peek('resume'));
-  const [profile, setProfile] = useState(() => PortfolioData.peek('profile'));
-  const [links, setLinks] = useState(() => PortfolioData.peek('links'));
-  const [error, setError] = useState(false);
-  const [attempt, setAttempt] = useState(0);
-
-  useEffect(() => {
-    let alive = true;
-    setError(false);
-    Promise.all([
-      PortfolioData.getResume().then((d) => {
-        if (alive) setResume(d);
-      }),
-      PortfolioData.getProfile().then((d) => {
-        if (alive) setProfile(d);
-      }),
-      PortfolioData.getLinks().then((d) => {
-        if (alive) setLinks(d);
-      }),
-    ]).catch(() => {
-      if (alive) setError(true);
-    });
-    return () => {
-      alive = false;
-    };
-  }, [attempt]);
+  const sources = [useContent('resume'), useContent('profile'), useContent('links')];
+  const [resume, profile, links] = sources.map((source) => source.data);
+  const error = sources.some((source) => source.error);
+  // What already loaded answers from PortfolioData's cache, so only the
+  // failed request goes out again.
+  const retry = () => sources.forEach((source) => source.retry());
 
   const experience = resume?.items?.filter((i) => i.type === 'work') || [];
   const education = resume?.items?.filter((i) => i.type === 'education') || [];
@@ -137,10 +118,7 @@ export default function Resume() {
 
       {error && (
         <div className="resume-error">
-          <ErrorState
-            message="failed to load resume data."
-            onRetry={() => setAttempt((a) => a + 1)}
-          />
+          <ErrorState message="failed to load resume data." onRetry={retry} />
         </div>
       )}
       <header className="resume-header">
@@ -153,7 +131,7 @@ export default function Resume() {
           <div className="resume-contact">
             {contactItems.map(({ label, href, text }) => (
               <div key={label}>
-                <a href={href} target="_blank" rel="noopener noreferrer">
+                <a href={href} {...EXTERNAL}>
                   {text}
                 </a>
               </div>

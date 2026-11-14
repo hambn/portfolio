@@ -19,6 +19,7 @@ import Icon from '../../components/Icon.jsx';
 import './projects.css';
 import { loadProjectsDirect } from './directProjects.js';
 import { LANG_COLORS } from '../../lib/languages.js';
+import { EXTERNAL } from '../../lib/external.js';
 
 const STORAGE_KEY = 'projects:v1';
 const DIRECT_TTL_MS = 3600 * 1000;
@@ -105,7 +106,7 @@ function ProjectCard({ project, featured = false }) {
       <div className="project-card-head">
         <h3 className="project-card-name">
           {primary ? (
-            <a href={primary} target="_blank" rel="noopener noreferrer">
+            <a href={primary} {...EXTERNAL}>
               {project.name}
             </a>
           ) : (
@@ -149,13 +150,13 @@ function ProjectCard({ project, featured = false }) {
       {(site || (featured && project.repo)) && (
         <div className="project-card-links">
           {site && (
-            <a href={site} target="_blank" rel="noopener noreferrer">
+            <a href={site} {...EXTERNAL}>
               <Icon name="globe" />
               {hostname(site) || 'website'}
             </a>
           )}
           {featured && project.repo && project.host && (
-            <a href={project.repo} target="_blank" rel="noopener noreferrer">
+            <a href={project.repo} {...EXTERNAL}>
               <Icon name={project.host} />
               source on {GIT_HOSTS[project.host].label.toLowerCase()}
             </a>

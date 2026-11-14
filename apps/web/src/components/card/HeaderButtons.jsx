@@ -2,6 +2,7 @@
 // with. They look the same on every card (link-cards.css); what each one
 // does on a given card is spelled out in its tooltip and accessible name.
 import React from 'react';
+import { EXTERNAL } from '../../lib/external.js';
 
 const GLYPHS = {
   check: <polyline points="20 6 9 17 4 12" />,
@@ -68,7 +69,7 @@ export function HeaderButtons({
           href={href}
           title={openTitle}
           aria-label={openTitle}
-          {...(href.startsWith('mailto:') ? {} : { target: '_blank', rel: 'noopener noreferrer' })}
+          {...(href.startsWith('mailto:') ? {} : EXTERNAL)}
         >
           <Glyph name="open" />
           <span className="link-card-hdr-label">open</span>

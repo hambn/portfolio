@@ -1,6 +1,6 @@
 import type { Services } from '../contracts.js';
 import { DAY, HOUR } from '../lib/ttl.js';
-import { readJSON } from '../lib/http.js';
+import { readJSON, expectOk } from '../lib/http.js';
 import { z } from 'zod';
 
 // Local part: dot-separated atoms of the characters RFC 5322 allows unquoted.
@@ -74,10 +74,7 @@ async function lookup(services: Services, domain: string, type: 'MX' | 'A'): Pro
     headers: { Accept: 'application/dns-json' },
     signal: AbortSignal.timeout(4000),
   });
-  if (!response.ok) {
-    await response.body?.cancel();
-    throw new Error('dns_unavailable');
-  }
+  await expectOk(response, 'dns_unavailable');
   const body = await readJSON(response, dnsAnswer);
   // NXDOMAIN (3) is a definite no; anything else is judged on the records.
   if (body.Status === 3) return 0;

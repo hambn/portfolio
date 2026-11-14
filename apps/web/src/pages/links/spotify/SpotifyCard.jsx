@@ -9,6 +9,7 @@ import { useSpotifyPlayback } from './useSpotifyPlayback.js';
 import { useCardFeed } from '../LinksFeed.jsx';
 import { HeaderButtons } from '../../../components/card/HeaderButtons.jsx';
 import { BRAND_ICON } from '../brandIcons.js';
+import { EXTERNAL } from '../../../lib/external.js';
 
 const SP_PATH = BRAND_ICON.sp;
 
@@ -44,12 +45,7 @@ function ExternalIcon() {
 }
 function ExternalLink({ href, children, ...props }) {
   return (
-    <a
-      href={href || 'https://open.spotify.com'}
-      target="_blank"
-      rel="noopener noreferrer"
-      {...props}
-    >
+    <a href={href || 'https://open.spotify.com'} {...EXTERNAL} {...props}>
       {children}
     </a>
   );

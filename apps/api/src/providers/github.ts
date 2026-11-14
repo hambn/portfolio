@@ -1,7 +1,14 @@
 import { z } from 'zod';
 import { identities } from '../identities.js';
 import type { Services } from '../contracts.js';
-import { fetchAllowed, fetchWithTimeout, readBytes, readJSON, json } from '../lib/http.js';
+import {
+  fetchAllowed,
+  fetchWithTimeout,
+  readBytes,
+  readJSON,
+  json,
+  expectOk,
+} from '../lib/http.js';
 import { withCache } from '../lib/cache.js';
 import { persistedResponse, readPersisted } from '../lib/persisted.js';
 import { PROFILE_TTL } from '../lib/ttl.js';
@@ -98,10 +105,7 @@ async function api<T extends z.ZodType>(services: Services, path: string, schema
   const response = await fetchWithTimeout(services, `https://api.github.com${path}`, {
     headers: githubHeaders(services),
   });
-  if (!response.ok) {
-    await response.body?.cancel();
-    throw new Error(`github_${response.status}`);
-  }
+  await expectOk(response, `github_${response.status}`);
   return readJSON(response, schema);
 }
 
@@ -113,10 +117,7 @@ async function page(services: Services, username: string): Promise<GitHubPage> {
     (url) => url.startsWith('https://github.com/'),
     { headers: { 'User-Agent': 'portfolio-api', Accept: 'text/html' } },
   );
-  if (!response.ok) {
-    await response.body?.cancel();
-    throw new Error(`github_page_${response.status}`);
-  }
+  await expectOk(response, `github_page_${response.status}`);
   const bytes = await readBytes(response, MAX_PAGE_BYTES);
   if (!bytes) throw new Error('github_page_too_large');
   const parsed = parseGitHubPage(new TextDecoder().decode(bytes));
@@ -222,10 +223,7 @@ async function contributionsRoute(request: Request, services: Services, username
             `https://github-contributions-api.jogruber.de/v4/${encodeURIComponent(username)}?y=${span}`,
             { headers: { 'User-Agent': 'portfolio-api', Accept: 'application/json' } },
           );
-          if (!response.ok) {
-            await response.body?.cancel();
-            throw new Error(`github_${response.status}`);
-          }
+          await expectOk(response, `github_${response.status}`);
           return readJSON(response, contributions);
         },
       });

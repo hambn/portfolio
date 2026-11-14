@@ -1,4 +1,5 @@
 import { mediaUrl } from '../../../lib/api.js';
+import { EXTERNAL } from '../../../lib/external.js';
 import '../link-fonts.css';
 import './DiscordCard.css';
 // Uses the API profile endpoint and its live presence relay, and Lanyard
@@ -12,41 +13,25 @@ import { useLanyardPresence } from './useLanyardPresence.js';
 import { HeaderButtons } from '../../../components/card/HeaderButtons.jsx';
 import { BRAND_ICON } from '../brandIcons.js';
 
-const DC = {
-  bg: 'var(--dc-bg)',
-  bgHead: 'var(--dc-bg-head)',
-  border: 'var(--dc-border)',
-  blurple: 'var(--dc-blurple)',
-  blurpleLt: 'var(--dc-blurple-light)',
-  text: 'var(--dc-text)',
-  faint: 'var(--dc-subtle)',
-  STATUS_COLOR: {
-    online: '#23a55a',
-    idle: '#f0b232',
-    dnd: '#f23f43',
-    offline: '#80848e',
-  },
-  STATUS_LABEL: {
-    online: 'online',
-    idle: 'idle',
-    dnd: 'do not disturb',
-    offline: 'offline',
-  },
+// The dot's colour for each status is in DiscordCard.css (.dc-status-<status>).
+const STATUS_LABEL = {
+  online: 'online',
+  idle: 'idle',
+  dnd: 'do not disturb',
+  offline: 'offline',
 };
 
-const DC_ICON = BRAND_ICON.dc;
-
-function DcIcon({ size = 16, color }) {
+function DcIcon({ size = 16, color = 'var(--dc-blurple)' }) {
   return (
     <svg
       viewBox="0 0 24 24"
-      fill={color || DC.blurple}
+      fill={color}
       width={size}
       height={size}
       aria-hidden="true"
       className="dc-icon"
     >
-      <path d={DC_ICON} />
+      <path d={BRAND_ICON.dc} />
     </svg>
   );
 }
@@ -184,7 +169,6 @@ export function DiscordCard({ userId, apiEndpoint }) {
   // once a timed activity is present in the browser.
   const [now, setNow] = useState(0);
   const profileUrl = `https://discord.com/users/${userId}`;
-  const dotColor = DC.STATUS_COLOR[status] || DC.STATUS_COLOR.offline;
   const [copied, copyLink] = useCopy(profileUrl);
 
   // A collapsed card shows no timers; expanding re-reads the time straight away.
@@ -197,25 +181,9 @@ export function DiscordCard({ userId, apiEndpoint }) {
   }, [hasTimedActivity, collapsed]);
 
   return (
-    <div
-      className="dc-card link-card"
-      style={{
-        background: DC.bg,
-      }}
-    >
-      <div
-        className="dc-header link-card-header"
-        style={{
-          background: DC.bgHead,
-          borderBottom: collapsed ? 'none' : `1px solid ${DC.border}`,
-        }}
-      >
-        <a
-          href={profileUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="dc-brand link-card-brand"
-        >
+    <div className="dc-card link-card">
+      <div className="dc-header link-card-header">
+        <a href={profileUrl} {...EXTERNAL} className="dc-brand link-card-brand">
           <DcIcon size={24} />
           <span className="dc-title link-card-title">Discord</span>
         </a>
@@ -225,7 +193,7 @@ export function DiscordCard({ userId, apiEndpoint }) {
         <div className="link-card-spacer" />
         <div className="link-card-actions">
           <HeaderButtons
-            accent={DC.blurpleLt}
+            accent="var(--dc-blurple-light)"
             copied={copied}
             onCopy={copyLink}
             copyTitle="Copy Discord profile link"
@@ -265,26 +233,17 @@ export function DiscordCard({ userId, apiEndpoint }) {
             <span
               className={`dc-status dc-status-${status}`}
               role="img"
-              aria-label={DC.STATUS_LABEL[status] || 'Presence unavailable'}
-              style={{
-                background: dotColor,
-              }}
+              aria-label={STATUS_LABEL[status] || 'Presence unavailable'}
             />
           </div>
 
           <div className="dc-profile-copy">
             <span className="dc-profile-label">
-              {DC.STATUS_LABEL[status] || (loading ? 'Connecting…' : 'Presence unavailable')}
+              {STATUS_LABEL[status] || (loading ? 'Connecting…' : 'Presence unavailable')}
             </span>
-            {displayName ? (
-              <div className="dc-display-name" style={{ color: DC.text }}>
-                {displayName}
-              </div>
-            ) : (
-              <div className="dc-display-name dc-empty" style={{ color: DC.faint }}>
-                —
-              </div>
-            )}
+            <div className={`dc-display-name${displayName ? '' : ' dc-empty'}`}>
+              {displayName || '—'}
+            </div>
             {handle && <div className="dc-handle">@{handle}</div>}
             {customStatus?.state && (
               <div className="dc-custom-status">
@@ -296,7 +255,7 @@ export function DiscordCard({ userId, apiEndpoint }) {
             )}
           </div>
 
-          <a href={profileUrl} target="_blank" rel="noopener noreferrer" className="dc-open-btn">
+          <a href={profileUrl} {...EXTERNAL} className="dc-open-btn">
             <DcIcon size={13} color="currentColor" />
             <span>View profile</span>
           </a>
@@ -346,8 +305,7 @@ export function DiscordCard({ userId, apiEndpoint }) {
                       <a
                         className="dc-activity-link"
                         href={`https://open.spotify.com/track/${encodeURIComponent(trackId)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        {...EXTERNAL}
                         aria-label={`Listen to ${title} on Spotify`}
                         title="Listen on Spotify"
                       >

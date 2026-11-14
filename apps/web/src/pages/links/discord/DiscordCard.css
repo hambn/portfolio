@@ -12,6 +12,7 @@
   --dc-progress-track: #393a3f;
   --dc-positive: #45c47d;
   color: var(--dc-text);
+  background: var(--dc-bg);
   color-scheme: dark;
   font-family: 'gg sans', 'DM Sans Variable', 'Segoe UI', sans-serif;
   font-size: 14px;
@@ -46,6 +47,8 @@
 
 .dc-header {
   min-height: 60px;
+  background: var(--dc-bg-head);
+  border-bottom: 1px solid var(--dc-border);
 }
 
 .dc-brand {
@@ -100,6 +103,16 @@
   height: 20px;
   border: 3px solid var(--dc-bg);
   border-radius: 50%;
+  background: #80848e;
+}
+.dc-status-online {
+  background: #23a55a;
+}
+.dc-status-idle {
+  background: #f0b232;
+}
+.dc-status-dnd {
+  background: #f23f43;
 }
 
 .dc-profile-copy {
@@ -118,6 +131,7 @@
 
 .dc-display-name {
   overflow: hidden;
+  color: var(--dc-text);
   margin-bottom: 2px;
   font-size: 21px;
   font-weight: 700;
@@ -127,6 +141,7 @@
 }
 
 .dc-display-name.dc-empty {
+  color: var(--dc-subtle);
   font-weight: 600;
 }
 

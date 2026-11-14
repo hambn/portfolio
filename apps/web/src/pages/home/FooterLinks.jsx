@@ -1,5 +1,6 @@
 import React from 'react';
 import Icon from '../../components/Icon.jsx';
+import { EXTERNAL } from '../../lib/external.js';
 
 const SHOWN = ['github', 'x', 'telegram'];
 const ICONS = { github: 'github', x: 'x-brand', telegram: 'telegram' };
@@ -12,13 +13,7 @@ export default function FooterLinks({ links }) {
   return (
     <div className="home-footer">
       {shown.map((key) => (
-        <a
-          key={key}
-          href={links[key].url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="home-footer-link"
-        >
+        <a key={key} href={links[key].url} {...EXTERNAL} className="home-footer-link">
           <Icon name={ICONS[key]} />
           {key}
           <Icon name="arrow-up-right" className="icon-nudge is-out" />

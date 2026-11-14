@@ -1,4 +1,4 @@
-.x-style-1 {
+.x-card {
   --x-bg: #000000;
   --x-bgHead: #000000;
   --x-panel: #16181c;
@@ -22,7 +22,15 @@
     Arial,
     sans-serif;
   color: var(--x-text);
+  background: var(--x-bg);
   color-scheme: dark;
+}
+.x-header {
+  background: var(--x-bgHead);
+  border-bottom: 1px solid var(--x-border);
+}
+.x-logo {
+  fill: var(--x-text);
 }
 
 /* Banner ------------------------------------------------------------------ */
@@ -79,6 +87,7 @@
   border-radius: 50%;
 }
 .x-avatar-fallback {
+  fill: var(--x-text);
   width: 42%;
   height: 42%;
 }
@@ -182,20 +191,21 @@
   color: var(--x-muted);
 }
 
-.x-style-1 :is(a, button):focus-visible {
+.x-card :is(a, button):focus-visible {
   outline: 2px solid var(--x-blue);
   outline-offset: 3px;
 }
 
 /* Wordmark — Chirp bold with normal tracking; the negative tracking squashed
  * the single glyph against the logo. */
-.x-style-1 .x-style-5 {
+.x-card .x-wordmark {
+  color: var(--x-text);
   font-weight: 700;
   letter-spacing: 0;
 }
 
 @container (max-width: 480px) {
-  .x-style-1 {
+  .x-card {
     --x-avatar: 80px;
   }
   .x-profile {

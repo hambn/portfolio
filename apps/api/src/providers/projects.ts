@@ -15,7 +15,7 @@ import {
 } from '@portfolio/shared/projects';
 import { projectsContent } from '../identities.js';
 import type { Services } from '../contracts.js';
-import { fetchWithTimeout, json, readJSON } from '../lib/http.js';
+import { fetchWithTimeout, json, readJSON, expectOk } from '../lib/http.js';
 import { withCache } from '../lib/cache.js';
 import {
   readPersisted,
@@ -126,10 +126,7 @@ async function get<T extends z.ZodType>(
   headers: Record<string, string> = plainHeaders,
 ): Promise<z.output<T>> {
   const response = await fetchWithTimeout(services, url, { headers }, TIMEOUT_MS);
-  if (!response.ok) {
-    await response.body?.cancel();
-    throw new Error(`${new URL(url).hostname}_${response.status}`);
-  }
+  await expectOk(response, `${new URL(url).hostname}_${response.status}`);
   return readJSON(response, schema);
 }
 
