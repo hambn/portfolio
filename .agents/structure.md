@@ -105,7 +105,9 @@ src/
 │  ├─ siteFeed.js       the one API request per visit: /site answers every
 │  │                    link card and the projects listing; ensureCards(),
 │  │                    useSiteCard(), warmSite() (also preloads the other
-│  │                    pages' content and code on idle)
+│  │                    pages' content and code once the page has loaded).
+│  │                    Answers are kept in localStorage for their max-age,
+│  │                    so a reload inside it asks for nothing
 │  ├─ storage.js        safe localStorage get/set (never throws)
 │  ├─ cardState.js      shared collapsed-card store (useSyncExternalStore)
 │  ├─ external.js       EXTERNAL — the target/rel props every off-site link spreads

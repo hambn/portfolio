@@ -7,6 +7,7 @@ import {
   cachedImage,
   downloadImage,
   imageResponse,
+  imageVersion,
   parseSnapshot,
   pendingResponse,
   refreshWithCooldown,
@@ -165,6 +166,8 @@ async function respond(services: Services, avatar: boolean): Promise<Response> {
     if (!image) return json({ error: 'telegram_photo_unavailable' }, 404);
     return imageResponse(image, updatedAt);
   }
-  const photo = `/telegram/avatar?username=${encodeURIComponent(profile.username)}&v=${encodeURIComponent(updatedAt)}`;
-  return json({ ...profile, photo: image ? photo : null, updatedAt });
+  const photo = image
+    ? `/telegram/avatar?username=${encodeURIComponent(profile.username)}&v=${encodeURIComponent(imageVersion(image, updatedAt))}`
+    : null;
+  return json({ ...profile, photo, updatedAt });
 }

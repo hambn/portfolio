@@ -9,6 +9,9 @@ export const DISCORD_TTL = MINUTE;
 export const STEAM_TTL = 5 * MINUTE;
 export const PROFILE_TTL = HOUR;
 export const MEDIA_TTL = DAY;
+// A snapshot image addressed by its own fingerprint: the URL changes when the
+// picture does, so a browser may hold it this long without revalidating.
+export const IMAGE_TTL = 30 * DAY;
 
 // A persisted profile snapshot older than this stops being served at all.
 export const SNAPSHOT_STALE_MS = 7 * DAY * 1000;
