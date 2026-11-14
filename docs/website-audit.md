@@ -219,3 +219,36 @@ exactly one `<h1>` per page.
 Validation: `npm run check` (lint, both API type checks, 55 API + 5 runtime
 tests, Worker dry run, formatting, build, 11 static SEO tests) and all 8
 Playwright tests pass.
+
+## Posts rendered at build
+
+Measured in a browser against a local production build, API stubbed. A post
+with a code block downloaded the syntax highlighter (154 KB, 54 KB gzip) on
+every visit, then recoloured and re-wrapped its code after the page had
+painted. Opening a post from another page also downloaded the Markdown parser
+(44 KB, 13 KB gzip).
+
+`scripts/render-post.mjs` now does all of that once, at build: parsing,
+highlighting, the code-block label and copy button, heading anchors and table
+wrappers. The output is identical markup to what the browser used to assemble.
+A post's own page carries it inline; from another page it is one fetch of
+`contents/blogs/posts/<slug>.json`, started when the link is hovered. Copy
+buttons share one click handler on the article. Mermaid is unchanged.
+
+| Resource (raw)                      |    Before |       After |
+| ----------------------------------- | --------: | ----------: |
+| JS for a post with code (direct)    |    408 KB |      253 KB |
+| Extra download, post opened in-site | 198 KB JS | 2–3 KB JSON |
+| Blog route JS                       |   11.8 KB |     10.4 KB |
+| Post HTML (docker-multistage)       |   49.2 KB |     52.4 KB |
+| 404.html                            |   21.4 KB |     17.5 KB |
+
+Post HTML grows by the highlight spans it now contains.
+
+Readers without JavaScript now get highlighted code, anchors and scrollable
+tables too. `marked` and `highlight.js` moved to devDependencies. The 404 page
+no longer inlines home's resume, links and recent posts, which it never shows.
+
+Not done: `public/assets/telegram/pattern.svg` is 232 KB (70 KB gzip) on
+`/links/`. It is already at one-decimal precision, so the remaining saving
+needs an SVG optimizer run and a visual comparison.

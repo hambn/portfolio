@@ -96,23 +96,22 @@ test('navigation updates canonical, social metadata and structured data together
   );
 });
 
-test('prerendered posts skip markdown parsing and still highlight code and wrap tables', async ({
-  page,
-}) => {
+test('posts arrive rendered: no parser or highlighter is downloaded', async ({ page }) => {
   const scripts = [];
   page.on('request', (request) => {
     if (request.resourceType() === 'script') scripts.push(request.url());
   });
   await page.goto('/blog/welcome/');
   await expect(page.locator('code.hljs')).toBeVisible();
-  await expect(page.locator('.code-copy')).toBeVisible();
+  await expect(page.locator('.code-copy')).toBeAttached();
   await expect(page.locator('.table-wrap table')).toBeVisible();
-  expect(scripts.some((url) => /\/markdown-/.test(url))).toBe(false);
-  expect(scripts.some((url) => /\/highlight-/.test(url))).toBe(true);
   await page.getByRole('button', { name: 'all posts' }).click();
+  const post = page.waitForResponse(/\/contents\/blogs\/posts\/docker-multistage\.json$/);
   await page.locator('a.post-row-link[href$="/docker-multistage/"]').click();
+  expect((await post).ok()).toBe(true);
   await expect(page.locator('.markdown-body code.hljs').first()).toBeVisible();
-  expect(scripts.some((url) => /\/markdown-/.test(url))).toBe(true);
+  await expect(page.locator('.markdown-body .heading-anchor').first()).toBeAttached();
+  expect(scripts.filter((url) => /\/(markdown|highlight)-/.test(url))).toEqual([]);
 });
 
 test('home skips blog styles and mobile timeline is readable without JavaScript', async ({

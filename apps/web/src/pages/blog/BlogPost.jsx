@@ -1,4 +1,4 @@
-// BlogPost.jsx — single post view: markdown rendering + syntax highlighting.
+// BlogPost.jsx — single post view: the build's rendered HTML, plus diagrams.
 import React, { useEffect, useRef, useState } from 'react';
 import { PortfolioData } from '../../lib/data.js';
 import { REPO } from '../../components/Footer.jsx';
@@ -6,140 +6,50 @@ import Icon from '../../components/Icon.jsx';
 import { followRoute, routeHref } from '../../lib/router.js';
 import { ClickableTag, fmtDate, goToTag, readMinutes } from './blog-ui.jsx';
 
-// Post-process the rendered DOM: mermaid blocks, highlight.js, copy buttons.
-async function enhanceMarkdown(root) {
-  if (!root) return;
-  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
-
-  // 1. Mermaid: <pre><code class="language-mermaid"> → <div class="mermaid">
-  const mermaidNodes = [];
+// The post's HTML arrives finished from the build (scripts/render-post.mjs):
+// highlighted, with its code-block chrome, heading anchors and table wrappers.
+// Only diagrams are left for the browser, and only a post that has one pays
+// for the library that draws them.
+async function drawDiagrams(root) {
+  const nodes = [];
   root.querySelectorAll('pre > code.language-mermaid').forEach((code) => {
     const div = document.createElement('div');
     div.className = 'mermaid';
     div.textContent = code.textContent;
     code.parentElement.replaceWith(div);
-    mermaidNodes.push(div);
+    nodes.push(div);
   });
-  // Start the (heavy) diagram library now rather than after the highlighter
-  // has loaded; both downloads run together and are applied in order below.
-  const mermaidModule = mermaidNodes.length
-    ? import('mermaid').catch((error) => {
-        console.warn('mermaid', error);
-        return null;
-      })
-    : null;
-
-  // Load the highlighter only when the post contains code.
-  const codes = root.querySelectorAll('pre > code');
-  const hljs = codes.length
-    ? await import('../../lib/highlight.js').then((m) => m.hljs).catch(() => null)
-    : null;
-  if (!root.isConnected) return;
-
-  // Highlight code and add copy buttons.
-  codes.forEach((code) => {
-    const pre = code.parentElement;
-    if (pre.parentElement?.classList.contains('code-block')) return;
-
-    if (hljs) {
-      try {
-        hljs.highlightElement(code);
-      } catch (e) {}
-    }
-
-    const wrap = document.createElement('div');
-    wrap.className = 'code-block';
-    pre.replaceWith(wrap);
-    wrap.appendChild(pre);
-
-    // The language the fence was opened with, shown until the block is hovered.
-    const lang = /(?:^|\s)language-([\w+#.-]+)/.exec(code.className)?.[1];
-    if (lang && lang !== 'undefined') {
-      const label = document.createElement('span');
-      label.className = 'code-lang';
-      label.textContent = lang;
-      wrap.appendChild(label);
-    }
-
-    const btn = document.createElement('button');
-    btn.className = 'code-copy';
-    btn.type = 'button';
-    btn.textContent = 'copy';
-    btn.addEventListener('click', async () => {
-      if (!navigator.clipboard) return;
-      try {
-        await navigator.clipboard.writeText(code.textContent);
-        btn.textContent = 'copied';
-        btn.classList.add('copied');
-        setTimeout(() => {
-          btn.textContent = 'copy';
-          btn.classList.remove('copied');
-        }, 1400);
-      } catch {
-        // Leave the button unchanged when clipboard access is denied.
-      }
-    });
-    wrap.appendChild(btn);
-  });
-
-  // Give each section heading an id and a `#` link to it, then go to the one
-  // the URL asked for: the ids did not exist when the browser first looked.
-  const taken = new Set();
-  root.querySelectorAll('h2, h3, h4').forEach((heading) => {
-    if (heading.querySelector('.heading-anchor')) return;
-    const base =
-      heading.textContent
-        .trim()
-        .toLowerCase()
-        .replace(/[^\p{L}\p{N}]+/gu, '-')
-        .replace(/^-|-$/g, '') || 'section';
-    let id = base;
-    for (let n = 2; taken.has(id); n++) id = `${base}-${n}`;
-    taken.add(id);
-    heading.id = id;
-
-    const anchor = document.createElement('a');
-    anchor.className = 'heading-anchor';
-    anchor.href = `#${id}`;
-    anchor.textContent = '#';
-    anchor.setAttribute('aria-label', `link to “${heading.textContent.trim()}”`);
-    heading.appendChild(anchor);
-  });
-  let wanted = window.location.hash.slice(1);
+  if (!nodes.length) return;
   try {
-    wanted = decodeURIComponent(wanted);
-  } catch {
-    // a malformed fragment matches no heading
-  }
-  if (wanted && taken.has(wanted)) document.getElementById(wanted)?.scrollIntoView();
-
-  // 3. Wrap tables for horizontal scroll on mobile
-  root.querySelectorAll('table').forEach((tbl) => {
-    if (tbl.parentElement?.classList.contains('table-wrap')) return;
-    const wrap = document.createElement('div');
-    wrap.className = 'table-wrap';
-    tbl.replaceWith(wrap);
-    wrap.appendChild(tbl);
-  });
-
-  // 4. Render mermaid diagrams. The library is only requested when a post
-  //    actually contains a diagram, so other pages never fetch it.
-  if (mermaidModule) {
-    void mermaidModule.then(async (module) => {
-      if (!module || !root.isConnected) return;
-      const mermaid = module.default;
-      try {
-        mermaid.initialize({
-          startOnLoad: false,
-          theme: isDark ? 'dark' : 'default',
-          securityLevel: 'strict',
-          fontFamily: 'var(--font-mono)',
-        });
-        await mermaid.run({ nodes: mermaidNodes });
-      } catch (e) {
-        console.warn('mermaid', e);
-      }
+    const { default: mermaid } = await import('mermaid');
+    if (!root.isConnected) return;
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: document.documentElement.getAttribute('data-theme') === 'light' ? 'default' : 'dark',
+      securityLevel: 'strict',
+      fontFamily: 'var(--font-mono)',
     });
+    await mermaid.run({ nodes });
+  } catch (error) {
+    console.warn('mermaid', error);
+  }
+}
+
+// One click handler on the article serves every copy button in it.
+async function copyCode(event) {
+  const button = event.target instanceof Element ? event.target.closest('.code-copy') : null;
+  const code = button?.parentElement.querySelector('pre > code');
+  if (!code || !navigator.clipboard) return;
+  try {
+    await navigator.clipboard.writeText(code.textContent);
+    button.textContent = 'copied';
+    button.classList.add('copied');
+    setTimeout(() => {
+      button.textContent = 'copy';
+      button.classList.remove('copied');
+    }, 1400);
+  } catch {
+    // Leave the button unchanged when clipboard access is denied.
   }
 }
 
@@ -162,15 +72,18 @@ function PostStep({ post, hotkey, label, className = '' }) {
 
 export default function PostView({ post, older, newer, onBack }) {
   const ref = useRef(null);
-  const [html, setHtml] = useState(() => PortfolioData.peek('postHtml')?.[post.slug] ?? null);
+  const [html, setHtml] = useState(() => PortfolioData.peekPost(post.slug));
+  // Opened from another page: the browser looked for the URL's fragment before
+  // this post's headings existed, so go to it once they do.
+  const arrivedLate = useRef(html == null);
 
-  // Prerendered pages already contain HTML. Only SPA navigation needs a parser.
+  // A post's own page already contains its HTML; any other is one small file.
   useEffect(() => {
     if (html != null) return;
     let alive = true;
-    import('../../lib/markdown.js')
-      .then(({ marked }) => {
-        if (alive) setHtml(marked.parse(post.body));
+    PortfolioData.getPostHtml(post.slug)
+      .then((rendered) => {
+        if (alive) setHtml(rendered);
       })
       .catch(() => {
         if (alive)
@@ -181,10 +94,20 @@ export default function PostView({ post, older, newer, onBack }) {
     return () => {
       alive = false;
     };
-  }, [html, post.body]);
+  }, [html, post.slug, post.body]);
 
   useEffect(() => {
-    if (html != null) enhanceMarkdown(ref.current);
+    const root = ref.current;
+    if (html == null || !root) return;
+    drawDiagrams(root);
+    if (!arrivedLate.current) return;
+    let wanted = window.location.hash.slice(1);
+    try {
+      wanted = decodeURIComponent(wanted);
+    } catch {
+      // a malformed fragment matches no heading
+    }
+    if (wanted) root.querySelector(`[id="${CSS.escape(wanted)}"]`)?.scrollIntoView();
   }, [html]);
 
   return (
@@ -209,7 +132,12 @@ export default function PostView({ post, older, newer, onBack }) {
         </div>
       )}
 
-      <div ref={ref} className="markdown-body" dangerouslySetInnerHTML={{ __html: html || '' }} />
+      <div
+        ref={ref}
+        className="markdown-body"
+        onClick={copyCode}
+        dangerouslySetInnerHTML={{ __html: html || '' }}
+      />
 
       {post.path && (
         <a

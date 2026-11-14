@@ -51,9 +51,23 @@ export const PortfolioData = (() => {
 
   const getBlogIndex = () => cached('blogIndex', () => getJSON('/blogs/blog-data.json'));
 
+  // A post's HTML is rendered at build. Its own page carries it inline
+  // (`postHtml`); any other post is one small file, fetched when first opened.
+  const postKey = (slug) => `post:${slug}`;
+  const peekPost = (slug) => snapshot.postHtml?.[slug] ?? snapshot[postKey(slug)] ?? null;
+
   return {
     seed,
     peek: (key) => snapshot[key] ?? null,
+    peekPost,
+    /** The rendered HTML of one post. */
+    getPostHtml: (slug) => {
+      const known = peekPost(slug);
+      if (known != null) return Promise.resolve(known);
+      return cached(postKey(slug), () =>
+        getJSON(`/blogs/posts/${encodeURIComponent(slug)}.json`).then((post) => post.html),
+      );
+    },
     /** { name, handle, title, bio, avatar } */
     getProfile: () =>
       cached('profile', () =>

@@ -70,7 +70,11 @@ export default function App({ initialRoute, initialPage }) {
       if (!link || link.target === '_blank' || link.origin !== window.location.origin) return;
       const route = routeOf(link.pathname);
       const target = route === null ? null : pageOf(route);
-      if (target) preloadPage(target)?.catch(() => {});
+      if (!target) return;
+      preloadPage(target)?.catch(() => {});
+      // A post is one small file of rendered HTML; have it ready as well.
+      const slug = target === 'blog' && route.split('/')[1];
+      if (slug) PortfolioData.getPostHtml(slug).catch(() => {});
     };
     const options = { passive: true };
     document.addEventListener('pointerover', warm, options);
