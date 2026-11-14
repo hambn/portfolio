@@ -11,7 +11,8 @@ updates:
       prefix: "chore(deps)"
     groups:
       # Collapse minor + patch bumps into one PR to keep the noise down;
-      # major updates still arrive as individual PRs for deliberate review.
+      # majors arrive one per PR. CI squash-merges any of them that pass
+      # (see the dependabot-merge job in ci.yml).
       minor-and-patch:
         applies-to: version-updates
         update-types:
