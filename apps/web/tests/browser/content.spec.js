@@ -219,8 +219,9 @@ test('rendered provider content and presence use only the configured host', asyn
   await expect(page.getByText('stale-featured')).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'featured', exact: true })).toBeVisible();
   expect(requested.filter((path) => path === '/api/projects')).toHaveLength(0);
-  // Once per page load (links, home, projects), never once per page section.
-  expect(siteRequests.filter((keys) => keys.includes('projects'))).toHaveLength(3);
+  // Once for the visit: the two later page loads (home, projects) fall inside
+  // the answer's max-age and render from what the first one stored.
+  expect(siteRequests.filter((keys) => keys.includes('projects'))).toHaveLength(1);
   expect(requested.filter((path) => path.startsWith('/api/git'))).toEqual(
     requested.filter((path) => path.startsWith('/api/git') && !path.includes('repos')),
   );

@@ -10,8 +10,12 @@
 // entries already on their way are waited for, and only the rest go into one
 // further request. Live data stays live: Spotify playback has a max-age of 0,
 // so it is never served from here twice.
+//
+// Entries are also kept in localStorage for as long as that max-age lasts, so
+// a reload or a return visit inside it renders at once and asks for nothing.
 import { useSyncExternalStore } from 'react';
 import { apiUrl } from './api.js';
+import { storage } from './storage.js';
 
 // Long enough for a cold API, short enough that a card with a source of its own
 // (GitHub, GitLab, Discord, the projects listing) is not kept waiting on a dead one.
@@ -55,6 +59,44 @@ const settle = (key, entry) => {
   entries.set(key, { ...entry, generation });
 };
 const notify = () => listeners.forEach((listener) => listener());
+
+// Bump the suffix when the shape of a stored entry changes.
+const STORE_KEY = 'site_feed_v1';
+const storable = (entry, now) =>
+  entry?.status === 'ready' &&
+  entry.data != null &&
+  typeof entry.receivedAt === 'number' &&
+  typeof entry.maxAgeMs === 'number' &&
+  // A clock set back since the entry was stored would keep it alive too long.
+  entry.receivedAt <= now &&
+  now - entry.receivedAt < entry.maxAgeMs;
+
+let restored = false;
+/** Once per visit, before the first read: take up what the last visit left. */
+function restore() {
+  if (restored || typeof window === 'undefined') return;
+  restored = true;
+  try {
+    const now = Date.now();
+    for (const [key, entry] of Object.entries(JSON.parse(storage.get(STORE_KEY) || '{}'))) {
+      if (entries.has(key) || !storable(entry, now)) continue;
+      const { data, receivedAt, maxAgeMs } = entry;
+      settle(key, { status: 'ready', data, receivedAt, maxAgeMs });
+    }
+  } catch {
+    // Unreadable: the page asks the API as if nothing had been stored.
+  }
+}
+
+function persist() {
+  const now = Date.now();
+  const kept = {};
+  for (const [key, { data, receivedAt, maxAgeMs, ...entry }] of entries) {
+    if (storable({ ...entry, data, receivedAt, maxAgeMs }, now))
+      kept[key] = { status: 'ready', data, receivedAt, maxAgeMs };
+  }
+  storage.set(STORE_KEY, JSON.stringify(kept));
+}
 
 // An entry the API just had nothing for is not asked for again straight away:
 // its consumer has already fallen back, and a second batch would only repeat
@@ -106,6 +148,7 @@ async function request(keys) {
         : { status: 'ready', data: card.data, receivedAt, maxAgeMs: (card.maxAge || 0) * 1000 },
     );
   }
+  persist();
   notify();
 }
 
@@ -115,6 +158,7 @@ async function request(keys) {
  */
 export function ensureCards(keys, { force = false } = {}) {
   if (typeof window === 'undefined') return;
+  restore();
   const wanted = keys.filter((key) => !inFlight.has(key) && (force || !fresh(key)));
   if (!wanted.length) return;
   // The API did not answer a moment ago: do not spend another timeout on it.
@@ -134,6 +178,7 @@ export function ensureCards(keys, { force = false } = {}) {
  * `missing` when the batch had nothing usable for it.
  */
 export function cardSeed(key) {
+  restore();
   if (inFlight.has(key)) {
     const generation = entries.get(key)?.generation ?? 0;
     return generation ? pendingSeed(key, generation) : PENDING;
@@ -171,9 +216,26 @@ const idle = (task) =>
     ? requestIdleCallback(task, { timeout: 3000 })
     : setTimeout(task, 1200);
 
+// The page's own images and fonts come first: nothing is prefetched until the
+// browser has finished loading them, or has taken this long over it.
+const LOAD_WAIT_MS = 4000;
+function afterLoad(task) {
+  if (document.readyState === 'complete') return task();
+  let ran = false;
+  const run = () => {
+    if (ran) return;
+    ran = true;
+    clearTimeout(timer);
+    removeEventListener('load', run);
+    task();
+  };
+  const timer = setTimeout(run, LOAD_WAIT_MS);
+  addEventListener('load', run);
+}
+
 let warmed = false;
 /**
- * Once per visit, after the first page has painted: ask the API for everything
+ * Once per visit, after the first page has loaded: ask the API for everything
  * the other pages show, and fetch the content and code they open with, so
  * moving between pages waits on nothing. Skipped for visitors who asked their
  * browser to save data.
@@ -182,14 +244,16 @@ export function warmSite({ content, preload }) {
   if (warmed || typeof window === 'undefined') return;
   warmed = true;
   if (navigator.connection?.saveData) return;
-  idle(() => {
-    content
-      .getLinks()
-      // Spotify playback is only worth asking for on the page that shows it.
-      .then((config) => ensureCards([...cardKeys(config, { live: false }), 'projects']))
-      .catch(() => {});
-    for (const load of [content.getBlogIndex, content.getProjects, content.getResume])
-      load().catch(() => {});
-    idle(preload);
-  });
+  afterLoad(() =>
+    idle(() => {
+      content
+        .getLinks()
+        // Spotify playback is only worth asking for on the page that shows it.
+        .then((config) => ensureCards([...cardKeys(config, { live: false }), 'projects']))
+        .catch(() => {});
+      for (const load of [content.getBlogIndex, content.getProjects, content.getResume])
+        load().catch(() => {});
+      idle(preload);
+    }),
+  );
 }

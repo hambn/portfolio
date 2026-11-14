@@ -1,5 +1,5 @@
 import './EmailCard.css';
-import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
+import React, { useCallback, useId, useRef, useState } from 'react';
 import { apiUrl } from '../../../lib/api.js';
 import { useCollapsed } from '../../../hooks/useCollapsed.js';
 import { useCopy } from '../../../hooks/useCopy.js';
@@ -41,16 +41,25 @@ export const EmailCard = React.memo(function EmailCard({ address }) {
   const [collapsed, toggleCollapse] = useCollapsed('email_card_collapsed');
   const token = useRef(null);
 
+  const minting = useRef(null);
+
   // One token per open form. It is minted server-side and single-use, which is
   // what keeps a script from POSTing this endpoint directly.
-  const mint = useCallback(async () => {
-    try {
-      const response = await fetch(apiUrl('/contact'), { headers: { Accept: 'application/json' } });
-      const data = await response.json();
-      token.current = data.token ? { value: data.token, at: Date.now() } : null;
-    } catch {
-      token.current = null;
-    }
+  const mint = useCallback(() => {
+    minting.current ??= (async () => {
+      try {
+        const response = await fetch(apiUrl('/contact'), {
+          headers: { Accept: 'application/json' },
+        });
+        const data = await response.json();
+        token.current = data.token ? { value: data.token, at: Date.now() } : null;
+      } catch {
+        token.current = null;
+      } finally {
+        minting.current = null;
+      }
+    })();
+    return minting.current;
   }, []);
 
   // The API accepts a token between 3 seconds and 30 minutes after minting.
@@ -63,9 +72,11 @@ export const EmailCard = React.memo(function EmailCard({ address }) {
     if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
     return token.current.value;
   };
-  useEffect(() => {
-    if (!collapsed && !token.current) void mint();
-  }, [collapsed, mint]);
+  // Most visitors never write here, so the token is asked for when one starts
+  // to (the first focus or touch inside the form), not when the page opens.
+  const prepare = () => {
+    if (!token.current) void mint();
+  };
 
   const mailto = `mailto:${to}${subject.trim() ? `?subject=${encodeURIComponent(subject.trim())}` : ''}`;
 
@@ -148,7 +159,13 @@ export const EmailCard = React.memo(function EmailCard({ address }) {
       {/* Body — compose window */}
       <div data-card="email" className={`sc-body ${collapsed ? 'closed' : 'open'}`}>
         <div className="em-compose-bar">New message</div>
-        <form onSubmit={send} className="em-form" noValidate>
+        <form
+          onSubmit={send}
+          onFocus={prepare}
+          onPointerDown={prepare}
+          className="em-form"
+          noValidate
+        >
           <div className="em-row em-field-row">
             <label htmlFor={fromId} className="em-row-label">
               From

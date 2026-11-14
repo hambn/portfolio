@@ -254,3 +254,24 @@ no longer inlines home's resume, links and recent posts, which it never shows.
 stroke classes are gone, the plain strokes are one path, and coordinates are
 whole units (0.3 px at the 420 px tile the card draws). Rasterised at twice
 that size, 0.16% of the inked pixels differ from the original.
+
+## Caching pass: repeat visits and profile images
+
+Measured in a browser against a local production build and the live API.
+
+- **The `/site` answer survives a reload.** `lib/siteFeed.js` keeps each entry
+  in localStorage for the max-age its route sent (Spotify playback, at 0, is
+  never kept). On `/links/` a reload inside that window draws the cards at
+  about 65 ms instead of about 840 ms, and the 43 KB batch request is not made;
+  home and the projects page skip it too.
+- **Profile images keep their address.** The X, LinkedIn and Telegram images
+  were versioned by the snapshot's refresh time, so every hourly refresh gave
+  an unchanged picture a new URL and every visitor downloaded it again (the X
+  banner alone is 118 KB). They are now versioned by a fingerprint of their
+  bytes and served `immutable` for 30 days.
+- **Prefetching waits for the page.** `warmSite` starts after the `load` event
+  (or 4 seconds), not on the first idle moment, so it no longer shares the
+  connection with the page's own avatar and font.
+- **The contact token is minted on first use.** `/links/` asked the API for
+  one on every load; it is now requested when the form is first focused or
+  touched. Sending still waits out the token's minimum age.

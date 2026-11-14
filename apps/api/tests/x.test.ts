@@ -97,13 +97,21 @@ test('versioned snapshot images are served from the response cache', async () =>
     handleRequest(new Request(new URL(path, 'https://api.test')), services);
   const { avatar } = await (await request('/x')).json();
   const first = await request(avatar);
-  assert.equal(first.headers.get('Cache-Control'), 'public, max-age=3600');
+  assert.equal(first.headers.get('Cache-Control'), 'public, max-age=2592000, immutable');
   assert.deepEqual(new Uint8Array(await first.arrayBuffer()), new Uint8Array([4, 5, 6]));
+  // The same picture downloaded again by a later refresh keeps its address.
+  await refreshX(services);
+  assert.equal((await (await request('/x')).json()).avatar, avatar);
+  assert.equal(
+    (await request(avatar.replace(/&v=.*/, ''))).headers.get('Cache-Control'),
+    'public, max-age=3600',
+  );
   // Neither the stored snapshot nor the network is needed for a repeat request.
   offline = true;
   await services.state.delete(`x:profile:v1:${username}`);
   const cached = await request(avatar);
   assert.equal(cached.headers.get('Content-Type'), 'image/png');
+  assert.equal(cached.headers.get('Cache-Control'), 'public, max-age=2592000, immutable');
   assert.deepEqual(new Uint8Array(await cached.arrayBuffer()), new Uint8Array([4, 5, 6]));
   assert.equal(cached.headers.get('X-Snapshot-Version'), null);
 });

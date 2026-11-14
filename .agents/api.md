@@ -144,9 +144,9 @@ images, data requests, and the live presence socket go through the API.
 | `/discord/avatar` | 1 hour |
 | `/discord/socket` | WebSocket relay, subscription pinned to configured Discord ID |
 | `/linkedin`, `/x` | Uncached JSON from hourly persisted snapshot; stale limit 7 days |
-| `/linkedin/avatar`, `/linkedin/banner`, `/x/avatar`, `/x/banner` | 1 hour, persisted snapshot image |
+| `/linkedin/avatar`, `/linkedin/banner`, `/x/avatar`, `/x/banner` | Persisted snapshot image. The URL the profile JSON links to carries a fingerprint of the image (`v`), stays the same until the picture changes, and is `immutable` for 30 days; without `v`, 1 hour |
 | `/telegram` | Uncached JSON from hourly persisted snapshot; stale limit 7 days |
-| `/telegram/avatar` | 1 hour, persisted snapshot image |
+| `/telegram/avatar` | Persisted snapshot image; versioned and cached like the LinkedIn and X images |
 | `/github`, `/github/contributions` | 1 hour, configured GitHub account only; the last good answer is kept and served if GitHub fails. `/github` also carries stars, languages, recent PRs and the profile page's extras (`page`). `/github/contributions?year=2025` answers one calendar year instead of the last 12 months |
 | `/github/repos` | 1 hour; the account's public repositories in the projects page's shape. `sort=interest\|stars\|pushed\|name`, `limit=1..100`, `forks=0`, `archived=0`, `language=<name>` |
 | `/projects` | Whole projects page in one response, from an hourly persisted snapshot; 5 minutes. `host=github,gitlab` keeps only those hosts' sections |
