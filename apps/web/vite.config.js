@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { cpSync, readFileSync, statSync } from 'node:fs';
 import { extname, join, resolve, sep } from 'node:path';
 import { buildBlogIndex } from './scripts/blog-index.mjs';
+import { renderPost } from './scripts/render-post.mjs';
 import './scripts/build-info.mjs';
 
 // Editable content lives at the repo root (content/) because the API reads it
@@ -12,6 +13,10 @@ const contentDir = fileURLToPath(new URL('../../content', import.meta.url));
 const blogsDir = join(contentDir, 'blogs');
 const CONTENTS = 'contents/';
 const INDEX_PATH = 'blogs/blog-data.json';
+// One rendered post per file: what the blog fetches when a post is opened from
+// another page (a post's own page already carries its HTML).
+const POST_PATH = /^blogs\/posts\/([a-z0-9][a-z0-9-]*)\.json$/;
+const postFile = (post) => JSON.stringify({ html: renderPost(post.body) });
 const TYPES = {
   '.json': 'application/json',
   '.md': 'text/markdown; charset=utf-8',
@@ -25,9 +30,9 @@ const TYPES = {
 };
 
 // Serves content/ at <base>/contents/ in dev and copies it into dist/contents/
-// at build. The blog index is built from the .md files — never written to disk.
-// In dev a middleware serves it fresh per request; at build it's emitted as an
-// asset.
+// at build. The blog index and each post's rendered HTML are built from the .md
+// files — never written to disk. In dev a middleware serves them fresh per
+// request; at build they're emitted as assets.
 function contentPlugin() {
   let outDir;
   return {
@@ -51,6 +56,14 @@ function contentPlugin() {
           res.end(buildBlogIndex(blogsDir).json);
           return;
         }
+        const slug = POST_PATH.exec(path)?.[1];
+        if (slug) {
+          const post = JSON.parse(buildBlogIndex(blogsDir).json).find((p) => p.slug === slug);
+          if (!post) return next();
+          res.setHeader('Content-Type', 'application/json');
+          res.end(postFile(post));
+          return;
+        }
         const file = resolve(contentDir, path);
         if (!file.startsWith(contentDir + sep)) return next();
         try {
@@ -65,12 +78,18 @@ function contentPlugin() {
     generateBundle() {
       const { json, count } = buildBlogIndex(blogsDir);
       this.emitFile({ type: 'asset', fileName: CONTENTS + INDEX_PATH, source: json });
+      for (const post of JSON.parse(json))
+        this.emitFile({
+          type: 'asset',
+          fileName: `${CONTENTS}blogs/posts/${post.slug}.json`,
+          source: postFile(post),
+        });
       console.log(`[blog] indexed ${count} post(s)`);
     },
     closeBundle() {
-      // Only the generated index is used at runtime, so the raw .md posts (and
-      // anything else under blogs/) stay out of dist — the live site ships just
-      // blog-data.json there.
+      // Only the generated index and rendered posts are used at runtime, so the
+      // raw .md posts (and anything else under blogs/) stay out of dist — the
+      // live site ships just blog-data.json and posts/<slug>.json there.
       cpSync(contentDir, join(outDir, CONTENTS), {
         recursive: true,
         filter: (src) =>

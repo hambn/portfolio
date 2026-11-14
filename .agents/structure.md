@@ -30,6 +30,8 @@ TypeScript API for the link cards. An npm-workspaces monorepo (Node 24, see
 │  │  ├─ public/           served as-is: CNAME (custom domain), assets/
 │  │  ├─ scripts/          Node build tooling (NOT bundled)
 │  │  │  ├─ blog-index.mjs     scans content/blogs/**.md → blog index
+│  │  │  ├─ render-post.mjs    post Markdown → finished HTML (marked +
+│  │  │  │                     highlight.js + code/heading/table chrome)
 │  │  │  └─ prerender.mjs      post-build: static HTML + meta + JSON-LD + RSS feed
 │  │  │                        + sitemap + robots.txt (also injects chunk preloads)
 │  │  ├─ tests/
@@ -106,9 +108,7 @@ src/
 │  │                    pages' content and code on idle)
 │  ├─ storage.js        safe localStorage get/set (never throws)
 │  ├─ cardState.js      shared collapsed-card store (useSyncExternalStore)
-│  ├─ highlight.js      highlight.js/lib/common + extra languages
-│  ├─ languages.js      GitHub linguist colours (projects + GitHub card)
-│  └─ markdown.js       self-hosted marked + highlight.js (lazy chunk)
+│  └─ languages.js      GitHub linguist colours (projects + GitHub card)
 ├─ hooks/               useMediaQuery, useCollapsed, useCopy, usePolledJSON,
 │                       useCardSource (API first, provider as fallback)
 ├─ components/
@@ -134,7 +134,7 @@ src/
 │  ├─ blog/
 │  │  ├─ Blog.jsx       container: list ↔ post routing
 │  │  ├─ BlogList.jsx   search + tag filter + pagination
-│  │  ├─ BlogPost.jsx   markdown rendering + syntax highlighting
+│  │  ├─ BlogPost.jsx   shows the build's rendered post; draws diagrams
 │  │  └─ blog-ui.jsx    fmtDate, InlineCode, ClickableTag, tag-nav helpers
 │  └─ links/
 │     ├─ Links.jsx      composes the cards; reads links.json
@@ -195,16 +195,23 @@ with `apps/`, `packages/` or `content/`.
   fetches it from `<base>/contents/`: `contentPlugin` in `vite.config.js` serves
   `content/` there in dev and copies it into `dist/contents/` at build.
 - **Blog is auto-discovered.** No manifest. The index is generated at build
-  (and served virtually in dev); raw `.md` are never copied into `dist/`. A body
+  (and served virtually in dev); raw `.md` are never copied into `dist/`.
+- **Posts are rendered at build, not in the browser.** `scripts/render-post.mjs`
+  turns a post's Markdown into its final HTML: parsed, syntax-highlighted, with
+  the code-block label and copy button, heading anchors and table wrappers. A
+  post's own page carries that HTML inline; opened from another page it is one
+  small fetch of `contents/blogs/posts/<slug>.json` (started when its link is
+  hovered). `marked` and `highlight.js` are build tooling and must not be
+  imported from `src/`; only Mermaid, for posts with a diagram, loads in the
+  browser. A body
   that opens with `# <its own title>` has that line dropped — the page already
   renders the title as its one `<h1>` (asserted by `test:site`).
 - **node_modules is hoisted to the repo root**, outside the Vite root, so
   `index.html` never references `/node_modules/` paths. Package assets are
   imported from CSS/JS (Vite resolves them). There is deliberately no font
   preload: Chrome holds the first paint for a preloaded font.
-- **Self-hosted.** One variable font (JetBrains Mono) and markdown libs
-  (`marked`, `highlight.js`, `mermaid`) are bundled/lazy-loaded — no
-  third-party CDN.
+- **Self-hosted.** One variable font (JetBrains Mono) is bundled and `mermaid`
+  is lazy-loaded — no third-party CDN.
 - **Fonts declare their own `@font-face`.** `@fontsource-variable` package
   entrypoints register every subset (cyrillic, greek, vietnamese…), so
   `styles/fonts.css` and `pages/links/link-fonts.css` point at the `files/`

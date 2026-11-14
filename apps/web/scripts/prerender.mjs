@@ -11,9 +11,9 @@
 import { readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
-import { marked } from 'marked';
 import { createServer } from 'vite';
 import { buildBlogIndex } from './blog-index.mjs';
+import { renderPost } from './render-post.mjs';
 import './build-info.mjs';
 import { routes } from '../src/routes.js';
 import {
@@ -263,16 +263,18 @@ function page({
   // Trailing slash matches how GitHub Pages serves directory index.html files.
   const url = abs(path);
   const data = { profile };
-  if (!path || path === 'resume') data.resume = resume;
+  // The not-found page shares home's path but renders none of its content.
+  const home = !path && !notFound;
+  if (home || path === 'resume') data.resume = resume;
   // Home lists the newest posts; it gets their headings, not the whole index.
-  if (!path)
+  if (home)
     data.recentPosts = posts.slice(0, 3).map(({ slug, title, date }) => ({ slug, title, date }));
-  if (!path || ['projects', 'links', 'resume'].includes(path)) data.links = links;
+  if (home || ['projects', 'links', 'resume'].includes(path)) data.links = links;
   if (path === 'projects') data.projects = projects;
   if (path === 'blog' || path?.startsWith('blog/')) data.blogIndex = posts;
   if (path?.startsWith('blog/')) {
     const post = posts.find((p) => `blog/${p.slug}` === path);
-    if (post) data.postHtml = { [post.slug]: marked.parse(post.body) };
+    if (post) data.postHtml = { [post.slug]: renderPost(post.body) };
   }
   const content = notFound ? '' : render(path || 'home', data);
   const serialized = JSON.stringify(data).replace(/</g, '\\u003c');

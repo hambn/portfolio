@@ -124,6 +124,21 @@ test('agents get a plain-text index, the full text and each post as Markdown', (
   }
 });
 
+test('posts are rendered at build, on their page and as one file each', () => {
+  for (const post of posts) {
+    const { html } = JSON.parse(read(`contents/blogs/posts/${post.slug}.json`));
+    assert.ok(html.length > 0);
+    // Highlighting and the code-block chrome are in the HTML, not added later.
+    if (/^```(?!mermaid)/m.test(post.body)) {
+      assert.match(html, /<div class="code-block"><pre><code class="[^"]*\bhljs\b/);
+      assert.ok(html.includes('<button class="code-copy" type="button">copy</button>'));
+    }
+    const page = elements(parse(read(`blog/${post.slug}/index.html`)));
+    const data = page.find((node) => attr(node, 'id') === 'portfolio-data');
+    assert.equal(JSON.parse(data.childNodes[0].value).postHtml[post.slug], html);
+  }
+});
+
 test('the projects page is complete without a request', () => {
   const projects = JSON.parse(readFileSync(new URL('projects/projects.json', content), 'utf8'));
   const html = read('projects/index.html');
