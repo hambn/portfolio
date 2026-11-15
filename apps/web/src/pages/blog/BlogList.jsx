@@ -2,7 +2,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { feedHref, followRoute, routeHref } from '../../lib/router.js';
 import Icon from '../../components/Icon.jsx';
-import { ClickableTag, fmtDate, goToTag, readMinutes, readUrlTags } from './blog-ui.jsx';
+import { PortfolioData } from '../../lib/data.js';
+import { ClickableTag, fmtDate, goToTag, readUrlTags } from './blog-ui.jsx';
 
 const POSTS_PER_PAGE = 15;
 
@@ -23,6 +24,15 @@ export default function PostList({ posts }) {
   const [filterOpen, setFilterOpen] = useState(false);
   const [page, setPage] = useState(1);
   const filterRef = useRef(null);
+  // slug -> the post's lowercased text. Not part of the page: it is fetched
+  // the first time the search field is focused or typed in.
+  const [bodies, setBodies] = useState(() => PortfolioData.peek('blogSearch'));
+  const loadBodies = () => {
+    if (bodies) return;
+    PortfolioData.getBlogSearch()
+      .then(setBodies)
+      .catch(() => {});
+  };
 
   useEffect(() => setActive(readUrlTags()), []);
 
@@ -69,17 +79,19 @@ export default function PostList({ posts }) {
   const toggleTag = (t) =>
     setActive((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
 
-  // Post bodies are the whole search corpus. Lowercasing them once per post
-  // list, rather than once per post per keystroke, keeps typing responsive.
+  // Titles, descriptions and tags are searchable at once; the posts' text
+  // joins them when it arrives. Built once per post list, not per keystroke.
   const searchIndex = useMemo(
     () =>
       new Map(
         posts.map((p) => [
           p,
-          [p.title, p.description, p.tags.join(' '), p.body].join(' ').toLowerCase(),
+          [p.title, p.description, p.tags.join(' ')].join(' ').toLowerCase() +
+            ' ' +
+            (bodies?.[p.slug] || ''),
         ]),
       ),
-    [posts],
+    [posts, bodies],
   );
 
   const filtered = useMemo(() => {
@@ -117,7 +129,11 @@ export default function PostList({ posts }) {
           <Icon name="search" className="blog-search-icon" />
           <input
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              loadBodies();
+            }}
+            onFocus={loadBodies}
             placeholder="search posts..."
             aria-label="search posts"
             className="blog-search"
@@ -204,7 +220,7 @@ export default function PostList({ posts }) {
                   <span className="post-row-title">{post.title}</span>
                   <span className="post-row-date">
                     <time dateTime={post.date || undefined}>{fmtDate(post.date)}</time>
-                    <span className="post-row-read">{readMinutes(post.body)} min</span>
+                    <span className="post-row-read">{post.minutes} min</span>
                   </span>
                 </span>
                 {post.description && <span className="post-row-desc">{post.description}</span>}

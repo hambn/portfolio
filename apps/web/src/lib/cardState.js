@@ -20,9 +20,11 @@ export function readCollapsed(key) {
 }
 
 export function writeCollapsed(key, collapsed) {
+  const card = key.replace(/_card_collapsed$/, '');
+  if (collapsed !== readCollapsed(key)) slide(card, collapsed);
   cache.set(key, collapsed);
   storage.set(key, collapsed ? '1' : '0');
-  markCollapsed(key.replace(/_card_collapsed$/, ''), collapsed);
+  markCollapsed(card, collapsed);
   listeners.get(key)?.forEach((notify) => notify());
 }
 
@@ -34,6 +36,25 @@ export function subscribeCollapsed(key, notify) {
     set.delete(notify);
     if (!set.size) listeners.delete(key);
   };
+}
+
+// cards.css animates a body's height itself where the browser can animate to
+// and from `auto`. Elsewhere (Firefox, Safari) the body is moved here, between
+// its measured height and nothing, with the stylesheet's own time and easing.
+// Called before the card's class changes, so the body is still as it was.
+function slide(card, collapsed) {
+  if (CSS.supports('interpolate-size: allow-keywords')) return;
+  const body = document.querySelector(`.sc-body[data-card="${card}"]`);
+  if (!body?.animate) return;
+  const style = getComputedStyle(body);
+  const duration = parseFloat(style.getPropertyValue('--sc-time')) * 1000;
+  if (!duration) return;
+  const from = body.getBoundingClientRect().height;
+  for (const running of body.getAnimations()) if (running.id === 'sc-slide') running.cancel();
+  body.animate(
+    { maxHeight: [`${from}px`, `${collapsed ? 0 : body.scrollHeight}px`] },
+    { id: 'sc-slide', duration, easing: style.getPropertyValue('--sc-ease').trim() },
+  );
 }
 
 function markCollapsed(card, collapsed) {

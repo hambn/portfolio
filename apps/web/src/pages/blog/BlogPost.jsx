@@ -4,7 +4,7 @@ import { PortfolioData } from '../../lib/data.js';
 import { REPO } from '../../components/Footer.jsx';
 import Icon from '../../components/Icon.jsx';
 import { followRoute, routeHref } from '../../lib/router.js';
-import { ClickableTag, fmtDate, goToTag, readMinutes } from './blog-ui.jsx';
+import { ClickableTag, fmtDate, goToTag } from './blog-ui.jsx';
 import { EXTERNAL } from '../../lib/external.js';
 
 // The post's HTML arrives finished from the build (scripts/render-post.mjs):
@@ -87,15 +87,17 @@ export default function PostView({ post, older, newer, onBack }) {
         if (alive) setHtml(rendered);
       })
       .catch(() => {
+        // The slug is plain lowercase (scripts/blog-index.mjs), so it needs no
+        // escaping; the Markdown copy sits beside the post's page.
         if (alive)
           setHtml(
-            post.body.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;'),
+            `<p>this post failed to load. <a href="${routeHref('blog')}${post.slug}.md">read it as markdown</a></p>`,
           );
       });
     return () => {
       alive = false;
     };
-  }, [html, post.slug, post.body]);
+  }, [html, post.slug]);
 
   useEffect(() => {
     const root = ref.current;
@@ -120,7 +122,7 @@ export default function PostView({ post, older, newer, onBack }) {
 
       <p className="post-date">
         <time dateTime={post.date || undefined}>{fmtDate(post.date)}</time>
-        <span className="post-read">{readMinutes(post.body)} min read</span>
+        <span className="post-read">{post.minutes} min read</span>
       </p>
       <h1 className="post-title">{post.title}</h1>
       {post.tags.length > 0 && (

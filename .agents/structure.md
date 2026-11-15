@@ -202,6 +202,10 @@ with `apps/`, `packages/` or `content/`.
   `content/` there in dev and copies it into `dist/contents/` at build.
 - **Blog is auto-discovered.** No manifest. The index is generated at build
   (and served virtually in dev); raw `.md` are never copied into `dist/`.
+  The index the browser gets (`blogs/blog-data.json`, also inlined into blog
+  pages) has no post bodies, only `words` and `minutes`; the text is in
+  `blogs/search.json`, fetched when the search field is first used. Do not
+  put per-post text back into the index: every blog page carries it.
 - **Posts are rendered at build, not in the browser.** `scripts/render-post.mjs`
   turns a post's Markdown into its final HTML: parsed, syntax-highlighted, with
   the code-block label and copy button, heading anchors and table wrappers. A

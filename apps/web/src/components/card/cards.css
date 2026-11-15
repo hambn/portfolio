@@ -1,12 +1,16 @@
+/* A card opens and shuts quickly and lands softly: most of the distance is
+ * covered in the first third of --sc-time. lib/cardState.js reads the same
+ * time and easing to move the body where the browser cannot animate `auto`. */
 .sc-body {
+  --sc-time: 0.24s;
+  --sc-ease: cubic-bezier(0.22, 1, 0.36, 1);
   overflow: hidden;
   transition:
-    max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-    opacity 0.25s ease,
-    visibility 0.4s;
+    opacity 0.16s ease-out,
+    visibility var(--sc-time);
 }
 .sc-body.open {
-  max-height: 4000px;
+  max-height: none;
   opacity: 1;
   visibility: visible;
 }
@@ -19,6 +23,11 @@
 /* A card collapsed on a previous visit, before hydration applies .closed.
  * Only the prerendered .open body is matched: once React has set .closed, that
  * class alone styles the card, so shutting it animates like opening does. */
+@media (prefers-reduced-motion: reduce) {
+  .sc-body {
+    --sc-time: 0s;
+  }
+}
 html[data-collapsed~='email'] .sc-body.open[data-card='email'],
 html[data-collapsed~='dc'] .sc-body.open[data-card='dc'],
 html[data-collapsed~='tg'] .sc-body.open[data-card='tg'],
@@ -33,17 +42,16 @@ html[data-collapsed~='li'] .sc-body.open[data-card='li'] {
   visibility: hidden;
   pointer-events: none;
 }
-/* Where the browser can animate to and from `auto`, the body opens to its own
- * height instead of racing toward a 4000px ceiling, so a short card and a tall
- * one take the same time and ease the same way. */
+/* Where the browser can animate to and from `auto`, the stylesheet moves the
+ * body between nothing and its own height by itself. */
 @supports (interpolate-size: allow-keywords) {
   .sc-body {
     interpolate-size: allow-keywords;
     max-height: none;
     transition:
-      height 0.32s cubic-bezier(0.4, 0, 0.2, 1),
-      opacity 0.22s ease,
-      visibility 0.32s;
+      height var(--sc-time) var(--sc-ease),
+      opacity 0.16s ease-out,
+      visibility var(--sc-time);
   }
   .sc-body.open {
     max-height: none;
