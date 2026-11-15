@@ -9,6 +9,13 @@ updates:
     open-pull-requests-limit: 5
     commit-message:
       prefix: "chore(deps)"
+    ignore:
+      # eslint-plugin-react 7.x peers on eslint <=9, so an eslint 10 PR can
+      # never install. Drop this once the plugin supports the new major.
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@eslint/js"
+        update-types: ["version-update:semver-major"]
     groups:
       # Collapse minor + patch bumps into one PR to keep the noise down;
       # majors arrive one per PR. CI squash-merges any of them that pass
