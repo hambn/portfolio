@@ -21,6 +21,9 @@ import { LinkedInCard } from './linkedin/LinkedInCard.jsx';
 import { SpotifyCard, SpotifySimpleCard } from './spotify/SpotifyCard.jsx';
 import { SteamCard } from './steam/SteamCard.jsx';
 
+// Fetches the cards' images ahead of a visit; called by warmPages().
+export { warm } from './warm.js';
+
 // Every card the config asks for, in page order. `id` is the card's
 // collapsed-state prefix (lib/cardState.js), `label` its name in the jump bar,
 // spelled the way the service spells it.

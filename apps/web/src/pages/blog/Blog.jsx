@@ -15,6 +15,9 @@ import NotFound from '../../components/NotFound.jsx';
 import BlogList from './BlogList.jsx';
 import BlogPost from './BlogPost.jsx';
 
+// Fetches the newest posts ahead of a visit; called by warmPages().
+export { warm } from './warm.js';
+
 export default function Blog({ route }) {
   const { data: posts, error, retry } = useContent('blogIndex');
 

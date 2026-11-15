@@ -11,13 +11,18 @@ const ROUTES = [
   { route: 'links', label: 'social & contact', arrow: true, className: 'btn btn-ghost btn-md' },
 ];
 
+/** The avatar's `<img>` src/srcSet; home/warm.js fetches the same files ahead. */
+export function introAvatar(profile) {
+  const source =
+    profile?.avatarSource ||
+    (profile?.handle && `https://avatars.githubusercontent.com/${profile.handle}`);
+  return avatarImage(source, AVATAR_SIZE);
+}
+
 // Avatar, name, handle, the bio paragraphs and the three route buttons.
 export default function Intro({ profile }) {
   // falls back to the one-line bio used for meta/cards
   const paragraphs = profile?.intro?.length ? profile.intro : [profile?.bio].filter(Boolean);
-  const avatarSource =
-    profile?.avatarSource ||
-    (profile?.handle && `https://avatars.githubusercontent.com/${profile.handle}`);
 
   return (
     <React.Fragment>
@@ -25,7 +30,7 @@ export default function Intro({ profile }) {
         {/* fetchPriority high: this is the home page's LCP candidate, and React
             hoists a matching <link rel="preload"> into the prerendered <head>. */}
         <img
-          {...avatarImage(avatarSource, AVATAR_SIZE)}
+          {...introAvatar(profile)}
           alt={profile?.name || ''}
           width={AVATAR_SIZE}
           height={AVATAR_SIZE}

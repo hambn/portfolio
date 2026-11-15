@@ -101,12 +101,14 @@ test('posts arrive rendered: no parser or highlighter is downloaded', async ({ p
   page.on('request', (request) => {
     if (request.resourceType() === 'script') scripts.push(request.url());
   });
+  // Listening from the start: the newest posts are prefetched once the page
+  // has loaded (pages/blog/warm.js), so the file may arrive before the click.
+  const post = page.waitForResponse(/\/contents\/blogs\/posts\/docker-multistage\.json$/);
   await page.goto('/blog/welcome/');
   await expect(page.locator('code.hljs')).toBeVisible();
   await expect(page.locator('.code-copy')).toBeAttached();
   await expect(page.locator('.table-wrap table')).toBeVisible();
   await page.getByRole('button', { name: 'all posts' }).click();
-  const post = page.waitForResponse(/\/contents\/blogs\/posts\/docker-multistage\.json$/);
   await page.locator('a.post-row-link[href$="/docker-multistage/"]').click();
   expect((await post).ok()).toBe(true);
   await expect(page.locator('.markdown-body code.hljs').first()).toBeVisible();

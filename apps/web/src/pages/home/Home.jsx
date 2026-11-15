@@ -11,6 +11,9 @@ import RecentPosts, { RECENT_COUNT } from './RecentPosts.jsx';
 import Stack from './Stack.jsx';
 import Timeline from './Timeline.jsx';
 
+// Fetches the avatar ahead of a visit; called by warmPages().
+export { warm } from './warm.js';
+
 export default function Home() {
   const { data: profile } = useContent('profile');
   const { data: resume } = useContent('resume');
