@@ -10,29 +10,39 @@ import { EXTERNAL } from '../../lib/external.js';
 // The post's HTML arrives finished from the build (scripts/render-post.mjs):
 // highlighted, with its code-block chrome, heading anchors and table wrappers.
 // Only diagrams are left for the browser, and only a post that has one pays
-// for the library that draws them.
+// for the library that draws them. The source stays on the page as written
+// until its drawing is ready, so the block changes size once, and a diagram
+// that fails to draw stays readable.
 async function drawDiagrams(root) {
-  const nodes = [];
-  root.querySelectorAll('pre > code.language-mermaid').forEach((code) => {
-    const div = document.createElement('div');
-    div.className = 'mermaid';
-    div.textContent = code.textContent;
-    code.parentElement.replaceWith(div);
-    nodes.push(div);
-  });
-  if (!nodes.length) return;
+  const sources = [...root.querySelectorAll('pre > code.language-mermaid')];
+  if (!sources.length) return;
+  let mermaid;
   try {
-    const { default: mermaid } = await import('mermaid');
-    if (!root.isConnected) return;
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: document.documentElement.getAttribute('data-theme') === 'light' ? 'default' : 'dark',
-      securityLevel: 'strict',
-      fontFamily: 'var(--font-mono)',
-    });
-    await mermaid.run({ nodes });
+    ({ default: mermaid } = await import('mermaid'));
   } catch (error) {
     console.warn('mermaid', error);
+    return;
+  }
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: document.documentElement.getAttribute('data-theme') === 'light' ? 'default' : 'dark',
+    securityLevel: 'strict',
+    fontFamily: 'var(--font-mono)',
+  });
+  for (const [index, code] of sources.entries()) {
+    const id = `diagram-${index}`;
+    try {
+      const { svg } = await mermaid.render(id, code.textContent);
+      if (!code.isConnected) return;
+      const diagram = document.createElement('div');
+      diagram.className = 'mermaid';
+      diagram.innerHTML = svg;
+      code.parentElement.replaceWith(diagram);
+    } catch (error) {
+      console.warn('mermaid', error);
+      // A failed render leaves its scratch element behind.
+      document.getElementById(`d${id}`)?.remove();
+    }
   }
 }
 
@@ -56,16 +66,19 @@ async function copyCode(event) {
 
 // A neighbouring post, at the foot of the one being read. `hotkey` is the key
 // components/Keys.jsx presses this link for.
-function PostStep({ post, hotkey, label, className = '' }) {
+function PostStep({ post, hotkey, newer = false }) {
   const route = `blog/${post.slug}`;
   return (
     <a
       href={routeHref(route)}
       onClick={followRoute(route)}
-      className={`post-step ${className}`}
+      className={`post-step${newer ? ' is-newer' : ''}`}
       data-hotkey={hotkey}
     >
-      <span className="post-step-label">{label}</span>
+      <span className="post-step-label">
+        {newer ? 'newer ' : <Icon name="arrow-left" />}
+        {newer ? <Icon name="arrow-right" /> : ' older'}
+      </span>
       <span className="post-step-title">{post.title}</span>
     </a>
   );
@@ -156,8 +169,8 @@ export default function PostView({ post, older, newer, onBack }) {
 
       {(older || newer) && (
         <nav className="post-steps" aria-label="more posts">
-          {older ? <PostStep post={older} hotkey="[" label="← older" /> : <span />}
-          {newer && <PostStep post={newer} hotkey="]" label="newer →" className="is-newer" />}
+          {older ? <PostStep post={older} hotkey="[" /> : <span />}
+          {newer && <PostStep post={newer} hotkey="]" newer />}
         </nav>
       )}
     </main>

@@ -103,17 +103,24 @@ test('the Host header neither splits the disk cache nor replaces the origin', as
     server.close();
   });
   const { port } = server.address() as AddressInfo;
-  // An absolute-form target ("GET http://evil.example/health") is refused.
-  const status = await new Promise<number | undefined>((resolve, reject) =>
-    http
-      .request({ host: '127.0.0.1', port, path: 'http://evil.example/health' }, (response) => {
-        response.resume();
-        resolve(response.statusCode);
-      })
-      .on('error', reject)
-      .end(),
-  );
-  assert.equal(status, 400);
+  // An absolute-form target ("GET http://evil.example/health") is refused, and
+  // so are the slash-led targets that resolve to another origin all the same.
+  for (const path of [
+    'http://evil.example/health',
+    '//evil.example/health',
+    '/\\evil.example/health',
+  ]) {
+    const status = await new Promise<number | undefined>((resolve, reject) =>
+      http
+        .request({ host: '127.0.0.1', port, path }, (response) => {
+          response.resume();
+          resolve(response.statusCode);
+        })
+        .on('error', reject)
+        .end(),
+    );
+    assert.equal(status, 400, path);
+  }
 });
 
 test('scheduled Node refresh coalesces overlapping invocations and can retry', async () => {

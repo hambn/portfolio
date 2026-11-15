@@ -37,7 +37,9 @@ export async function handle(request: Request, services: Services) {
   return withCache(services, request, async () => {
     const { success, data } = await lanyard(services);
 
-    if (!success || !data) return json({ error: 'lanyard_failed' }, 200, DISCORD_TTL);
+    // An error status, so it is neither cached nor batched into /site as a
+    // healthy card.
+    if (!success || !data) return json({ error: 'lanyard_failed' }, 502);
 
     const user = data.discord_user;
 

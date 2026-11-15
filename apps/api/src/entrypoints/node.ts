@@ -66,7 +66,15 @@ export function createServer(services: Services) {
       // POST is the only method any route accepts a body with; the app caps how
       // much of it a handler is allowed to see.
       const body = incoming.method === 'POST' ? await readBody(incoming) : undefined;
-      const request = new Request(new URL(incoming.url, origin), {
+      // "//host/path" and "/\host/path" start with a slash and still resolve
+      // to another origin.
+      const url = new URL(incoming.url, origin);
+      if (url.origin !== new URL(origin).origin) {
+        outgoing.writeHead(400, { 'Content-Type': 'application/json' });
+        outgoing.end(JSON.stringify({ error: 'bad_request' }));
+        return;
+      }
+      const request = new Request(url, {
         method: incoming.method,
         headers,
         body,

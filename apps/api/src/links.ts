@@ -90,7 +90,9 @@ function selection(url: URL): string[] {
       .split(',')
       .map((value) => value.trim())
       .filter((value) => Object.hasOwn(cards, value));
-  const include = list('include');
+  // Each key once: a repeated key would run its handler, and that handler's
+  // upstream requests, once per repeat.
+  const include = [...new Set(list('include'))];
   const exclude = new Set(list('exclude'));
   const keys = include.length ? include : Object.keys(cards);
   return keys.filter((key) => !exclude.has(key));

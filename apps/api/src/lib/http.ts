@@ -12,6 +12,7 @@ export function json(data: unknown, status = 200, ttl = 0): Response {
     headers: {
       ...CORS,
       'Content-Type': 'application/json',
+      'X-Content-Type-Options': 'nosniff',
       'Cache-Control': ttl > 0 ? `public, max-age=${ttl}` : 'no-store',
       ...(ttl > 0
         ? {

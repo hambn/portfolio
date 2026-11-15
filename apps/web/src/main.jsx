@@ -14,7 +14,7 @@ installMediaFallback();
 
 // Round the square avatar into a circular tab favicon. It redraws whatever the
 // document already declares as its icon — written by prerender.mjs from
-// contents/home/profile.json — so the avatar URL isn't repeated here, and the
+// content/home/profile.json — so the avatar URL isn't repeated here, and the
 // browser serves this fetch from cache instead of downloading a second copy.
 function roundFavicon(size) {
   const link = document.querySelector("link[rel='icon']");

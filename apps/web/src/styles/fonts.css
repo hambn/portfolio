@@ -7,8 +7,9 @@
  * @fontsource generates for it, so the browser still declines to download the
  * font at all on a page with no matching glyphs.
  *
- * Latin range, shared by all three families (@fontsource's `wght.css`):
- *   basic latin + punctuation, currency, arrows and the replacement char.
+ * Latin range (@fontsource's `wght.css`): basic latin, punctuation, currency,
+ * the up and down arrows and the replacement char. Other arrows and symbols
+ * are not in the file; draw those with components/Icon.jsx.
  */
 
 @font-face {
@@ -21,4 +22,31 @@
   unicode-range:
     U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
     U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* The drawn italic, for emphasis in posts and comments in code. Without it the
+ * browser slants the upright face. Only pages that set italic text fetch it. */
+@font-face {
+  font-family: 'JetBrains Mono Variable';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 100 800;
+  src: url('@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-italic.woff2')
+    format('woff2-variations');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* What text is set in until the webfont arrives, on Windows: Consolas, scaled
+ * from its 0.55em advance to JetBrains Mono's 0.6em and given the same
+ * ascent and descent, so the swap moves no line break and no baseline. The
+ * other platforms' stand-ins (tokens/typography.css) already match. */
+@font-face {
+  font-family: 'JetBrains Mono Fallback';
+  src: local('Consolas');
+  size-adjust: 109.13%;
+  ascent-override: 93.47%;
+  descent-override: 27.49%;
+  line-gap-override: 0%;
 }
