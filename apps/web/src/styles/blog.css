@@ -625,7 +625,8 @@
   transition:
     color var(--transition-base),
     background-color var(--transition-base),
-    border-color var(--transition-base);
+    border-color var(--transition-base),
+    box-shadow var(--transition-base);
 }
 .blog-filter-toggle:hover {
   color: var(--foreground);
@@ -633,6 +634,18 @@
 }
 .blog-filter-toggle svg {
   flex-shrink: 0;
+  transition: color var(--transition-base);
+}
+/* In use, it lights up the way the search field beside it does. */
+.blog-filter-toggle:focus-visible,
+.blog-filter-toggle[aria-expanded='true'] {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-ring);
+}
+.blog-filter-toggle:focus-visible svg,
+.blog-filter-toggle[aria-expanded='true'] svg {
+  color: var(--primary);
 }
 .blog-filter-menu {
   position: absolute;

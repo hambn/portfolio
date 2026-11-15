@@ -86,7 +86,10 @@ export const PortfolioData = (() => {
     /** { featured[], accounts[] } — see content/projects/projects.json */
     getProjects: () => cached('projects', () => getJSON('/projects/projects.json')),
 
-    /** [{ slug, path, title, date, description, tags, body }] sorted newest-first */
+    /** [{ slug, path, title, date, description, tags, words, minutes }] sorted newest-first */
     getBlogIndex,
+
+    /** { slug: lowercased post text } — only the blog's search asks for it. */
+    getBlogSearch: () => cached('blogSearch', () => getJSON('/blogs/search.json')),
   };
 })();

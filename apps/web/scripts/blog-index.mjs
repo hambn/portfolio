@@ -84,6 +84,10 @@ function dropRepeatedTitle(body, title) {
   );
 }
 
+/** Whole minutes to read a markdown body at an unhurried 220 words a minute. */
+const wordCount = (body) => body.split(/\s+/).filter(Boolean).length;
+const readMinutes = (words) => Math.max(1, Math.round(words / 220));
+
 /** Recursively collect every .md path under dir. */
 function walkMarkdown(dir, base = dir) {
   const out = [];
@@ -99,7 +103,11 @@ function walkMarkdown(dir, base = dir) {
 /**
  * Build the blog index from the markdown files.
  * @param {string} blogsDir absolute path to content/blogs
- * @returns {{ json: string, count: number }}
+ * @returns {{ json: string, index: string, search: string, count: number }}
+ *   `json` is every post with its Markdown body, for the build's own use.
+ *   `index` is what the browser gets: the same posts without their bodies.
+ *   `search` maps each slug to its lowercased body, fetched only when the
+ *   blog's search field is used.
  */
 export function buildBlogIndex(blogsDir) {
   const posts = walkMarkdown(blogsDir)
@@ -112,6 +120,8 @@ export function buildBlogIndex(blogsDir) {
         throw new Error(`${path}: file name must be lowercase letters, digits and hyphens`);
       if (meta.date && !validDate(meta.date))
         throw new Error(`${path}: date "${meta.date}" is not a real YYYY-MM-DD date`);
+      const text = dropRepeatedTitle(body, meta.title);
+      const words = wordCount(text);
       return {
         slug,
         path: path.split('\\').join('/'),
@@ -119,7 +129,9 @@ export function buildBlogIndex(blogsDir) {
         date: meta.date || '',
         description: meta.description || meta.excerpt || '',
         tags: Array.isArray(meta.tags) ? meta.tags : [],
-        body: dropRepeatedTitle(body, meta.title),
+        words,
+        minutes: readMinutes(words),
+        body: text,
       };
     })
     .filter(Boolean)
@@ -130,5 +142,12 @@ export function buildBlogIndex(blogsDir) {
     if (slugs.has(post.slug)) throw new Error(`Duplicate blog slug: ${post.slug}`);
     slugs.add(post.slug);
   }
-  return { json: JSON.stringify(posts), count: posts.length };
+  return {
+    json: JSON.stringify(posts),
+    index: JSON.stringify(posts.map(({ body: _body, ...post }) => post)),
+    search: JSON.stringify(
+      Object.fromEntries(posts.map((post) => [post.slug, post.body.toLowerCase()])),
+    ),
+    count: posts.length,
+  };
 }

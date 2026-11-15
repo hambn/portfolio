@@ -60,7 +60,11 @@ const profile = readJSON('home/profile.json');
 const resume = readJSON('home/resume.json');
 const links = readJSON('links/links.json');
 const projects = readJSON('projects/projects.json');
-const posts = JSON.parse(buildBlogIndex(join(contents, 'blogs')).json);
+const blog = buildBlogIndex(join(contents, 'blogs'));
+const posts = JSON.parse(blog.json);
+// What a page carries and the browser fetches: the posts without their
+// Markdown, which only the build reads.
+const postIndex = JSON.parse(blog.index);
 
 // Identity meta that's the same on every page (author, avatar, social handles,
 // JSON-LD) lives in the static index.html and would otherwise stay hardcoded.
@@ -271,7 +275,7 @@ function page({
     data.recentPosts = posts.slice(0, 3).map(({ slug, title, date }) => ({ slug, title, date }));
   if (home || ['projects', 'links', 'resume'].includes(path)) data.links = links;
   if (path === 'projects') data.projects = projects;
-  if (path === 'blog' || path?.startsWith('blog/')) data.blogIndex = posts;
+  if (path === 'blog' || path?.startsWith('blog/')) data.blogIndex = postIndex;
   if (path?.startsWith('blog/')) {
     const post = posts.find((p) => `blog/${p.slug}` === path);
     if (post) data.postHtml = { [post.slug]: renderPost(post.body) };

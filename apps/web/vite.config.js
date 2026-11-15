@@ -13,6 +13,8 @@ const contentDir = fileURLToPath(new URL('../../content', import.meta.url));
 const blogsDir = join(contentDir, 'blogs');
 const CONTENTS = 'contents/';
 const INDEX_PATH = 'blogs/blog-data.json';
+// The posts' text, for the blog's search: fetched when the field is first used.
+const SEARCH_PATH = 'blogs/search.json';
 // One rendered post per file: what the blog fetches when a post is opened from
 // another page (a post's own page already carries its HTML).
 const POST_PATH = /^blogs\/posts\/([a-z0-9][a-z0-9-]*)\.json$/;
@@ -30,7 +32,7 @@ const TYPES = {
 };
 
 // Serves content/ at <base>/contents/ in dev and copies it into dist/contents/
-// at build. The blog index and each post's rendered HTML are built from the .md
+// at build. The blog index, its search text and each post's rendered HTML are built from the .md
 // files — never written to disk. In dev a middleware serves them fresh per
 // request; at build they're emitted as assets.
 function contentPlugin() {
@@ -53,7 +55,12 @@ function contentPlugin() {
         const path = pathname.slice(prefix.length);
         if (path === INDEX_PATH) {
           res.setHeader('Content-Type', 'application/json');
-          res.end(buildBlogIndex(blogsDir).json);
+          res.end(buildBlogIndex(blogsDir).index);
+          return;
+        }
+        if (path === SEARCH_PATH) {
+          res.setHeader('Content-Type', 'application/json');
+          res.end(buildBlogIndex(blogsDir).search);
           return;
         }
         const slug = POST_PATH.exec(path)?.[1];
@@ -76,8 +83,9 @@ function contentPlugin() {
       });
     },
     generateBundle() {
-      const { json, count } = buildBlogIndex(blogsDir);
-      this.emitFile({ type: 'asset', fileName: CONTENTS + INDEX_PATH, source: json });
+      const { json, index, search, count } = buildBlogIndex(blogsDir);
+      this.emitFile({ type: 'asset', fileName: CONTENTS + INDEX_PATH, source: index });
+      this.emitFile({ type: 'asset', fileName: CONTENTS + SEARCH_PATH, source: search });
       for (const post of JSON.parse(json))
         this.emitFile({
           type: 'asset',

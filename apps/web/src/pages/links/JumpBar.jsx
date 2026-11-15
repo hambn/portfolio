@@ -28,7 +28,7 @@ function useCollapsedIds(cards) {
 }
 
 // A touch longer than the body's open transition in cards.css.
-const OPEN_MS = 440;
+const OPEN_MS = 280;
 
 // Whether the card already sits where a jump would put it: near the top of the
 // view, or as far up as the end of the page lets it go.

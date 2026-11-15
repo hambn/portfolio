@@ -88,6 +88,7 @@ export function pageGraph(meta, person, siteRoot, posts = [], mainEntity) {
     inLanguage: 'en',
     image: person.image,
     keywords: post.tags?.length ? post.tags.join(', ') : undefined,
+    wordCount: post.words || undefined,
     author,
     publisher: author,
     isPartOf: {

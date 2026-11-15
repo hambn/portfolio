@@ -139,6 +139,27 @@ test('posts are rendered at build, on their page and as one file each', () => {
   }
 });
 
+test("pages carry the blog index without the posts' Markdown", () => {
+  const index = JSON.parse(read('contents/blogs/blog-data.json'));
+  const search = JSON.parse(read('contents/blogs/search.json'));
+  assert.deepEqual(
+    index.map((post) => post.slug),
+    posts.map((post) => post.slug),
+  );
+  for (const post of index) {
+    assert.ok(!('body' in post));
+    assert.ok(post.minutes >= 1);
+    // The text the list no longer carries is what the search file holds.
+    assert.equal(typeof search[post.slug], 'string');
+  }
+  for (const path of ['blog', ...posts.map((post) => `blog/${post.slug}`)]) {
+    const page = elements(parse(read(`${path}/index.html`)));
+    const data = page.find((node) => attr(node, 'id') === 'portfolio-data');
+    for (const post of JSON.parse(data.childNodes[0].value).blogIndex)
+      assert.ok(!('body' in post), path);
+  }
+});
+
 test('the projects page is complete without a request', () => {
   const projects = JSON.parse(readFileSync(new URL('projects/projects.json', content), 'utf8'));
   const html = read('projects/index.html');
