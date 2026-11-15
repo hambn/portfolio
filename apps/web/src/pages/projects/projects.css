@@ -106,20 +106,26 @@
     transform var(--transition-base),
     box-shadow var(--transition-base);
 }
-.project-card:hover,
+/* A finger has no hover: on a touch screen the card would stay lifted after
+ * a tap until something else was touched. */
+@media (hover: hover) {
+  .project-card:hover {
+    border-color: var(--hairline-strong);
+    background: var(--glass-hover);
+    transform: translateY(-2px);
+    box-shadow:
+      var(--glass-edge),
+      0 8px 22px var(--overlay);
+  }
+  [data-theme='light'] .project-card:hover {
+    box-shadow:
+      var(--glass-edge),
+      0 8px 22px rgba(0, 0, 0, 0.08);
+  }
+}
 .project-card:focus-within {
   border-color: var(--hairline-strong);
   background: var(--glass-hover);
-  transform: translateY(-2px);
-  box-shadow:
-    var(--glass-edge),
-    0 8px 22px var(--overlay);
-}
-[data-theme='light'] .project-card:hover,
-[data-theme='light'] .project-card:focus-within {
-  box-shadow:
-    var(--glass-edge),
-    0 8px 22px rgba(0, 0, 0, 0.08);
 }
 .project-card--featured {
   padding: 20px 22px;

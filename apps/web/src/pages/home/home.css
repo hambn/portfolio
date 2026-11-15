@@ -483,10 +483,12 @@
     background-color 150ms,
     color 150ms;
 }
-.stack-chip:hover {
-  border-color: var(--hairline-strong);
-  background: var(--glass-hover);
-  color: var(--foreground);
+@media (hover: hover) {
+  .stack-chip:hover {
+    border-color: var(--hairline-strong);
+    background: var(--glass-hover);
+    color: var(--foreground);
+  }
 }
 @media (max-width: 639px) {
   .home-page {

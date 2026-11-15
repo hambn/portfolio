@@ -9,7 +9,6 @@ import { pageComponent, pages, preloadPage } from './pages/index.js';
 import { currentRoute, routeOf } from './lib/router.js';
 import { PortfolioData } from './lib/data.js';
 import { warmSite } from './lib/siteFeed.js';
-import { canTransition, viewTransition } from './lib/transition.js';
 import { routeMetadata, updateDocumentMetadata, updateNotFoundMetadata } from './lib/metadata.js';
 
 // How long a navigation waits for the next page's code before showing the
@@ -48,7 +47,7 @@ export default function App({ initialRoute, initialPage }) {
       shown = next;
       const y = window.history.state?.scrollY ?? 0;
       if (!moved) {
-        // Same page (a query or fragment changed): nothing to cross-fade.
+        // Same page (a query or fragment changed): nothing to fade in.
         startTransition(() => setRoute(next));
         if (!window.location.hash) window.requestAnimationFrame(() => window.scrollTo(0, y));
         return;
@@ -65,20 +64,21 @@ export default function App({ initialRoute, initialPage }) {
       // Past the wait, switch anyway and let the Suspense fallback say so.
       Promise.race([ready, new Promise((done) => setTimeout(done, ROUTE_WAIT))]).then(() => {
         if (mine !== turn) return;
-        // The old page and the new one cross-fade (core.css). Where the
-        // browser cannot do that, the new page fades in (page-in) instead.
-        if (!canTransition()) document.documentElement.setAttribute('data-navigated', '');
-        viewTransition('route', async () => {
-          flushSync(() => setRoute(next));
+        // The switch itself is immediate: the new page is on screen, and can
+        // be scrolled and clicked, in the frame after the click. It fades in
+        // briefly (core.css, page-in) so the change does not read as a cut.
+        document.documentElement.setAttribute('data-navigated', '');
+        flushSync(() => setRoute(next));
+        window.scrollTo(0, y);
+        // Back to a page that fills in after its first render (the project
+        // lists): it is not yet tall enough to scroll to where it was left.
+        let tries = 0;
+        const settle = () => {
+          if (mine !== turn || window.scrollY >= y - 1 || tries++ >= 6) return;
           window.scrollTo(0, y);
-          // Back to a page that fills in after its first render (the project
-          // lists): it is not yet tall enough to scroll to where it was left.
-          // The transition holds its picture of the new page until this ends.
-          for (let tries = 0; window.scrollY < y - 1 && tries < 6; tries++) {
-            await new Promise((done) => setTimeout(done, 16));
-            window.scrollTo(0, y);
-          }
-        });
+          setTimeout(settle, 16);
+        };
+        settle();
       });
     };
     window.addEventListener('popstate', onPop);

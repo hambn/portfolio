@@ -5,12 +5,11 @@
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /** Whether a change made through viewTransition() will animate. */
-export const canTransition = () =>
-  typeof document.startViewTransition === 'function' && !reducedMotion();
+const canTransition = () => typeof document.startViewTransition === 'function' && !reducedMotion();
 
 /**
  * Run `update` (the DOM changes; it may return a promise the transition waits
- * for) inside a view transition of the given kind ("route", "theme"). Without
+ * for) inside a view transition of the given kind ("theme"). Without
  * the API, or with reduced motion, the update just runs. Returns whether it
  * was animated.
  */
