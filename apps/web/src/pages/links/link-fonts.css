@@ -8,6 +8,9 @@
  * point at the latin file only. Both are declared here rather than in each
  * card's stylesheet so DM Sans isn't defined twice for Discord and Spotify.
  *
+ * `font-display: block` so a card never shows its text in a stand-in face
+ * and then swaps it; the text waits the moment the file takes instead.
+ *
  * unicode-range keeps the cost of declaring both here at zero: the browser
  * downloads a face only once an element on screen is actually set in it.
  */
@@ -15,7 +18,7 @@
 @font-face {
   font-family: 'DM Sans Variable';
   font-style: normal;
-  font-display: swap;
+  font-display: block;
   font-weight: 100 1000;
   src: url('@fontsource-variable/dm-sans/files/dm-sans-latin-wght-normal.woff2')
     format('woff2-variations');
@@ -27,7 +30,7 @@
 @font-face {
   font-family: 'Roboto Variable';
   font-style: normal;
-  font-display: swap;
+  font-display: block;
   font-weight: 100 900;
   src: url('@fontsource-variable/roboto/files/roboto-latin-wght-normal.woff2')
     format('woff2-variations');

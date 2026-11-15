@@ -238,10 +238,27 @@ function preloadEntry(html) {
   );
 }
 
-// No font preload: Chrome holds the first paint for a preloaded font, which
-// cost 80-100 ms of first paint in lab runs, while the inlined stylesheet
-// already lets the font request start about as early.
-const template = preloadEntry(inlineStylesheet(readFileSync(join(dist, 'index.html'), 'utf8')))
+/* ── body font ──
+ * Every page is set in JetBrains Mono, and painting it first in a system
+ * stand-in and swapping a moment later reads as a broken page. Preloading the
+ * upright latin file (the one styles/fonts.css declares with
+ * `font-display: block`) starts the download with the HTML instead of after
+ * the stylesheet is parsed; Chrome then holds the first paint for it, so the
+ * page appears once, already in its own face. That costs roughly 80-100 ms of
+ * first paint on a cold visit and nothing afterwards: the file is hashed and
+ * cached as immutable. The italic is left to load on demand. */
+function preloadFont(html) {
+  const href = /url\(([^)]*jetbrains-mono-latin-wght-normal[^)]*\.woff2)\)/.exec(html)?.[1];
+  if (!href) return html;
+  return html.replace(
+    /(<meta name="viewport"[^>]*>)/,
+    `$1\n    <link rel="preload" as="font" type="font/woff2" crossorigin href="${href.replace(/['"]/g, '')}" />`,
+  );
+}
+
+const template = preloadFont(
+  preloadEntry(inlineStylesheet(readFileSync(join(dist, 'index.html'), 'utf8'))),
+)
   .replace(/(<meta\s+name="author"\s+content=")[^"]*(")/, `$1${esc(profile.name)}$2`)
   .replace(/(<meta\s+property="og:image"\s+content=")[^"]*(")/, `$1${esc(profile.avatar)}$2`)
   // The tab icon is drawn at 32px at most, so ask the proxy for a small

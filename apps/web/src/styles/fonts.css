@@ -12,10 +12,14 @@
  * are not in the file; draw those with components/Icon.jsx.
  */
 
+/* `block`, not `swap`: the prerender preloads this file (preloadFont() in
+ * scripts/prerender.mjs), so text waits a moment for it rather than appearing
+ * in a stand-in face and visibly changing. Past the browser's block period
+ * (about 3s on a very slow link) the stand-ins below take over as before. */
 @font-face {
   font-family: 'JetBrains Mono Variable';
   font-style: normal;
-  font-display: swap;
+  font-display: block;
   font-weight: 100 800;
   src: url('@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2')
     format('woff2-variations');
