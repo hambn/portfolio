@@ -364,18 +364,6 @@ html.theme-switching *::after {
   opacity: 1;
   transform: none;
 }
-/* A frosted bar is blurred again on every frame of a scroll, and on a phone
- * that is where the frames go. Touch screens get a near-solid bar instead,
- * which over this page reads the same. */
-@media (hover: none) and (pointer: coarse) {
-  .site-nav:not([data-island]),
-  .site-nav[data-island] .nav-surface {
-    background: var(--background);
-    background: color-mix(in srgb, var(--background) 94%, transparent);
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-  }
-}
 /* A column, so the footer sits at the bottom of a short page too. */
 .site-shell {
   min-height: 100vh;
