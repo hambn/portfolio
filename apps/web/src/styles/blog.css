@@ -695,9 +695,11 @@
     background-color var(--transition-base),
     border-color var(--transition-base);
 }
-.blog-chip:hover:not(:disabled, .is-on) {
-  color: var(--foreground);
-  border-color: var(--hairline-strong);
+@media (hover: hover) {
+  .blog-chip:hover:not(:disabled, .is-on) {
+    color: var(--foreground);
+    border-color: var(--hairline-strong);
+  }
 }
 .blog-chip .icon {
   margin-right: 5px;
@@ -962,4 +964,10 @@
   background: var(--primary-subtle);
   color: var(--primary);
   border-color: var(--primary-ring);
+}
+/* A tag is a button: under a finger it needs more than 23px of height. */
+@media (pointer: coarse) {
+  .blog-tag {
+    padding: 5px 10px;
+  }
 }

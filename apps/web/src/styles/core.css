@@ -17,7 +17,6 @@ html {
   text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
 }
 body {
   background-color: var(--background);
@@ -136,23 +135,15 @@ li {
 #content {
   outline: none;
 }
-/* In-app navigation cross-fades the page being left into the one opened
- * (App.jsx, lib/transition.js). The whole viewport is one picture, so the
- * fixed nav stays put and its frosted glass is never redrawn without a
- * backdrop. */
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation-duration: 240ms;
-  animation-timing-function: var(--ease-default);
-}
 /* A theme flip opens the new theme as a circle from the toggle (Nav.jsx sets
- * the centre and reach): the old picture holds still underneath. */
+ * the centre and reach, lib/transition.js runs it): the old picture holds
+ * still underneath. */
 html[data-transition='theme']::view-transition-old(root) {
   animation: none;
 }
 html[data-transition='theme']::view-transition-new(root) {
   mix-blend-mode: normal;
-  animation: theme-reveal 480ms var(--ease-default);
+  animation: theme-reveal 380ms var(--ease-default);
 }
 @keyframes theme-reveal {
   from {
@@ -162,18 +153,19 @@ html[data-transition='theme']::view-transition-new(root) {
     clip-path: circle(var(--reveal-r) at var(--reveal-x) var(--reveal-y));
   }
 }
-/* A browser without view transitions fades the opened page in instead. The
- * first page of a visit is left alone (App.jsx sets data-navigated on the
- * first route change), so the prerendered content paints at once. Opacity
- * only: a transform here would re-anchor position:fixed children for the
- * length of the animation. */
+/* In-app navigation swaps the page at once and fades the new one in, so the
+ * nav never moves and the page can be used while it settles. The first page
+ * of a visit is left alone (App.jsx sets data-navigated on the first route
+ * change), so the prerendered content paints at once. Opacity only: a
+ * transform here would re-anchor position:fixed children for the length of
+ * the animation. */
 @keyframes page-in {
   from {
     opacity: 0;
   }
 }
 html[data-navigated] #content > main {
-  animation: page-in 220ms var(--ease-out);
+  animation: page-in 140ms var(--ease-out);
 }
 /* The same fallback for the theme flip (Nav.jsx): colours cross-fade. */
 html.theme-switching,
@@ -282,6 +274,12 @@ html.theme-switching *::after {
     background: var(--background-muted);
   }
 }
+/* Pressed: the link answers the finger before the page has changed. */
+.nav-brand:active,
+.nav-item:active {
+  color: var(--foreground);
+  background: var(--background-muted);
+}
 .nav-brand {
   display: inline-flex;
   align-items: baseline;
@@ -339,10 +337,16 @@ html.theme-switching *::after {
     background-color var(--transition-base),
     border-color var(--transition-base);
 }
-.nav-theme:hover {
+@media (hover: hover) {
+  .nav-theme:hover {
+    color: var(--foreground);
+    background: var(--background-muted);
+    border-color: var(--border);
+  }
+}
+.nav-theme:active {
   color: var(--foreground);
   background: var(--background-muted);
-  border-color: var(--border);
 }
 /* Both icons share one cell; the one that is out turns away as it fades. */
 .nav-theme .icon {
@@ -359,6 +363,18 @@ html.theme-switching *::after {
 [data-theme='light'] .theme-light-icon {
   opacity: 1;
   transform: none;
+}
+/* A frosted bar is blurred again on every frame of a scroll, and on a phone
+ * that is where the frames go. Touch screens get a near-solid bar instead,
+ * which over this page reads the same. */
+@media (hover: none) and (pointer: coarse) {
+  .site-nav:not([data-island]),
+  .site-nav[data-island] .nav-surface {
+    background: var(--background);
+    background: color-mix(in srgb, var(--background) 94%, transparent);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }
 /* A column, so the footer sits at the bottom of a short page too. */
 .site-shell {
@@ -424,6 +440,12 @@ html.theme-switching *::after {
 .keys-hint:hover,
 .keys-hint[aria-expanded='true'] {
   color: var(--foreground);
+}
+/* The shortcuts are for a keyboard: a phone has no use for the list. */
+@media (hover: none) and (pointer: coarse) {
+  .keys {
+    display: none;
+  }
 }
 .keys kbd {
   min-width: 18px;

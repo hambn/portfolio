@@ -76,11 +76,17 @@ export function useIsland(barRef, islandRef) {
       }
     };
 
+    // The outline last drawn. Most frames of a scroll leave it as it was (the
+    // bar is docked, or still far below the nav), and writing the same clip
+    // again would have the frosted surface cut and blurred again for nothing.
+    let drawn = '';
     const draw = () => {
       const box = island.getBoundingClientRect();
       const height = nav.offsetHeight;
       const d = islandPath({ width: nav.clientWidth, nav: height, box, merge });
       const tall = `${Math.ceil(Math.max(height, box.bottom)) + 2}px`;
+      if (d + tall === drawn) return;
+      drawn = d + tall;
       surface.style.height = tall;
       surface.style.clipPath = `path('${d}')`;
       edge.style.height = tall;

@@ -183,6 +183,17 @@ with `apps/`, `packages/` or `content/`.
   Page chrome uses classes, not inline `style={{…}}` objects — those are
   rebuilt every render and serialized into every prerendered page. Inline
   styles are kept for values computed at runtime (graph geometry, colours).
+- **Navigation never waits on an animation.** `App.jsx` swaps the route in the
+  frame after the click and the new page fades in with CSS (`page-in` in
+  `core.css`, opacity only, 140ms). Do not wrap a route change in a view
+  transition: it holds the swap and blocks input for its whole length. Only
+  the theme flip uses one (`lib/transition.js`).
+- **Fixed bars are not frosted on touch screens.** `backdrop-filter` on a
+  `position: fixed` or sticky element is blurred again on every frame of a
+  scroll, so under `(hover: none) and (pointer: coarse)` the nav and the
+  résumé print button get a near-solid fill. Give a new fixed bar the same
+  rule, and put `:hover` styles on things that stay on screen inside
+  `@media (hover: hover)`.
 - **In-app links are real `<a href>`s.** Use `routeHref(page)` for the href and
   `followRoute(page)` for the click handler (`src/lib/router.js`): a plain click
   routes in place, a modified or middle click opens a new tab as usual.
