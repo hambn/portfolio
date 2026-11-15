@@ -2,13 +2,17 @@ name: CI
 
 on:
   pull_request:
+  # Also run on main, so a merge that breaks a check shows up there instead
+  # of surfacing later as a failure on every unrelated PR.
+  push:
+    branches: [main]
 
 permissions:
   contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   check:
@@ -38,7 +42,9 @@ jobs:
   # push workflows, so the deploy is dispatched explicitly.
   dependabot-merge:
     needs: [check, images]
-    if: github.actor == 'dependabot[bot]' && github.event.pull_request.user.login == 'dependabot[bot]'
+    # Keyed on the PR author, not github.actor, so a manual re-run of a
+    # Dependabot PR's checks still merges it once they pass.
+    if: github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dependabot[bot]'
     runs-on: ubuntu-latest
     permissions:
       contents: write
