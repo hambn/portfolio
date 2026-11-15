@@ -225,8 +225,10 @@ with `apps/`, `packages/` or `content/`.
   renders the title as its one `<h1>` (asserted by `test:site`).
 - **node_modules is hoisted to the repo root**, outside the Vite root, so
   `index.html` never references `/node_modules/` paths. Package assets are
-  imported from CSS/JS (Vite resolves them). There is deliberately no font
-  preload: Chrome holds the first paint for a preloaded font.
+  imported from CSS/JS (Vite resolves them). The upright JetBrains Mono file
+  is preloaded by the prerender and declared `font-display: block`, so the
+  first paint is already in the real face (no fallback-then-swap flash);
+  Chrome holds that paint for it, a deliberate ~80-100 ms on a cold visit.
 - **Self-hosted.** One variable font (JetBrains Mono) is bundled and `mermaid`
   is lazy-loaded — no third-party CDN.
 - **Fonts declare their own `@font-face`.** `@fontsource-variable` package
