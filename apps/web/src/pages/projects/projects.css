@@ -1,5 +1,10 @@
+/* The repository listings arrive after the page does. A full screen of height
+ * from the start keeps the footer from sitting mid-screen and then jumping
+ * down as they fill in. */
 .projects-page {
   max-width: 900px;
+  min-height: 100vh;
+  min-height: 100dvh;
   margin: 0 auto;
   padding: 88px 24px 80px;
 }

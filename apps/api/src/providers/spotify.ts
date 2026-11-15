@@ -76,6 +76,12 @@ async function spotifyGet(services: Services, path: string, accessToken: string 
       10000,
     );
     if (res.status === 204) return { data: null, status: res.status };
+    // A refusal's body is JSON too ({ error: { status, message } }); it is not
+    // the profile or the track list the caller asked for.
+    if (!res.ok) {
+      await res.body?.cancel();
+      return { data: null, status: res.status, error: 'spotify_refused' };
+    }
 
     try {
       const data = await readJSON(
@@ -117,6 +123,7 @@ export async function handle(request: Request, services: Services) {
     const headers: Record<string, string> = {
       ...CORS,
       'Content-Type': 'application/json',
+      'X-Content-Type-Options': 'nosniff',
       'Cache-Control': 'no-store',
       'Access-Control-Expose-Headers': 'Retry-After',
     };

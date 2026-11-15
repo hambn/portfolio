@@ -182,13 +182,21 @@ test('inlined stylesheets are not downloaded again after hydration', async ({ pa
   page.on('request', (request) => {
     if (request.url().endsWith('.css')) stylesheets.push(new URL(request.url()).pathname);
   });
-  for (const path of ['/', '/blog/', '/links/', '/blog/gitops-with-argocd/']) {
+  // Each page carries the entry stylesheet and its own route's inline. Once
+  // idle it warms the other routes, so those stylesheets are expected.
+  for (const [path, inlined] of [
+    ['/', 'Home'],
+    ['/blog/', 'Blog'],
+    ['/links/', 'Links'],
+    ['/blog/gitops-with-argocd/', 'Blog'],
+  ]) {
+    stylesheets.length = 0;
     await page.goto(path);
     await page.waitForLoadState('networkidle');
+    const again = new RegExp(`/(?:index|${inlined})-[^/]+\\.css$`);
+    expect(stylesheets.filter((sheet) => again.test(sheet))).toEqual([]);
   }
-  if (await page.locator('.mermaid svg, pre.mermaid svg').count())
-    await expect(page.locator('svg').first()).toBeVisible();
-  expect(stylesheets).toEqual([]);
+  await expect(page.locator('.mermaid svg').first()).toBeVisible();
 
   // A route that was not inlined still gets its stylesheet on navigation.
   await page.goto('/');

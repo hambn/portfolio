@@ -37,6 +37,9 @@ async function digest(secret: string, value: string): Promise<string> {
   return base64url(await crypto.subtle.sign('HMAC', await hmacKey(secret), encoder.encode(value)));
 }
 
+// An HMAC-SHA-256 as base64url() writes it: 32 bytes, unpadded.
+const SIGNATURE = /^[A-Za-z0-9_-]{43}$/;
+
 function fromBase64url(value: string): Uint8Array<ArrayBuffer> | null {
   try {
     const binary = atob(value.replace(/-/g, '+').replace(/_/g, '/'));
@@ -72,6 +75,10 @@ export async function verifyToken(
 ): Promise<boolean> {
   const [issued, signature] = token.split('.');
   if (!issued || !signature || !/^\d{10,15}$/.test(issued)) return false;
+  // Exactly the text mintToken wrote. atob skips whitespace and takes either
+  // base64 alphabet, so one signature has many spellings that decode to the
+  // same bytes, and spendToken remembers a token by its spelling.
+  if (!SIGNATURE.test(signature)) return false;
   const bytes = fromBase64url(signature);
   if (
     !bytes ||

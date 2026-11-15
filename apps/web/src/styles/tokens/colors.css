@@ -1,12 +1,11 @@
 /* hambn Design System — Color Tokens */
-/* Palette: Zinc (near-black) + Orange accent */
+/* Palette: Zinc (near-black) + Blue accent */
 
 :root {
   /* ── Backgrounds ── */
   --background: #09090b; /* zinc-950 */
   --background-subtle: #18181b; /* zinc-900 */
   --background-muted: #27272a; /* zinc-800 */
-  --background-emphasis: #3f3f46; /* zinc-700 */
 
   /* ── Foreground ── */
   --foreground: #fafafa; /* zinc-50  */
@@ -17,10 +16,6 @@
   /* ── Borders ── */
   --border: #27272a; /* zinc-800 */
   --border-strong: #3f3f46; /* zinc-700 */
-
-  /* ── Card ── */
-  --card: #18181b;
-  --card-foreground: #fafafa;
 
   /* ── Primary / Accent: Blue ──
    * Two blues, because one can't clear AA in both roles: --primary is the
@@ -34,23 +29,13 @@
   --primary-subtle: rgba(59, 130, 246, 0.12);
   --primary-ring: rgba(59, 130, 246, 0.35);
 
-  /* ── Secondary ── */
-  --secondary: #27272a;
-  --secondary-foreground: #fafafa;
-
-  /* ── Input ── */
-  --input: #1f1f23;
+  /* ── Focus ── */
   --ring: #3b82f6; /* focus ring matches the accent */
 
   /* ── Semantic ── */
   --destructive: #ef4444;
-  --destructive-subtle: rgba(239, 68, 68, 0.12);
   --success: #22c55e;
-  --success-subtle: rgba(34, 197, 94, 0.12);
   --warning: #eab308;
-  --warning-subtle: rgba(234, 179, 8, 0.12);
-  --info: #3b82f6;
-  --info-subtle: rgba(59, 130, 246, 0.12);
 
   /* ── Git graph lanes (home timeline) ── */
   --graph-life: #3b82f6; /* the life line */
@@ -60,7 +45,6 @@
 
   /* ── Transparency ── */
   --overlay: rgba(0, 0, 0, 0.6);
-  --scrim: rgba(9, 9, 11, 0.8);
 
   /* ── Frosted surfaces ──
    * A panel is a translucent fill over the page backdrop, blurred behind
@@ -81,7 +65,6 @@
   --background: #ffffff;
   --background-subtle: #fafafa;
   --background-muted: #f4f4f5;
-  --background-emphasis: #e4e4e7;
 
   --foreground: #09090b;
   --foreground-muted: #3f3f46; /* zinc-700: body copy, 10.4:1 on white */
@@ -97,13 +80,6 @@
   --border: #e4e4e7;
   --border-strong: #d4d4d8;
 
-  --card: #ffffff;
-  --card-foreground: #09090b;
-
-  --secondary: #f4f4f5;
-  --secondary-foreground: #09090b;
-
-  --input: #f4f4f5;
   --ring: #2563eb;
   /* darker lanes so they hold up against white */
   --graph-life: #2563eb;
@@ -112,7 +88,6 @@
   --graph-project: #9333ea;
 
   --overlay: rgba(0, 0, 0, 0.3);
-  --scrim: rgba(255, 255, 255, 0.8);
 
   --glass: rgba(255, 255, 255, 0.62);
   --glass-strong: rgba(255, 255, 255, 0.88);

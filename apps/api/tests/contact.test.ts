@@ -156,6 +156,16 @@ test('a submission without a fresh, single-use token is refused', async () => {
   assert.equal((await handleRequest(post(body), services)).status, 200);
   const replay = await handleRequest(post({ ...body, message: 'Another message.' }), services);
   assert.equal(replay.status, 403);
+  // Nor under another spelling of the same signature: base64 decoding skips
+  // whitespace, so these decode to the bytes that already sent.
+  const [issued, signature] = form.split('.');
+  for (const respelled of [`${issued}. ${signature}`, `${issued}.${signature}\t`, `${form}=`]) {
+    const again = await handleRequest(
+      post({ ...body, message: `Respelled ${respelled.length}.`, token: respelled }),
+      services,
+    );
+    assert.equal(again.status, 403);
+  }
   assert.equal(sent.length, 1);
 });
 

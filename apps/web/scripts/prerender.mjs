@@ -8,6 +8,7 @@
 // It also writes sitemap.xml, robots.txt, the RSS feed, and the plain-text
 // copies for agents (llms.txt, llms-full.txt, one .md per post).
 
+import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
@@ -196,9 +197,10 @@ const server = await createServer({
 let render;
 let featuredProjects;
 let avatarImage;
+let API_BASE;
 try {
   ({ render, featuredProjects } = await server.ssrLoadModule('/src/entry-server.jsx'));
-  ({ avatarImage } = await server.ssrLoadModule('/src/lib/api.js'));
+  ({ avatarImage, API_BASE } = await server.ssrLoadModule('/src/lib/api.js'));
 } finally {
   await server.close();
 }
@@ -243,15 +245,57 @@ const template = preloadEntry(inlineStylesheet(readFileSync(join(dist, 'index.ht
   .replace(/(<meta\s+name="author"\s+content=")[^"]*(")/, `$1${esc(profile.name)}$2`)
   .replace(/(<meta\s+property="og:image"\s+content=")[^"]*(")/, `$1${esc(profile.avatar)}$2`)
   // The tab icon is drawn at 32px at most, so ask the proxy for a small
-  // rendition rather than the full-size image the og: tags advertise.
+  // rendition rather than the full-size image the og: tags advertise: the one
+  // home's avatar already loads at 1x (AVATAR_SIZE in pages/home/Intro.jsx),
+  // so there the icon costs no second download.
   .replace(
     /(<link\s+rel="icon"[^>]*\shref=")[^"]*(")/,
-    `$1${esc(avatarImage(profile.avatar, 64).src)}$2`,
+    `$1${esc(avatarImage(profile.avatar, 72).src)}$2`,
   )
   .replace(
     /(<meta\s+name="twitter:creator"\s+content=")[^"]*(")/,
     `$1@${esc(links.x?.handle || profile.handle)}$2`,
   );
+
+/* ── Content-Security-Policy ──
+ * GitHub Pages sends no headers of its own, so the policy ships as a <meta> in
+ * each page. Scripts run only from this origin, plus the few inline ones the
+ * page carries, each allowed by the hash of its exact text: markup that gets
+ * injected some other way (a post, an API answer) cannot run a script, load a
+ * plugin or repoint relative URLs. Styles stay open to inline use, which React
+ * style props, the inlined critical CSS and Mermaid all need.
+ *
+ * The API answers from another origin and cards load art from the providers'
+ * own hosts, so images, media and fetches are held to https rather than to a
+ * list; a plain-http API base (local development) is named explicitly. */
+const apiOrigin = /^http:/.test(API_BASE) ? new URL(API_BASE).origin : '';
+const apiSocket = apiOrigin.replace(/^http/, 'ws');
+const INLINE_SCRIPT = /<script(?![^>]*\s(?:src|type)=)[^>]*>([\s\S]*?)<\/script>/g;
+
+function withCsp(html) {
+  const hashes = [...html.matchAll(INLINE_SCRIPT)].map(
+    (match) => `'sha256-${createHash('sha256').update(match[1]).digest('base64')}'`,
+  );
+  const policy = [
+    `default-src 'self'`,
+    `script-src 'self' ${[...new Set(hashes)].join(' ')}`.trimEnd(),
+    `style-src 'self' 'unsafe-inline'`,
+    `img-src 'self' data: blob: https: ${apiOrigin}`.trimEnd(),
+    `media-src 'self' https: ${apiOrigin}`.trimEnd(),
+    `font-src 'self' data:`,
+    `connect-src 'self' https: wss: ${apiOrigin} ${apiSocket}`.trimEnd(),
+    `worker-src 'self' blob:`,
+    `object-src 'none'`,
+    `base-uri 'self'`,
+    `form-action 'self'`,
+  ].join('; ');
+  // Ahead of every script the page carries: a policy only governs what the
+  // parser meets after it.
+  return html.replace(
+    /(<meta\s+name="viewport"[^>]*>)/,
+    `$1\n    <meta http-equiv="Content-Security-Policy" content="${esc(policy)}" />`,
+  );
+}
 
 /** Apply per-route <head> meta + inject body content into the shell. */
 function page({
@@ -321,7 +365,7 @@ function page({
     /<script type="application\/ld\+json">[\s\S]*?<\/script>/,
     jsonLd ? `<script type="application/ld+json">\n${jsonLd}\n</script>` : '',
   );
-  return html;
+  return withCsp(html);
 }
 
 function write(path, html) {

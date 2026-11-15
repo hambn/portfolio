@@ -247,44 +247,43 @@ async function reposRoute(request: Request, services: Services, username: string
   const forks = params.get('forks') !== '0';
   const archived = params.get('archived') !== '0';
   const language = params.get('language')?.toLowerCase() || '';
-  const variant = [sort, limit, +forks, +archived, encodeURIComponent(language)].join('-');
-  return withCache(
-    services,
-    request,
-    async () => {
-      const value = await readPersisted(services, {
-        key: `github:/github/repos:${username}`,
-        ttl: PROFILE_TTL,
-        schema: z.array(githubRepo),
-        load: () => api(services, githubPaths.repos(username), z.array(githubRepo)),
-      });
-      if (!value) return json({ error: 'github_unavailable' }, 502);
-      const repos = value.data
-        .map(fromGitHub)
-        .filter((repo) => repo !== null)
-        .filter(
-          (repo) =>
-            (forks || !repo.fork) &&
-            (archived || !repo.archived) &&
-            (!language || repo.language?.toLowerCase() === language),
-        )
-        .sort(REPO_SORTS[sort]);
-      return persistedResponse(
-        services,
-        {
-          ...value,
-          data: {
-            updatedAt: new Date(value.updatedAt).toISOString(),
-            total: repos.length,
-            repos: limit ? repos.slice(0, limit) : repos,
-          },
+  const variant = [sort, limit, +forks, +archived].join('-');
+  const respond = async () => {
+    const value = await readPersisted(services, {
+      key: `github:/github/repos:${username}`,
+      ttl: PROFILE_TTL,
+      schema: z.array(githubRepo),
+      load: () => api(services, githubPaths.repos(username), z.array(githubRepo)),
+    });
+    if (!value) return json({ error: 'github_unavailable' }, 502);
+    const repos = value.data
+      .map(fromGitHub)
+      .filter((repo) => repo !== null)
+      .filter(
+        (repo) =>
+          (forks || !repo.fork) &&
+          (archived || !repo.archived) &&
+          (!language || repo.language?.toLowerCase() === language),
+      )
+      .sort(REPO_SORTS[sort]);
+    return persistedResponse(
+      services,
+      {
+        ...value,
+        data: {
+          updatedAt: new Date(value.updatedAt).toISOString(),
+          total: repos.length,
+          repos: limit ? repos.slice(0, limit) : repos,
         },
-        PROFILE_TTL,
-        'github_unavailable',
-      );
-    },
-    `/github/repos/${variant}`,
-  );
+      },
+      PROFILE_TTL,
+      'github_unavailable',
+    );
+  };
+  // `language` is free text, so it stays out of the response cache: every
+  // made-up value would otherwise store an entry of its own. The answer is
+  // still built from the stored repository list, not a new upstream request.
+  return language ? respond() : withCache(services, request, respond, `/github/repos/${variant}`);
 }
 
 export async function handle(request: Request, services: Services) {

@@ -156,7 +156,7 @@ src/
 │                       github/ octicons.js, the MIT Octicon paths)
 └─ styles/
    ├─ index.css         imports fonts.css + tokens/ + core.css
-   ├─ fonts.css         JetBrains Mono @font-face (latin subset only)
+   ├─ fonts.css         JetBrains Mono @font-face: upright, italic, fallback
    ├─ blog.css          markdown rendering styles (loads with the blog route)
    ├─ core.css          shared base styles — critical path on every route
    └─ tokens/           colors.css, typography.css, spacing.css
@@ -227,6 +227,18 @@ with `apps/`, `packages/` or `content/`.
   `styles/fonts.css` and `pages/links/link-fonts.css` point at the `files/`
   woff2 directly with a latin `unicode-range`. Importing the package root
   instead quietly adds four unused downloads per family.
+- **The latin file has few symbols.** It carries `↑` and `↓` but not `←`, `→`
+  or `↗`; a glyph outside it is drawn in whatever the system falls back to.
+  Use `components/Icon.jsx` for arrows in mono text. The cards on the links
+  page set their own brand faces and are not bound by this.
+- **Content-Security-Policy is a `<meta>` written by the prerender.** GitHub
+  Pages sends no headers, so `withCsp()` in `scripts/prerender.mjs` adds the
+  policy to every page and allows each inline `<script>` by the hash of its
+  text. A new inline script is picked up on its own; an inline event handler
+  attribute (`onclick=`, `onload=`) or `eval` will be blocked. `nginx.conf`
+  adds the parts a `<meta>` cannot carry (framing, `Permissions-Policy`).
+- **Tokens are inlined into every page.** `styles/tokens/` holds only custom
+  properties some stylesheet reads; add one when a rule needs it.
 - **SEO via prerender.** `scripts/prerender.mjs` emits a real HTML file per
   route + per post with unique title/description/canonical/OG/Twitter tags,
   explicit `robots` directives, a per-page JSON-LD `@graph`

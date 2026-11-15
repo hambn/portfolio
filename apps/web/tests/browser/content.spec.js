@@ -302,24 +302,33 @@ test('a card with malformed provider data is hidden without blanking the page', 
 });
 
 test('returning to the tab refetches only cards whose poll is due', async ({ page }) => {
+  // Every card key each /site batch asked for, in order.
   const requested = [];
+  const cards = {
+    telegram: { username: 'ham_bn', name: 'Telegram Tester', description: 'Hello' },
+    linkedin: { username: 'hambn', name: 'LinkedIn Tester' },
+  };
   await page.routeWebSocket('**/api/discord/socket', () => {});
   await page.route('**/api/**', (route) => {
-    const { pathname } = new URL(route.request().url());
-    requested.push(pathname);
-    const responses = {
-      '/api/telegram': { username: 'ham_bn', name: 'Telegram Tester', description: 'Hello' },
-      '/api/linkedin': { username: 'hambn', name: 'LinkedIn Tester' },
-    };
-    return responses[pathname]
-      ? route.fulfill({ json: responses[pathname] })
-      : route.fulfill({ status: 503, json: { error: 'unavailable' } });
+    const url = new URL(route.request().url());
+    if (url.pathname !== '/api/site')
+      return route.fulfill({ status: 404, json: { error: 'not found' } });
+    const keys = (url.searchParams.get('include') || '').split(',');
+    requested.push(...keys);
+    return route.fulfill({
+      json: {
+        cards: Object.fromEntries(
+          keys.filter((key) => cards[key]).map((key) => [key, { maxAge: 3600, data: cards[key] }]),
+        ),
+      },
+    });
   });
   await page.goto('/links/');
   await expect(page.getByText('Telegram Tester', { exact: true })).toBeVisible();
   await page.waitForLoadState('networkidle');
-  const count = (path) => requested.filter((item) => item === path).length;
-  const before = { telegram: count('/api/telegram'), linkedin: count('/api/linkedin') };
+  const count = (key) => requested.filter((item) => item === key).length;
+  const before = { telegram: count('telegram'), linkedin: count('linkedin') };
+  expect(before).toEqual({ telegram: 1, linkedin: 1 });
 
   for (const hidden of [true, false])
     await page.evaluate((value) => {
@@ -329,7 +338,7 @@ test('returning to the tab refetches only cards whose poll is due', async ({ pag
   await page.waitForTimeout(1000);
 
   // Both poll hourly and answered moments ago.
-  expect({ telegram: count('/api/telegram'), linkedin: count('/api/linkedin') }).toEqual(before);
+  expect({ telegram: count('telegram'), linkedin: count('linkedin') }).toEqual(before);
 });
 
 test('cards collapsed on a previous visit do not open and shut on load', async ({ page }) => {

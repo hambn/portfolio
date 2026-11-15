@@ -147,6 +147,18 @@ test('include and exclude select cards and ignore unknown keys', async () => {
   const all = await batch('/links?include=');
   assert.equal(Object.keys(all.body.cards).length, 11);
 
+  // A repeated key is loaded once, not once per repeat.
+  let lanyard = 0;
+  const counting = batchServices();
+  const upstream = counting.fetch;
+  counting.fetch = (input, init) => {
+    if (String(input).includes('api.lanyard.rest')) lanyard++;
+    return upstream(input, init);
+  };
+  const repeated = await batch(`/links?include=${Array(20).fill('discord').join(',')}`, counting);
+  assert.deepEqual(Object.keys(repeated.body.cards), ['discord']);
+  assert.equal(lanyard, 1);
+
   // Exclude wins over include for the same key.
   const conflict = await batch('/links?include=github,gitlab&exclude=gitlab');
   assert.deepEqual(Object.keys(conflict.body.cards), ['github']);
