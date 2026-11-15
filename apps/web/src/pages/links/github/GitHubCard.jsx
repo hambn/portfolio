@@ -12,7 +12,7 @@ import { useGitHubProfile } from './useGitHubProfile.js';
 import { EXTERNAL } from '../../../lib/external.js';
 
 const GH_ICON = BRAND_ICON.gh;
-const AVATAR = 96;
+export const AVATAR = 96;
 
 const joined = new Intl.DateTimeFormat('en', { month: 'short', year: 'numeric' });
 const format = (formatter, iso) => {

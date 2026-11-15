@@ -16,7 +16,7 @@ import { HeaderButtons } from '../../../components/card/HeaderButtons.jsx';
 import { BRAND_ICON } from '../brandIcons.js';
 import { EXTERNAL } from '../../../lib/external.js';
 
-const AVATAR = 52;
+export const AVATAR = 52;
 
 const Mark = ({ size, className }) => (
   <svg

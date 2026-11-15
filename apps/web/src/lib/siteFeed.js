@@ -172,6 +172,19 @@ export function ensureCards(keys, { force = false } = {}) {
   request(wanted);
 }
 
+/** Resolves once none of `keys` is waiting on a request. */
+export function settled(keys) {
+  return new Promise((done) => {
+    const check = () => {
+      if (keys.some((key) => inFlight.has(key))) return;
+      listeners.delete(check);
+      done();
+    };
+    listeners.add(check);
+    check();
+  });
+}
+
 /**
  * One entry as a seed, in the shape usePolledJSON expects: `pending` while a
  * request that covers it is in flight, `ready` with its data and age, or

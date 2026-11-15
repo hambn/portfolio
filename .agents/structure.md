@@ -108,6 +108,7 @@ src/
 │  │                    pages' content and code once the page has loaded).
 │  │                    Answers are kept in localStorage for their max-age,
 │  │                    so a reload inside it asks for nothing
+│  ├─ prefetch.js       prefetchImage(): an image fetched the way its <img> will
 │  ├─ storage.js        safe localStorage get/set (never throws)
 │  ├─ cardState.js      shared collapsed-card store (useSyncExternalStore)
 │  ├─ external.js       EXTERNAL — the target/rel props every off-site link spreads
@@ -124,7 +125,9 @@ src/
 │  ├─ ErrorState.jsx    shared load-failure message + retry button
 │  └─ card/             link-card chrome: HeaderButtons, cards.css, ContribGraph
 ├─ pages/               one folder per route (default exports)
-│  ├─ index.js          lazy page map (React.lazy) + preloadPage()
+│  ├─ index.js          lazy page map (React.lazy) + preloadPage(), and
+│  │                    warmPages(): every route's code, its fonts, then each
+│  │                    page module's optional `warm` export
 │  ├─ home/             Home.jsx + Intro, Timeline/GitLog/GitRow (git-graph
 │  │                    timeline; git-graph.js lays it out, BranchCard.jsx is
 │  │                    the branch hover card), RecentPosts (newest three
@@ -146,6 +149,8 @@ src/
 │     ├─ useIsland.js   docks the jump bar into the nav (shape: islandShape.js)
 │     ├─ LinksFeed.jsx  asks lib/siteFeed.js for the cards not already fresh;
 │     │                 seeds every card (useCardFeed) so it needs no request
+│     ├─ warm.js        prefetches the card images the API's answer names
+│     │                 (same URLs the cards build), so /links opens complete
 │     ├─ link-cards.css  shared card header geometry for every provider card
 │     ├─ link-fonts.css  brand faces the cards share (DM Sans, Roboto)
 │     └─ <provider>/    Email, Discord, Telegram, X, GitHub, GitLab,
@@ -171,7 +176,15 @@ with `apps/`, `packages/` or `content/`.
   transform (`React.createElement`), so every `.jsx` file imports React itself.
   Do NOT switch to the automatic runtime.
 - **Pages are default exports** wired together in `src/pages/index.js` as lazy
-  chunks (`React.lazy`); `main.jsx` preloads the entry route before hydration. Other routes load when opened.
+  chunks (`React.lazy`); `main.jsx` preloads the entry route before hydration.
+  Once the first page has loaded, `warmPages()` (via `warmSite`) fetches every
+  other route's code and styles, every font face they declare, and whatever a
+  page module's optional `warm` export asks for, so switching pages waits on
+  nothing but live data. Each page's `warm.js` lists its extras: home its
+  avatar, blog the newest ten posts' HTML, links the card images and the
+  Telegram pattern. An image URL must be built exactly as the page renders it
+  (share the helper, like `introAvatar`), and `lib/prefetch.js` fetches it the
+  way an `<img>` does. Keep these small: live data and Mermaid stay on demand.
 - **Route metadata lives in `src/routes.js`** — plain JS, also imported by
   `scripts/prerender.mjs`, so the prerendered head and the SPA never drift.
   `src/lib/metadata.js` builds the actual titles/descriptions/JSON-LD for both.

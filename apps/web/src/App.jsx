@@ -4,7 +4,7 @@ import Shell from './components/Shell.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import ErrorState from './components/ErrorState.jsx';
 import NotFound from './components/NotFound.jsx';
-import { pageComponent, pages, preloadPage } from './pages/index.js';
+import { pageComponent, pages, preloadPage, warmPages } from './pages/index.js';
 
 import { currentRoute, routeOf } from './lib/router.js';
 import { PortfolioData } from './lib/data.js';
@@ -86,12 +86,12 @@ export default function App({ initialRoute, initialPage }) {
   }, []);
 
   // After the first paint, fetch what the other pages open with: the API's
-  // one answer for the links and projects pages, the blog index, and every
-  // route's code.
+  // one answer for the links and projects pages, the blog index, every
+  // route's code and fonts, and the link cards' images (pages/index.js).
   useEffect(() => {
     warmSite({
       content: PortfolioData,
-      preload: () => Object.keys(pages).forEach((name) => preloadPage(name)?.catch(() => {})),
+      preload: warmPages,
     });
   }, []);
 
