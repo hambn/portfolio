@@ -36,15 +36,6 @@
     color: var(--primary);
   }
 }
-/* As for the nav (core.css): a fixed frosted button is blurred again on every
- * frame of a scroll, so a touch screen gets a solid one. */
-@media (hover: none) and (pointer: coarse) {
-  .resume-print-btn {
-    background: var(--background-subtle);
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-  }
-}
 .resume-error {
   margin-bottom: 28px;
 }

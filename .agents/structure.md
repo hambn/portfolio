@@ -188,12 +188,8 @@ with `apps/`, `packages/` or `content/`.
   `core.css`, opacity only, 140ms). Do not wrap a route change in a view
   transition: it holds the swap and blocks input for its whole length. Only
   the theme flip uses one (`lib/transition.js`).
-- **Fixed bars are not frosted on touch screens.** `backdrop-filter` on a
-  `position: fixed` or sticky element is blurred again on every frame of a
-  scroll, so under `(hover: none) and (pointer: coarse)` the nav and the
-  résumé print button get a near-solid fill. Give a new fixed bar the same
-  rule, and put `:hover` styles on things that stay on screen inside
-  `@media (hover: hover)`.
+- **Hover is for pointers.** Put `:hover` styles on things that stay on screen
+  inside `@media (hover: hover)`, so a tap on a phone does not leave them lit.
 - **In-app links are real `<a href>`s.** Use `routeHref(page)` for the href and
   `followRoute(page)` for the click handler (`src/lib/router.js`): a plain click
   routes in place, a modified or middle click opens a new tab as usual.
