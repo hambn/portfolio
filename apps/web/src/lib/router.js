@@ -21,8 +21,9 @@ export const feedHref = () => `${BASE_PATH}/feed.xml`;
 export function navigate(page) {
   // Remember where the outgoing page was scrolled so Back can restore it.
   window.history.replaceState({ ...(window.history.state || {}), scrollY: window.scrollY }, '');
+  // The new entry carries no offset, so the router opens it at the top; it
+  // scrolls there as it swaps the page in, not before (App.jsx).
   window.history.pushState({ page }, '', routeHref(page));
-  window.scrollTo(0, 0);
   window.dispatchEvent(new PopStateEvent('popstate'));
 }
 

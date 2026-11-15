@@ -52,7 +52,27 @@ export const pages = Object.fromEntries(
   Object.entries(loaders).map(([key, load]) => [key, lazy(() => loadWithRecovery(load))]),
 );
 
+// Components whose chunk has arrived, and the one each page was first rendered
+// with.
+const loaded = {};
+const chosen = {};
+
 /** Start a route chunk download now (called before hydration). */
 export function preloadPage(page) {
-  return loaders[page] ? loadWithRecovery(loaders[page]) : undefined;
+  if (!loaders[page]) return undefined;
+  return loadWithRecovery(loaders[page]).then((module) => {
+    loaded[page] = module.default;
+    return module;
+  });
+}
+
+/**
+ * The component to render a page with: the loaded one where its chunk is
+ * already here, so it renders at once instead of suspending for a tick, and
+ * the lazy wrapper otherwise. The first answer is kept, since changing
+ * component would remount the page.
+ */
+export function pageComponent(page) {
+  if (!pages[page]) return null;
+  return (chosen[page] ??= loaded[page] || pages[page]);
 }

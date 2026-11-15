@@ -12,6 +12,12 @@
   /* the page is still the page, so its type scale applies */
   font-size: var(--text-sm);
   color: var(--foreground-muted);
+  animation: palette-dim 160ms ease-out;
+}
+@keyframes palette-dim {
+  from {
+    background: transparent;
+  }
 }
 .palette {
   width: min(560px, 100%);
@@ -20,15 +26,16 @@
   background: var(--background-subtle);
   box-shadow: 0 24px 60px var(--overlay);
   overflow: hidden;
-  animation: palette-in 120ms ease-out;
+  animation: palette-in 180ms var(--ease-out);
 }
 @keyframes palette-in {
   from {
     opacity: 0;
-    transform: translateY(-4px);
+    transform: translateY(-6px) scale(0.985);
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .palette-backdrop,
   .palette {
     animation: none;
   }

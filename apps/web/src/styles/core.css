@@ -136,10 +136,37 @@ li {
 #content {
   outline: none;
 }
-/* A page opened by in-app navigation fades in. The first page of a visit is
- * left alone (App.jsx sets data-navigated on the first route change), so the
- * prerendered content paints at once. Opacity only: a transform here would
- * re-anchor position:fixed children for the length of the animation. */
+/* In-app navigation cross-fades the page being left into the one opened
+ * (App.jsx, lib/transition.js). The whole viewport is one picture, so the
+ * fixed nav stays put and its frosted glass is never redrawn without a
+ * backdrop. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 240ms;
+  animation-timing-function: var(--ease-default);
+}
+/* A theme flip opens the new theme as a circle from the toggle (Nav.jsx sets
+ * the centre and reach): the old picture holds still underneath. */
+html[data-transition='theme']::view-transition-old(root) {
+  animation: none;
+}
+html[data-transition='theme']::view-transition-new(root) {
+  mix-blend-mode: normal;
+  animation: theme-reveal 480ms var(--ease-default);
+}
+@keyframes theme-reveal {
+  from {
+    clip-path: circle(0 at var(--reveal-x) var(--reveal-y));
+  }
+  to {
+    clip-path: circle(var(--reveal-r) at var(--reveal-x) var(--reveal-y));
+  }
+}
+/* A browser without view transitions fades the opened page in instead. The
+ * first page of a visit is left alone (App.jsx sets data-navigated on the
+ * first route change), so the prerendered content paints at once. Opacity
+ * only: a transform here would re-anchor position:fixed children for the
+ * length of the animation. */
 @keyframes page-in {
   from {
     opacity: 0;
@@ -148,7 +175,7 @@ li {
 html[data-navigated] #content > main {
   animation: page-in 220ms var(--ease-out);
 }
-/* While the theme flips (Nav.jsx), colours cross-fade instead of snapping. */
+/* The same fallback for the theme flip (Nav.jsx): colours cross-fade. */
 html.theme-switching,
 html.theme-switching *,
 html.theme-switching *::before,
@@ -421,6 +448,14 @@ html.theme-switching *::after {
   font-size: var(--text-xs);
   color: var(--foreground-muted);
   white-space: nowrap;
+  transform-origin: bottom right;
+  animation: keys-panel-in 160ms var(--ease-out);
+}
+@keyframes keys-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
 }
 .keys-panel dl {
   display: grid;
@@ -536,5 +571,10 @@ html.theme-switching *::after {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
   }
 }
