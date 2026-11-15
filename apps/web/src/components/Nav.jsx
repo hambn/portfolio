@@ -3,6 +3,7 @@ import React from 'react';
 import { useContent } from '../hooks/useContent.js';
 import { followRoute, routeHref } from '../lib/router.js';
 import { storage } from '../lib/storage.js';
+import { viewTransition } from '../lib/transition.js';
 import Icon from './Icon.jsx';
 
 const NAV_ITEMS = ['projects', 'blog', 'links'];
@@ -14,12 +15,22 @@ export function toggleTheme() {
   const root = document.documentElement;
   const next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
   storage.set('hambn-theme', next);
-  // core.css cross-fades colours while this class is on, so the flip is a
-  // short fade and ordinary hover transitions keep their own timing after.
+  // The new theme opens as a circle from the toggle (core.css, theme-reveal).
+  const box = document.querySelector('.nav-theme')?.getBoundingClientRect();
+  if (box) {
+    const x = box.left + box.width / 2;
+    const y = box.top + box.height / 2;
+    const reach = Math.hypot(Math.max(x, window.innerWidth - x), window.innerHeight - y);
+    root.style.setProperty('--reveal-x', `${x}px`);
+    root.style.setProperty('--reveal-y', `${y}px`);
+    root.style.setProperty('--reveal-r', `${Math.ceil(reach)}px`);
+  }
+  if (viewTransition('theme', () => root.setAttribute('data-theme', next))) return;
+  // Without view transitions, core.css cross-fades colours while this class
+  // is on; ordinary hover transitions keep their own timing after.
   root.classList.add('theme-switching');
   clearTimeout(switching);
   switching = setTimeout(() => root.classList.remove('theme-switching'), 260);
-  root.setAttribute('data-theme', next);
 }
 
 export default function Nav({ page }) {

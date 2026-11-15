@@ -1,14 +1,20 @@
 import React, { Suspense, startTransition, useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import Shell from './components/Shell.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import ErrorState from './components/ErrorState.jsx';
 import NotFound from './components/NotFound.jsx';
-import { pages, preloadPage } from './pages/index.js';
+import { pageComponent, pages, preloadPage } from './pages/index.js';
 
 import { currentRoute, routeOf } from './lib/router.js';
 import { PortfolioData } from './lib/data.js';
 import { warmSite } from './lib/siteFeed.js';
+import { canTransition, viewTransition } from './lib/transition.js';
 import { routeMetadata, updateDocumentMetadata, updateNotFoundMetadata } from './lib/metadata.js';
+
+// How long a navigation waits for the next page's code before showing the
+// loading state in its place.
+const ROUTE_WAIT = 3000;
 
 // The page a route belongs to; null when its first segment names none, which
 // renders the not-found view (404.html boots the app at such a URL).
@@ -27,7 +33,7 @@ export default function App({ initialRoute, initialPage }) {
     ? NotFound
     : initialPage && initialRoute && page === pageOf(initialRoute)
       ? initialPage
-      : pages[page];
+      : pageComponent(page);
   const firstRender = useRef(true);
 
   // On history navigation, restore the scroll offset saved with the entry.
@@ -35,18 +41,45 @@ export default function App({ initialRoute, initialPage }) {
   // already scrolled to the target, so that is left alone.
   useEffect(() => {
     let shown = currentRoute();
+    let turn = 0;
     const onPop = () => {
       const next = currentRoute();
       const moved = next !== shown;
-      // From here on a newly opened page fades in (core.css, page-in).
-      if (moved) document.documentElement.setAttribute('data-navigated', '');
-      // A transition keeps the page being left on screen while the next
-      // route's chunk loads, instead of blanking to the Suspense fallback.
-      startTransition(() => setRoute(next));
       shown = next;
-      if (!moved && window.location.hash) return;
       const y = window.history.state?.scrollY ?? 0;
-      window.requestAnimationFrame(() => window.scrollTo(0, y));
+      if (!moved) {
+        // Same page (a query or fragment changed): nothing to cross-fade.
+        startTransition(() => setRoute(next));
+        if (!window.location.hash) window.requestAnimationFrame(() => window.scrollTo(0, y));
+        return;
+      }
+      // The page being left stays on screen, where it was scrolled, until the
+      // next one can render whole: its code, and a post's rendered HTML.
+      const target = pageOf(next);
+      const slug = target === 'blog' && next.split('/')[1];
+      const ready = Promise.all([
+        target && preloadPage(target),
+        slug && PortfolioData.getPostHtml(slug),
+      ]).catch(() => {});
+      const mine = ++turn;
+      // Past the wait, switch anyway and let the Suspense fallback say so.
+      Promise.race([ready, new Promise((done) => setTimeout(done, ROUTE_WAIT))]).then(() => {
+        if (mine !== turn) return;
+        // The old page and the new one cross-fade (core.css). Where the
+        // browser cannot do that, the new page fades in (page-in) instead.
+        if (!canTransition()) document.documentElement.setAttribute('data-navigated', '');
+        viewTransition('route', async () => {
+          flushSync(() => setRoute(next));
+          window.scrollTo(0, y);
+          // Back to a page that fills in after its first render (the project
+          // lists): it is not yet tall enough to scroll to where it was left.
+          // The transition holds its picture of the new page until this ends.
+          for (let tries = 0; window.scrollY < y - 1 && tries < 6; tries++) {
+            await new Promise((done) => setTimeout(done, 16));
+            window.scrollTo(0, y);
+          }
+        });
+      });
     };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
