@@ -13,9 +13,27 @@ import { EXTERNAL } from '../../lib/external.js';
 // for the library that draws them. The source stays on the page as written
 // until its drawing is ready, so the block changes size once, and a diagram
 // that fails to draw stays readable.
+//
+// Mermaid bakes the theme's colours into what it draws, so a theme flip draws
+// them again, from the source each drawing keeps. Only the latest pass over an
+// article may change it, and a drawing's id is never used twice.
+let drawings = 0;
+const latestPass = new WeakMap();
+
 async function drawDiagrams(root) {
-  const sources = [...root.querySelectorAll('pre > code.language-mermaid')];
-  if (!sources.length) return;
+  const blocks = [
+    ...[...root.querySelectorAll('pre > code.language-mermaid')].map((code) => ({
+      host: code.parentElement,
+      source: code.textContent,
+    })),
+    ...[...root.querySelectorAll('.mermaid[data-source]')].map((host) => ({
+      host,
+      source: host.dataset.source,
+    })),
+  ];
+  if (!blocks.length) return;
+  const pass = {};
+  latestPass.set(root, pass);
   let mermaid;
   try {
     ({ default: mermaid } = await import('mermaid'));
@@ -23,21 +41,57 @@ async function drawDiagrams(root) {
     console.warn('mermaid', error);
     return;
   }
+  // Drawn in the site's own colours rather than one of Mermaid's stock
+  // themes: boxes are the page's raised surface, lines and labels its text
+  // colours, and a label's backing is the panel the diagram sits on.
+  const tokens = getComputedStyle(document.documentElement);
+  const token = (name) => tokens.getPropertyValue(name).trim();
+  const light = document.documentElement.getAttribute('data-theme') === 'light';
+  const panel = light ? '#f6f8fa' : token('--background-subtle');
   mermaid.initialize({
     startOnLoad: false,
-    theme: document.documentElement.getAttribute('data-theme') === 'light' ? 'default' : 'dark',
+    // Flat boxes with a plain border; the default look adds a grey drop
+    // shadow, which reads as a glow on a dark page.
+    look: 'classic',
+    // Drawn a little tighter than the defaults, so a left-to-right flow of
+    // four or five steps still fits the reading column at a readable size.
+    flowchart: { nodeSpacing: 36, rankSpacing: 30, padding: 10 },
+    theme: 'base',
+    themeVariables: {
+      darkMode: !light,
+      background: panel,
+      primaryColor: light ? token('--background') : token('--background-muted'),
+      primaryTextColor: token('--foreground'),
+      primaryBorderColor: token('--border-strong'),
+      secondaryColor: panel,
+      tertiaryColor: panel,
+      lineColor: token('--foreground-subtle'),
+      textColor: token('--foreground-muted'),
+      edgeLabelBackground: panel,
+      clusterBkg: panel,
+      clusterBorder: token('--border'),
+      noteBkgColor: token('--background-muted'),
+      noteTextColor: token('--foreground'),
+      noteBorderColor: token('--border-strong'),
+    },
     securityLevel: 'strict',
     fontFamily: 'var(--font-mono)',
   });
-  for (const [index, code] of sources.entries()) {
-    const id = `diagram-${index}`;
+  for (const { host, source } of blocks) {
+    const id = `diagram-${drawings++}`;
     try {
-      const { svg } = await mermaid.render(id, code.textContent);
-      if (!code.isConnected) return;
+      const { svg } = await mermaid.render(id, source);
+      if (latestPass.get(root) !== pass || !host.isConnected) return;
       const diagram = document.createElement('div');
       diagram.className = 'mermaid';
+      diagram.dataset.source = source;
       diagram.innerHTML = svg;
-      code.parentElement.replaceWith(diagram);
+      // Mermaid scales a drawing down to the column, however narrow. Its
+      // natural width goes to the stylesheet, which stops the shrinking while
+      // the labels are still readable and scrolls the panel instead.
+      const natural = parseFloat(diagram.firstElementChild?.style.maxWidth);
+      if (natural) diagram.style.setProperty('--diagram-width', `${Math.round(natural)}px`);
+      host.replaceWith(diagram);
     } catch (error) {
       console.warn('mermaid', error);
       // A failed render leaves its scratch element behind.
@@ -114,16 +168,20 @@ export default function PostView({ post, older, newer, onBack }) {
 
   useEffect(() => {
     const root = ref.current;
-    if (html == null || !root) return;
+    if (html == null || !root) return undefined;
     drawDiagrams(root);
-    if (!arrivedLate.current) return;
-    let wanted = window.location.hash.slice(1);
-    try {
-      wanted = decodeURIComponent(wanted);
-    } catch {
-      // a malformed fragment matches no heading
+    const themed = new MutationObserver(() => drawDiagrams(root));
+    themed.observe(document.documentElement, { attributeFilter: ['data-theme'] });
+    if (arrivedLate.current) {
+      let wanted = window.location.hash.slice(1);
+      try {
+        wanted = decodeURIComponent(wanted);
+      } catch {
+        // a malformed fragment matches no heading
+      }
+      if (wanted) root.querySelector(`[id="${CSS.escape(wanted)}"]`)?.scrollIntoView();
     }
-    if (wanted) root.querySelector(`[id="${CSS.escape(wanted)}"]`)?.scrollIntoView();
+    return () => themed.disconnect();
   }, [html]);
 
   return (

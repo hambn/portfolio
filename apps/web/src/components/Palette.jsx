@@ -85,6 +85,10 @@ export default function Palette({ go, onClose }) {
       // Keys.jsx would close it as well; this keeps the key from going further.
       event.preventDefault();
       onClose();
+    } else if (event.key === 'Tab') {
+      // The field is the dialog's only stop; the rows are reached with the
+      // arrows, so Tab stays here instead of leaving for the page behind.
+      event.preventDefault();
     }
   };
 
@@ -110,7 +114,7 @@ export default function Palette({ go, onClose }) {
             placeholder="go to a page, a post, or run a command"
             aria-label="command"
             role="combobox"
-            aria-expanded="true"
+            aria-expanded={shown.length > 0}
             aria-controls="palette-list"
             aria-activedescendant={shown[at] ? `palette-${shown[at].id}` : undefined}
             autoComplete="off"

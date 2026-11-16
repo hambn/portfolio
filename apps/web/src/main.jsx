@@ -54,7 +54,7 @@ const initial = (initialRoute || 'home').split('/')[0] || 'home';
 const root = document.getElementById('root');
 
 // Keep the complete static page visible while its interactive code downloads.
-preloadPage(pages[initial] ? initial : 'home')
+preloadPage(pages[initial] ? initial : 'home', { recover: true })
   .then(({ default: initialPage }) => {
     const app = <App initialRoute={initialRoute} initialPage={initialPage} />;
     if (root.hasChildNodes()) hydrateRoot(root, app);

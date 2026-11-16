@@ -4,7 +4,7 @@
 const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 
 // "Sep 2024" → a sortable month number; "present" never ends, so it sorts last.
-export function monthNumber(value) {
+function monthNumber(value) {
   const s = String(value || '').trim();
   if (!s) return -Infinity;
   if (s.toLowerCase() === 'present') return Infinity;

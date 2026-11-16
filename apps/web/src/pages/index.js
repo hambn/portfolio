@@ -57,10 +57,17 @@ export const pages = Object.fromEntries(
 const loaded = {};
 const chosen = {};
 
-/** Start a route chunk download now (called before hydration). */
-export function preloadPage(page) {
+/**
+ * Start a route chunk download now. `recover` is for a page that is about to
+ * be shown (the entry route, a navigation): a chunk the deploy replaced then
+ * reloads the document. A speculative download (a pointed-at link, the idle
+ * warm-up) just fails quietly, so being offline never reloads the page being
+ * read.
+ */
+export function preloadPage(page, { recover = false } = {}) {
   if (!loaders[page]) return undefined;
-  return loadWithRecovery(loaders[page]).then((module) => {
+  const load = recover ? loadWithRecovery(loaders[page]) : loaders[page]();
+  return load.then((module) => {
     loaded[page] = module.default;
     return module;
   });

@@ -7,7 +7,7 @@ import { createServer } from '../src/entrypoints/node.js';
 import { parseAddress } from '../src/mail/address.js';
 import { mailProvider } from '../src/mail/provider.js';
 import { identities } from '../src/identities.js';
-import { MAIL_LIMITS } from '../src/mail/quota.js';
+import { MAIL_LIMITS, senderBucket } from '../src/mail/quota.js';
 import { testServices } from './helpers.js';
 import type { Services } from '../src/contracts.js';
 
@@ -400,4 +400,34 @@ test('the route accepts POST and preflight while other routes still do not', asy
     services,
   );
   assert.equal(oversized.status, 413);
+});
+
+test('an IPv6 sender is counted by its /64, an IPv4 sender by its address', async () => {
+  assert.equal(senderBucket('203.0.113.7'), '203.0.113.7');
+  assert.equal(senderBucket('::ffff:203.0.113.7'), '203.0.113.7');
+  assert.equal(senderBucket('2001:db8:12:3400:aaaa:bbbb:cccc:dddd'), '2001:db8:12:3400::/64');
+  assert.equal(senderBucket('2001:0DB8:0012:3400::1'), '2001:db8:12:3400::/64');
+  assert.equal(senderBucket('2001:db8::1'), '2001:db8:0:0::/64');
+  assert.equal(senderBucket('fe80::1%eth0'), 'fe80:0:0:0::/64');
+  assert.equal(senderBucket('::1'), '0:0:0:0::/64');
+  assert.equal(senderBucket('unknown'), 'unknown');
+  assert.equal(senderBucket('not:an:address'), 'not:an:address');
+
+  // Two addresses of one subscriber share the hourly allowance.
+  const { services, advance } = mailServices();
+  const statuses = [];
+  for (let i = 0; i <= MAIL_LIMITS.ipHour; i++) {
+    const form = await token(services);
+    advance(5000);
+    const response = await handleRequest(
+      post(
+        { from: 'visitor@example.com', message: `Message number ${i} here.`, token: form },
+        { 'CF-Connecting-IP': `2001:db8:12:3400::${i + 1}` },
+      ),
+      services,
+    );
+    statuses.push(response.status);
+  }
+  assert.equal(statuses.at(-1), 429);
+  assert.ok(statuses.slice(0, -1).every((status) => status === 200));
 });

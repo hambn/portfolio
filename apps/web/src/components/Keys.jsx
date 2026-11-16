@@ -55,7 +55,9 @@ export default function Keys() {
   const wrapRef = useRef(null);
 
   useEffect(() => {
-    let armed = 0; // when `g` was pressed
+    // When `g` was pressed. Never, to begin with: a timestamp counts from the
+    // page load, so 0 would arm the chord for the first moments of a visit.
+    let armed = -Infinity;
     const onKey = (event) => {
       if (event.defaultPrevented || event.altKey) return undefined;
       // The palette opens from anywhere, a field being typed in included.
@@ -74,11 +76,11 @@ export default function Keys() {
       const key = event.key.toLowerCase();
       const page = GO[key];
       if (page && event.timeStamp - armed < GO_WINDOW) {
-        armed = 0;
+        armed = -Infinity;
         setOpen(false);
         return navigate(page);
       }
-      armed = key === 'g' ? event.timeStamp : 0;
+      armed = key === 'g' ? event.timeStamp : -Infinity;
 
       if (event.key === '?') setOpen((was) => !was);
       else if (event.key === ':') {
@@ -126,7 +128,7 @@ export default function Keys() {
         <kbd>?</kbd> keys
       </button>
       {open && (
-        <div className="keys-panel" id="keys-panel" role="dialog" aria-label="keyboard shortcuts">
+        <div className="keys-panel" id="keys-panel" role="group" aria-label="keyboard shortcuts">
           <dl>
             {ROWS.map(({ keys, label }) => (
               <div key={label}>

@@ -207,7 +207,15 @@ export async function handle(request: Request, services: Services) {
 
   return json({
     status: { ...(status ?? { playing: false }), contextPlaylist },
-    profile,
+    // /me also answers with the account's country, plan and content settings.
+    // The card shows none of them, so only what it does show is passed on.
+    profile: profile && {
+      id: profile.id,
+      display_name: profile.display_name,
+      images: profile.images,
+      followers: profile.followers,
+      external_urls: profile.external_urls,
+    },
     topTracks,
     topArtists,
     recent,

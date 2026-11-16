@@ -8,7 +8,10 @@ export const routes = [
   {
     page: 'home',
     path: '',
-    title: (ctx) => ctx.profile.name,
+    // The role sits in the title too: it is what a search for the name plus
+    // the job is matched against, and what a result or a shared link shows.
+    title: (ctx) =>
+      ctx.profile.title ? `${ctx.profile.name} — ${ctx.profile.title}` : ctx.profile.name,
     description: (ctx) => ctx.profile.bio,
   },
   {

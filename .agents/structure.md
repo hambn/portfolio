@@ -77,7 +77,8 @@ TypeScript API for the link cards. An npm-workspaces monorepo (Node 24, see
 │                          (`docker compose -f deploy/compose.yaml up -d --build`)
 ├─ docs/website-audit.md   record of the cleanup/perf passes
 └─ .github/
-   ├─ dependabot.yml       weekly npm updates (minor + patch grouped)
+   ├─ dependabot.yml       weekly npm updates (minor + patch grouped), each
+   │                       held back five days after its release
    └─ workflows/
       ├─ ci.yml            pull requests: npm ci, check, Playwright (chromium)
       └─ deploy.yml        push to main: build + deploy Pages, deploy the Worker
@@ -185,6 +186,9 @@ with `apps/`, `packages/` or `content/`.
   Telegram pattern. An image URL must be built exactly as the page renders it
   (share the helper, like `introAvatar`), and `lib/prefetch.js` fetches it the
   way an `<img>` does. Keep these small: live data and Mermaid stay on demand.
+  `preloadPage(page, { recover: true })` is for a page about to be shown (entry
+  route, back/forward): only there may a missing chunk reload the tab. Warming
+  and hover preloads leave `recover` off, so a failed guess costs nothing.
 - **Route metadata lives in `src/routes.js`** — plain JS, also imported by
   `scripts/prerender.mjs`, so the prerendered head and the SPA never drift.
   `src/lib/metadata.js` builds the actual titles/descriptions/JSON-LD for both.
@@ -233,7 +237,10 @@ with `apps/`, `packages/` or `content/`.
   small fetch of `contents/blogs/posts/<slug>.json` (started when its link is
   hovered). `marked` and `highlight.js` are build tooling and must not be
   imported from `src/`; only Mermaid, for posts with a diagram, loads in the
-  browser. A body
+  browser. `BlogPost.jsx` draws diagrams in the site's own colours (Mermaid's
+  `base` theme fed from the colour tokens, flat `classic` look) and redraws
+  them from their kept source when the theme is toggled; `blog.css` stops a
+  wide diagram shrinking past legibility and scrolls it instead. A body
   that opens with `# <its own title>` has that line dropped — the page already
   renders the title as its one `<h1>` (asserted by `test:site`).
 - **node_modules is hoisted to the repo root**, outside the Vite root, so
@@ -252,7 +259,14 @@ with `apps/`, `packages/` or `content/`.
 - **The latin file has few symbols.** It carries `↑` and `↓` but not `←`, `→`
   or `↗`; a glyph outside it is drawn in whatever the system falls back to.
   Use `components/Icon.jsx` for arrows in mono text. The cards on the links
-  page set their own brand faces and are not bound by this.
+  page set their own brand faces and are not bound by this. Its only OpenType
+  features are `calt ccmp frac locl`: there is no slashed zero or stylistic
+  set to switch on.
+- **Word gaps are drawn in for the monospace.** A mono space is as wide as a
+  letter, so headings (`--word-heading`, in `core.css`) and running prose
+  (`--word-prose`: the home intro and `.markdown-body`) tighten it. Code,
+  `kbd` and anything aligned on the character grid keep the full space, and
+  `.link-card` resets it for the brand faces.
 - **Content-Security-Policy is a `<meta>` written by the prerender.** GitHub
   Pages sends no headers, so `withCsp()` in `scripts/prerender.mjs` adds the
   policy to every page and allows each inline `<script>` by the hash of its

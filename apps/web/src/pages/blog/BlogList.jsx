@@ -1,6 +1,6 @@
 // BlogList.jsx — post list: search, tag filtering, pagination.
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { feedHref, followRoute, routeHref } from '../../lib/router.js';
+import { currentRoute, feedHref, followRoute, routeHref } from '../../lib/router.js';
 import Icon from '../../components/Icon.jsx';
 import { PortfolioData } from '../../lib/data.js';
 import { ClickableTag, fmtDate, goToTag, readUrlTags } from './blog-ui.jsx';
@@ -61,7 +61,12 @@ export default function PostList({ posts }) {
   }, [activeTags]);
 
   useEffect(() => {
-    const onPop = () => setActive(readUrlTags());
+    // The list stays mounted for a moment while the page being opened loads;
+    // by then the URL is that page's, and rewriting it here would drop its
+    // query and fragment.
+    const onPop = () => {
+      if (currentRoute() === 'blog') setActive(readUrlTags());
+    };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);

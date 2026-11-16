@@ -57,7 +57,7 @@ export default function App({ initialRoute, initialPage }) {
       const target = pageOf(next);
       const slug = target === 'blog' && next.split('/')[1];
       const ready = Promise.all([
-        target && preloadPage(target),
+        target && preloadPage(target, { recover: true }),
         slug && PortfolioData.getPostHtml(slug),
       ]).catch(() => {});
       const mine = ++turn;

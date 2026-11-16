@@ -189,6 +189,7 @@ export default function Projects() {
       // way. Read after hydration so the first render matches the HTML.
       const last = stored();
       if (last) setAnswer((current) => current || last);
+      setDirect(null);
       return undefined;
     }
     if (usable) {

@@ -39,6 +39,7 @@ export function usePolledJSON(url, intervalMs, onData, seed) {
     }
     let alive = true;
     let firstRequest = true;
+    let attempted = false;
     let controller = null;
     let timer = null;
     let pending = false;
@@ -53,7 +54,11 @@ export function usePolledJSON(url, intervalMs, onData, seed) {
       const requestController = new AbortController();
       controller = requestController;
       const isInitial = firstRequest;
-      if (isInitial) {
+      // Only the first attempt shows as loading. A retry after a failure keeps
+      // the error on screen until it succeeds, rather than flickering between
+      // the two on every interval.
+      if (!attempted) {
+        attempted = true;
         setLoading(true);
         setError(null);
       }
