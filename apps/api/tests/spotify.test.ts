@@ -98,7 +98,13 @@ test('aggregate response survives an unavailable optional Spotify endpoint', asy
         status: 503,
         headers: { 'Content-Type': 'text/html' },
       });
-    if (url.endsWith('/me')) return Response.json({ id: 'owner' });
+    if (url.endsWith('/me'))
+      return Response.json({
+        id: 'owner',
+        display_name: 'Owner',
+        country: 'NL',
+        product: 'premium',
+      });
     if (url.includes('currently-playing')) return new Response(null, { status: 204 });
     return Response.json({ items: [] });
   };
@@ -106,7 +112,8 @@ test('aggregate response survives an unavailable optional Spotify endpoint', asy
   const response = await handleRequest(new Request('https://api.test/spotify'), services);
   assert.equal(response.status, 200);
   const data = await response.json();
-  assert.equal(data.profile.id, 'owner');
+  // Only what the card shows leaves the API: not the account's country or plan.
+  assert.deepEqual(data.profile, { id: 'owner', display_name: 'Owner' });
   assert.equal(data.topTracks, null);
   assert.deepEqual(data.playlists, []);
 });

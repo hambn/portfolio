@@ -6,7 +6,14 @@
   font-family: var(--font-mono);
   font-size: 15.5px;
   line-height: 1.8;
+  word-spacing: var(--word-prose);
   word-wrap: break-word;
+}
+/* Code keeps the character grid: a full space, wherever it sits. */
+.markdown-body pre,
+.markdown-body code,
+.markdown-body kbd {
+  word-spacing: normal;
 }
 
 /* ── Headings ── */
@@ -172,6 +179,9 @@
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   word-break: break-word;
+  /* Wrapped onto a second line, each piece keeps its own padding and corners. */
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
 }
 
 /* ── Code blocks ── */
@@ -291,6 +301,13 @@
   border-radius: var(--radius-lg);
   text-align: center;
   overflow-x: auto;
+}
+/* A wide diagram on a narrow screen stops shrinking once its 16px labels are
+   down to about 10px (BlogPost.jsx sets the drawn width) and scrolls sideways
+   from there. */
+.markdown-body .mermaid svg {
+  min-width: calc(var(--diagram-width, 0px) * 0.6);
+  margin-inline: auto;
 }
 
 /* ────────────────────────────────────────────────────────────────

@@ -18,6 +18,11 @@ export function attachPresence(
 ) {
   const sockets = new WebSocketServer({ noServer: true, maxPayload: 4096 });
   server.on('upgrade', (request, socket, head) => {
+    // Node hands over the socket with no error listener. A client that resets
+    // while a refusal is being written would otherwise raise an unhandled
+    // 'error' and take the whole process down; ws adds its own listener once
+    // it accepts the upgrade.
+    socket.on('error', () => socket.destroy());
     if (
       !userId ||
       !['/discord/socket', '/api/discord/socket'].includes((request.url || '').split('?')[0])

@@ -112,7 +112,9 @@ or container environment variables. The Node container has no Cloudflare depende
 
 Nginx forwards `/api/` to Node, including WebSocket upgrades, without replacing
 API cache headers. It overwrites `X-Real-IP` with the visitor's address, which
-the contact form's per-sender limit uses. Node discards client-sent
+the contact form's per-sender limit uses; `deploy/compose.yaml` therefore
+publishes the API's own port on `127.0.0.1` only (`API_BIND` widens it, and
+`API_CLIENT_IP_HEADER` must then be emptied). Node discards client-sent
 `CF-Connecting-IP`, `X-Forwarded-For` and `X-Real-IP`, and keys its disk cache on
 path and query only, so the Host header cannot split it. Both runtimes accept existing unprefixed routes and `/api/`
 routes. Prefixed responses use relative media URLs, so TLS termination does not
@@ -137,7 +139,7 @@ images, data requests, and the live presence socket go through the API.
 | `/health` | Uncached liveness |
 | `/site`, `/links` | Uncached aggregate of every card and the projects listing; `include=`/`exclude=` filter by key |
 | `/contact` | GET mints a single-use form token; POST sends one message |
-| `/spotify` | Uncached aggregate library and playback |
+| `/spotify` | Uncached aggregate library and playback; `profile` carries only the public fields the card reads (no `country`/`product`) |
 | `/spotify?playback=1` | Uncached playback only; preserves rate-limit response and Retry-After |
 | `/steam` | 5 minutes |
 | `/discord` | 60 seconds |
@@ -199,7 +201,9 @@ verified `email.from` identity.
 A POST must carry a token from a preceding GET: HMAC-signed, single-use,
 usable between 3 seconds and 30 minutes after it is minted. A hidden honeypot
 field is answered as success and sends nothing. Beyond that: 2 messages per
-sender per hour, 4 per day, 60 per day and 1200 per month overall (`MAIL_LIMITS`
+sender per hour (a sender is an IPv4 address or an IPv6 /64, `senderBucket`:
+one home or phone holds a whole /64 and would otherwise have an allowance per
+address), 4 per day, 60 per day and 1200 per month overall (`MAIL_LIMITS`
 in `src/mail/quota.ts`), all held under a 100/day, 3000/month vendor plan. The
 same message from the same sender is refused for ten minutes. Bodies are capped
 at 16 KiB. Validation, the token signature and a quota read run first and write

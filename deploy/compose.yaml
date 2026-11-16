@@ -19,8 +19,12 @@ services:
     build:
       context: ..
       dockerfile: apps/api/Dockerfile
+    # The site reaches the API through nginx (/api/), which is what sets the
+    # sender address the mail limits trust. The direct port is therefore
+    # published on this machine only; set API_BIND=0.0.0.0 to expose it, and
+    # then API_CLIENT_IP_HEADER= (empty) so a caller cannot name its own address.
     ports:
-      - "8787:8787"
+      - "${API_BIND:-127.0.0.1}:8787:8787"
     environment:
       # Pulled from host env / a .env file beside this compose file.
       SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
@@ -36,8 +40,8 @@ services:
       API_CACHE_MAX_BYTES: ${API_CACHE_MAX_BYTES:-268435456}
       API_PUBLIC_ORIGIN: ${API_PUBLIC_ORIGIN:-}
       # The sender address nginx sets for /api/ requests. Direct requests to
-      # :8787 can set it too; set this empty if that port is exposed beyond
-      # networks you trust.
+      # :8787 can set it too, which is why that port is bound to localhost
+      # above; set this empty if the port is exposed beyond networks you trust.
       API_CLIENT_IP_HEADER: ${API_CLIENT_IP_HEADER:-x-real-ip}
       CACHE_VERSION: ${CACHE_VERSION:-1}
     restart: unless-stopped

@@ -2,7 +2,7 @@ import { useCallback, useSyncExternalStore } from 'react';
 import { readCollapsed, subscribeCollapsed, writeCollapsed } from '../lib/cardState.js';
 
 /** Read a card's collapsed flag without owning the toggle. */
-export function useCardCollapsed(storageKey) {
+function useCardCollapsed(storageKey) {
   return useSyncExternalStore(
     useCallback((notify) => subscribeCollapsed(storageKey, notify), [storageKey]),
     useCallback(() => readCollapsed(storageKey), [storageKey]),

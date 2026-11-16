@@ -221,13 +221,16 @@ the repo root:
 
 ```bash
 docker compose -f deploy/compose.yaml up -d --build
-# web → http://localhost:8080   api → http://localhost:8787
+# web → http://localhost:8080   api → http://localhost:8787 (this machine only)
 ```
 
 A private homelab host only needs outbound internet access to the providers.
 It does not need GitHub Actions, Cloudflare credentials, a public domain, or inbound
 internet access. On your LAN, open `http://<homelab-ip>:8080`; the site uses its own
-`/api/` route. The API is also available directly at `http://<homelab-ip>:8787`.
+`/api/` route. The API's own port is published on the host itself only
+(`127.0.0.1:8787`); to reach it from other machines set `API_BIND=0.0.0.0`, and
+then `API_CLIENT_IP_HEADER=` (empty), since a direct caller could otherwise name
+its own address to the contact form's limits.
 Telegram, X, and LinkedIn refresh on API startup and every hour. Other providers
 refresh through their existing request caches and polling intervals.
 

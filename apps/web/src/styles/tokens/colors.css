@@ -81,10 +81,13 @@
   --border-strong: #d4d4d8;
 
   --ring: #2563eb;
-  /* darker lanes so they hold up against white */
+  /* red-500 is 3.8:1 on white; error text needs the step below it */
+  --destructive: #dc2626;
+  /* Darker lanes so they hold up against white. The branch names are set in
+     these too, so each clears 4.5:1 as text (amber-700 and green-700 are 5:1). */
   --graph-life: #2563eb;
-  --graph-work: #d97706;
-  --graph-edu: #16a34a;
+  --graph-work: #b45309;
+  --graph-edu: #15803d;
   --graph-project: #9333ea;
 
   --overlay: rgba(0, 0, 0, 0.3);

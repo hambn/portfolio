@@ -30,6 +30,12 @@
   --fw-body: 430; /* @kind other */
   --tracking-body: -0.012em; /* @kind other */
   --leading-body: 1.65; /* @kind other */
+  /* A monospace space is a full 0.6em, the width of a letter. Between the
+     words of a heading or of running prose that reads as a gap, so both are
+     drawn in a little: headings more, since the gap grows with the size. Code
+     and anything set on the character grid keep the full space. */
+  --word-heading: -0.12em; /* @kind other */
+  --word-prose: -0.05em; /* @kind other */
 
   /* ── Font weights ── */
   --fw-medium: 500; /* @kind other */

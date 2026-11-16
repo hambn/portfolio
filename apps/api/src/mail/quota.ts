@@ -180,5 +180,31 @@ export async function isDuplicate(services: Services, fingerprint: string): Prom
 // proxy header. An unidentifiable caller shares one bucket rather than
 // escaping the per-sender limit entirely.
 export function clientAddress(request: Request): string {
-  return request.headers.get('CF-Connecting-IP') || 'unknown';
+  return senderBucket(request.headers.get('CF-Connecting-IP') || 'unknown');
+}
+
+// An IPv6 subscriber is handed a whole /64 (2^64 addresses) and can send from
+// any of them, so the per-sender limit counts the network, not the address.
+// IPv4, and an IPv4 address written as IPv6 (::ffff:203.0.113.7), stay one host.
+export function senderBucket(address: string): string {
+  const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/i.exec(address);
+  if (mapped) return mapped[1];
+  if (!address.includes(':')) return address;
+  const [head, tail] = address.split('%')[0].toLowerCase().split('::');
+  const leading = head ? head.split(':') : [];
+  const trailing = tail ? tail.split(':') : [];
+  const groups =
+    tail === undefined
+      ? leading
+      : [
+          ...leading,
+          ...Array(Math.max(0, 8 - leading.length - trailing.length)).fill('0'),
+          ...trailing,
+        ];
+  // Not eight groups of hex: not an address this can shorten, so it is its own bucket.
+  if (groups.length !== 8 || groups.some((group) => !/^[0-9a-f]{1,4}$/.test(group))) return address;
+  return `${groups
+    .slice(0, 4)
+    .map((group) => group.replace(/^0+(?=.)/, ''))
+    .join(':')}::/64`;
 }

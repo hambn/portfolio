@@ -189,7 +189,7 @@
 /* The tenth cell works on every card at once; it stays in the site's own
    monospace and a step quieter than the services beside it. */
 .links-jump-all {
-  color: var(--foreground-faint);
+  color: var(--foreground-subtle);
 }
 .links-jump-all .links-jump-label {
   font-size: var(--text-xs);
@@ -240,10 +240,12 @@
   container-type: inline-size;
   min-width: 0;
   line-height: 1.5;
-  /* Cards are set in their service's own face; the page's reading weight and
-     tracking are tuned for the monospace and must not leak into them. */
+  /* Cards are set in their service's own face; the page's reading weight,
+     tracking and word spacing are tuned for the monospace and must not leak
+     into them. */
   font-weight: 400;
   letter-spacing: normal;
+  --word-heading: normal;
   box-shadow: 0 14px 34px -26px var(--overlay);
 }
 /* Hovering a card only brightens its ring: animating the drop shadow would

@@ -7,6 +7,11 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
+    # These PRs merge themselves once CI passes, so a release is left to age
+    # first: a broken or hijacked version is usually pulled within days.
+    # Security updates are not held back.
+    cooldown:
+      default-days: 5
     commit-message:
       prefix: "chore(deps)"
     ignore:
@@ -31,6 +36,8 @@ updates:
     directories: ["/apps/web", "/apps/api"]
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 5
     commit-message:
       prefix: "chore(docker)"
 
@@ -38,5 +45,7 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 5
     commit-message:
       prefix: "chore(ci)"

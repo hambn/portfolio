@@ -43,6 +43,7 @@
 }
 /* intro paragraphs — ~70 characters per line, comfortable for prose */
 .home-intro {
+  word-spacing: var(--word-prose);
   color: var(--foreground-muted);
   font-size: var(--text-base);
   line-height: 1.8;

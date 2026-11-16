@@ -60,7 +60,7 @@ export function upstreamSource(url) {
  * a proxy URL — come back untouched. `size` is in CSS pixels; the request is
  * doubled to stay sharp on 2x screens.
  */
-export function sizedMedia(url, size) {
+function sizedMedia(url, size) {
   const source = upstreamSource(url);
   if (!source) return url;
   const resized = resizedSource(source, size * 2);

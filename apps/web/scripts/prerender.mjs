@@ -51,6 +51,12 @@ const esc = (s) =>
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+// A replacement given as a string is scanned for `$&`, `$1` and the like, so
+// text from content/ ("costs $& more") would be rewritten on its way into the
+// page. A function's return value is inserted exactly as it is.
+const literal = (text) => () => text;
+// Fills the attribute a pattern captures the two sides of: (open)…(close).
+const between = (value) => (_, open, close) => `${open}${value}${close}`;
 const dateParts = (d) => /^(\d{4})-(\d{2})-(\d{2})/.exec(d || '');
 const rfc822 = (d) => {
   const m = dateParts(d);
@@ -234,7 +240,7 @@ function preloadEntry(html) {
   if (html.includes(`rel="modulepreload" crossorigin href="${src}"`)) return html;
   return html.replace(
     /(<meta name="viewport"[^>]*>)/,
-    `$1\n    <link rel="modulepreload" crossorigin href="${src}" />`,
+    (viewport) => `${viewport}\n    <link rel="modulepreload" crossorigin href="${src}" />`,
   );
 }
 
@@ -252,26 +258,27 @@ function preloadFont(html) {
   if (!href) return html;
   return html.replace(
     /(<meta name="viewport"[^>]*>)/,
-    `$1\n    <link rel="preload" as="font" type="font/woff2" crossorigin href="${href.replace(/['"]/g, '')}" />`,
+    (viewport) =>
+      `${viewport}\n    <link rel="preload" as="font" type="font/woff2" crossorigin href="${href.replace(/['"]/g, '')}" />`,
   );
 }
 
 const template = preloadFont(
   preloadEntry(inlineStylesheet(readFileSync(join(dist, 'index.html'), 'utf8'))),
 )
-  .replace(/(<meta\s+name="author"\s+content=")[^"]*(")/, `$1${esc(profile.name)}$2`)
-  .replace(/(<meta\s+property="og:image"\s+content=")[^"]*(")/, `$1${esc(profile.avatar)}$2`)
+  .replace(/(<meta\s+name="author"\s+content=")[^"]*(")/, between(esc(profile.name)))
+  .replace(/(<meta\s+property="og:image"\s+content=")[^"]*(")/, between(esc(profile.avatar)))
   // The tab icon is drawn at 32px at most, so ask the proxy for a small
   // rendition rather than the full-size image the og: tags advertise: the one
   // home's avatar already loads at 1x (AVATAR_SIZE in pages/home/Intro.jsx),
   // so there the icon costs no second download.
   .replace(
     /(<link\s+rel="icon"[^>]*\shref=")[^"]*(")/,
-    `$1${esc(avatarImage(profile.avatar, 72).src)}$2`,
+    between(esc(avatarImage(profile.avatar, 72).src)),
   )
   .replace(
     /(<meta\s+name="twitter:creator"\s+content=")[^"]*(")/,
-    `$1@${esc(links.x?.handle || profile.handle)}$2`,
+    between(`@${esc(links.x?.handle || profile.handle)}`),
   );
 
 /* ── Content-Security-Policy ──
@@ -310,7 +317,8 @@ function withCsp(html) {
   // parser meets after it.
   return html.replace(
     /(<meta\s+name="viewport"[^>]*>)/,
-    `$1\n    <meta http-equiv="Content-Security-Policy" content="${esc(policy)}" />`,
+    (viewport) =>
+      `${viewport}\n    <meta http-equiv="Content-Security-Policy" content="${esc(policy)}" />`,
   );
 }
 
@@ -366,21 +374,23 @@ function page({
     .filter(Boolean)
     .join('\n');
   let html = template
-    .replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(title)}</title>`)
-    .replace(/(<meta\s+name="description"\s+content=")[^"]*(")/, `$1${esc(desc)}$2`)
-    .replace(/(<meta\s+property="og:title"\s+content=")[^"]*(")/, `$1${esc(title)}$2`)
-    .replace(/(<meta\s+property="og:description"\s+content=")[^"]*(")/, `$1${esc(desc)}$2`)
-    .replace(/(<meta\s+property="og:type"\s+content=")[^"]*(")/, `$1${type}$2`)
-    .replace('</head>', `${head}\n</head>`)
+    .replace(/<title>[\s\S]*?<\/title>/, literal(`<title>${esc(title)}</title>`))
+    .replace(/(<meta\s+name="description"\s+content=")[^"]*(")/, between(esc(desc)))
+    .replace(/(<meta\s+property="og:title"\s+content=")[^"]*(")/, between(esc(title)))
+    .replace(/(<meta\s+property="og:description"\s+content=")[^"]*(")/, between(esc(desc)))
+    .replace(/(<meta\s+property="og:type"\s+content=")[^"]*(")/, between(type))
+    .replace('</head>', literal(`${head}\n</head>`))
     .replace(
       '<div id="root"></div>',
-      `<div id="root">${content}</div><script id="portfolio-data" type="application/json">${serialized}</script>`,
+      literal(
+        `<div id="root">${content}</div><script id="portfolio-data" type="application/json">${serialized}</script>`,
+      ),
     );
   // The template's structured data is a placeholder: every page replaces it,
   // and a not-found page, which describes nothing, drops it.
   html = html.replace(
     /<script type="application\/ld\+json">[\s\S]*?<\/script>/,
-    jsonLd ? `<script type="application/ld+json">\n${jsonLd}\n</script>` : '',
+    literal(jsonLd ? `<script type="application/ld+json">\n${jsonLd}\n</script>` : ''),
   );
   return withCsp(html);
 }

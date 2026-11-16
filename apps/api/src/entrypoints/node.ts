@@ -95,6 +95,11 @@ export async function start() {
   const server = createServer(services);
   const closePresence = attachPresence(server, services.config.DISCORD_ID);
   const refresh = refreshJob(services);
+  // Every request is a small GET or a 16 KB form post, so one that takes this
+  // long to arrive is holding a connection open rather than using it. Node's
+  // defaults (60 s for headers, 5 min for a request) are for uploads.
+  server.headersTimeout = 15000;
+  server.requestTimeout = 30000;
   const run = () => services.background(refresh());
   run();
   const timer = setInterval(run, 3600000);
