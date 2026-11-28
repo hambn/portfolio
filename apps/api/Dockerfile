@@ -8,6 +8,7 @@ COPY packages/shared/package.json ./packages/shared/package.json
 RUN npm ci --workspace @portfolio/api
 COPY packages/shared ./packages/shared
 COPY apps/api ./apps/api
+COPY content/home/profile.json ./content/home/profile.json
 COPY content/links/links.json ./content/links/links.json
 COPY content/projects/projects.json ./content/projects/projects.json
 RUN npm run build --workspace @portfolio/api
