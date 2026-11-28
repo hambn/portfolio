@@ -233,43 +233,37 @@ test('the projects page is complete without a request', () => {
   assert.ok(!('_comment' in data.projects));
 });
 
-test('shareable /links/<service>/ pages ship Discord/OG embeds, oEmbed, and redirects', () => {
+test('shareable /links/<service>/ routes issue HTTP 302 redirects for native embeds', () => {
   const links = JSON.parse(readFileSync(new URL('links/links.json', content), 'utf8'));
   const services = buildLinkServices(links, profile);
   assert.ok(services.length > 0);
+  const redirects = read('_redirects');
   for (const service of services) {
     const html = read(`links/${service.slug}/index.html`);
-    const nodes = elements(parse(html));
-    const ogUrl = `${root}/og/links-${service.slug}.png`;
-    const oembedUrl = `${root}/oembed/links-${service.slug}.json`;
-    assert.equal(
-      attr(
-        nodes.find((node) => attr(node, 'name') === 'theme-color'),
-        'content',
-      ),
-      service.accent,
-    );
-    assert.equal(
-      attr(
-        nodes.find((node) => attr(node, 'property') === 'og:image'),
-        'content',
-      ),
-      ogUrl,
-    );
-    const oembedHref = attr(
-      nodes.find((node) => attr(node, 'type') === 'application/json+oembed'),
-      'href',
-    );
-    assert.ok(
-      oembedHref === oembedUrl || oembedHref?.endsWith(`/oembed/${service.slug}`),
-      `unexpected oEmbed href for ${service.slug}: ${oembedHref}`,
-    );
-    assert.equal(nodes.filter((node) => node.tagName === 'h1').length, 1);
     assert.ok(html.includes(service.url));
-    const png = readFileSync(new URL(`og/links-${service.slug}.png`, dist));
-    assert.deepEqual([...png.subarray(0, 8)], [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-    const oembed = JSON.parse(read(`oembed/links-${service.slug}.json`));
-    assert.equal(oembed.thumbnail_url, ogUrl);
+    if (service.redirect) {
+      assert.ok(
+        redirects.includes(`${base}/links/${service.slug} ${service.url} 302`),
+        `missing redirect rule for ${service.slug}`,
+      );
+      assert.ok(
+        redirects.includes(`${base}/links/${service.slug}/ ${service.url} 302`),
+        `missing trailing-slash redirect rule for ${service.slug}`,
+      );
+    } else {
+      const nodes = elements(parse(html));
+      const ogUrl = `${root}/og/links-${service.slug}.png`;
+      assert.equal(
+        attr(
+          nodes.find((node) => attr(node, 'property') === 'og:image'),
+          'content',
+        ),
+        ogUrl,
+      );
+      assert.equal(nodes.filter((node) => node.tagName === 'h1').length, 1);
+      const png = readFileSync(new URL(`og/links-${service.slug}.png`, dist));
+      assert.deepEqual([...png.subarray(0, 8)], [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    }
   }
 });
 

@@ -91,7 +91,10 @@
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
   color: var(--foreground);
-  transition: background-color var(--transition-base);
+  transition:
+    background-color var(--transition-base),
+    color var(--transition-base),
+    transform var(--transition-base);
 }
 .recent-posts a:focus-visible {
   background: var(--glass-hover);
@@ -99,6 +102,10 @@
 @media (hover: hover) {
   .recent-posts a:hover {
     background: var(--glass-hover);
+    transform: translateX(3px);
+  }
+  .recent-posts a:hover span {
+    color: var(--primary);
   }
 }
 .recent-posts time {
@@ -107,45 +114,13 @@
   color: var(--foreground-subtle);
   font-variant-numeric: tabular-nums;
 }
+.recent-posts span {
+  transition: color var(--transition-base);
+}
 .stack-list {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-}
-.home-footer {
-  padding-top: 28px;
-  border-top: 1px solid var(--hairline);
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-/* Footer profile links: brand icon, name, and an arrow that shows on hover. */
-.home-footer-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  margin-left: -10px;
-  margin-right: 10px;
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  color: var(--foreground-muted);
-  transition:
-    color var(--transition-base),
-    background-color var(--transition-base);
-}
-@media (hover: hover) {
-  .home-footer-link:hover {
-    color: var(--foreground);
-    background: var(--background-muted);
-  }
-}
-.home-footer-link > .icon:first-child {
-  font-size: 15px;
-}
-.home-footer-link > .icon-nudge {
-  font-size: 12px;
-  color: var(--foreground-subtle);
 }
 
 /* ── Button ── (intro route links) */
@@ -164,8 +139,8 @@
     background var(--transition-base),
     color var(--transition-base),
     border-color var(--transition-base),
-    opacity var(--transition-base),
-    transform var(--duration-fast) var(--ease-default);
+    box-shadow var(--transition-base),
+    transform 160ms var(--ease-spring);
   text-decoration: none;
   white-space: nowrap;
   outline: none;
@@ -173,7 +148,7 @@
   -webkit-tap-highlight-color: transparent;
 }
 .btn:active {
-  transform: scale(0.97);
+  transform: scale(0.96);
 }
 .btn:focus-visible {
   box-shadow:
@@ -188,10 +163,13 @@
 }
 
 .btn-default {
-  background: var(--foreground);
-  color: var(--background);
-  border-color: var(--foreground);
+  background: var(--primary-solid);
+  color: var(--primary-foreground);
+  border-color: var(--primary-solid);
   font-weight: 600;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 1px 2px rgba(0, 0, 0, 0.2);
 }
 .btn-ghost {
   background: transparent;
@@ -205,7 +183,12 @@
 }
 @media (hover: hover) {
   .btn-default:hover:not(:disabled) {
-    opacity: 0.88;
+    background: var(--primary-hover);
+    border-color: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.16),
+      0 6px 16px -4px rgba(37, 99, 235, 0.45);
   }
   .btn-ghost:hover:not(:disabled) {
     background: color-mix(in srgb, var(--foreground) 5%, transparent);
@@ -213,7 +196,9 @@
   }
   .btn-outline:hover:not(:disabled) {
     background: var(--background-subtle);
-    border-color: var(--foreground-subtle);
+    border-color: color-mix(in srgb, var(--primary) 55%, var(--border-strong));
+    color: var(--foreground);
+    transform: translateY(-1px);
   }
 }
 .btn-md {
@@ -522,19 +507,24 @@
   font-size: 12px;
   color: var(--foreground-muted);
   transition:
-    border-color 150ms,
-    background-color 150ms,
-    color 150ms;
+    border-color var(--transition-base),
+    background-color var(--transition-base),
+    color var(--transition-base),
+    transform 160ms var(--ease-spring);
 }
 .stack-chip.is-linked {
   color: var(--foreground);
   border-color: var(--border-strong);
+}
+.stack-chip.is-linked:active {
+  transform: scale(0.96);
 }
 @media (hover: hover) {
   .stack-chip:hover {
     border-color: var(--border-strong);
     background: var(--background-subtle);
     color: var(--foreground);
+    transform: translateY(-1px);
   }
   .stack-chip.is-linked:hover {
     border-color: var(--primary-ring);

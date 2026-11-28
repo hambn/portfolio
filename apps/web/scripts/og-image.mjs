@@ -8,7 +8,6 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import satori from 'satori';
 import { initWasm, Resvg } from '@resvg/resvg-wasm';
-import { BRAND_ICON } from '../src/pages/links/brandIcons.js';
 
 const require = createRequire(import.meta.url);
 
@@ -54,367 +53,205 @@ const clampText = (text, max) => {
   return `${trimmed.trimEnd()}…`;
 };
 
-// Platform × Portfolio hybrid surfaces: each service card carries its own
-// authentic palette blended with hgh.dev's crisp dark terminal geometry.
-const SERVICE_THEMES = {
-  sp: {
-    outer: '#0a0f0c',
-    surface: '#121814',
-    headerBg: '#16231b',
-    border: '#213629',
-    pillBg: '#16231b',
-    accent: '#1ed760',
-    motif: 'bars',
-  },
-  dc: {
-    outer: '#111218',
-    surface: '#1b1d24',
-    headerBg: '#20222b',
-    border: '#2f3240',
-    pillBg: '#232632',
-    accent: '#5865f2',
-  },
-  gh: {
-    outer: '#080b10',
-    surface: '#0d1117',
-    headerBg: '#141a22',
-    border: '#262e39',
-    pillBg: '#161b22',
-    accent: '#58a6ff',
-    motif: 'contrib',
-  },
-  gl: {
-    outer: '#110d18',
-    surface: '#171321',
-    headerBg: '#1e182b',
-    border: '#312744',
-    pillBg: '#20192e',
-    accent: '#fc6d26',
-  },
-  tg: {
-    outer: '#0b1219',
-    surface: '#131d27',
-    headerBg: '#172330',
-    border: '#233547',
-    pillBg: '#182534',
-    accent: '#2aabee',
-  },
-  x: {
-    outer: '#050506',
-    surface: '#0c0d10',
-    headerBg: '#121317',
-    border: '#2a2d32',
-    pillBg: '#15171b',
-    accent: '#fafafa',
-  },
-  li: {
-    outer: '#0c1014',
-    surface: '#161b20',
-    headerBg: '#1b2229',
-    border: '#2a343f',
-    pillBg: '#1c242c',
-    accent: '#71b7fb',
-  },
-  st: {
-    outer: '#0e141c',
-    surface: '#171f2a',
-    headerBg: '#1c2938',
-    border: '#2b4057',
-    pillBg: '#1c2a3a',
-    accent: '#66c0f4',
-  },
-  email: {
-    outer: '#0b0a0c',
-    surface: '#121114',
-    headerBg: '#1a1517',
-    border: '#2e2427',
-    pillBg: '#1c1719',
-    accent: '#ea4335',
-  },
-};
-
-const DEFAULT_THEME = {
-  outer: '#09090b',
-  surface: '#0d0d10',
-  headerBg: '#111115',
-  border: '#27272a',
-  pillBg: '#18181b',
-  accent: '#3b82f6',
-};
-
-function renderMotif(motif, accent) {
-  if (motif === 'bars') {
-    const heights = [14, 24, 18, 28, 16];
-    return el(
-      'div',
-      { display: 'flex', alignItems: 'flex-end', gap: '4px', height: '28px' },
-      heights.map((h) =>
-        el('div', {
-          width: '4px',
-          height: `${h}px`,
-          borderRadius: '2px',
-          backgroundColor: accent,
-        }),
-      ),
-    );
-  }
-  if (motif === 'contrib') {
-    const colors = ['#161b22', '#0e4429', '#006d32', '#26a641', '#39d353'];
-    return el(
-      'div',
-      { display: 'flex', alignItems: 'center', gap: '5px' },
-      colors.map((c) =>
-        el('div', {
-          width: '12px',
-          height: '12px',
-          borderRadius: '3px',
-          backgroundColor: c,
-        }),
-      ),
-    );
-  }
-  return null;
-}
-
-function brandGlyph(cardId, accent) {
-  const path = cardId && BRAND_ICON[cardId];
-  if (!path) return null;
-  return el(
-    'div',
-    {
-      width: '58px',
-      height: '58px',
-      borderRadius: '14px',
-      backgroundColor: '#09090b',
-      border: `1px solid ${accent}`,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      flexShrink: 0,
-    },
-    [
-      {
-        type: 'svg',
-        props: {
-          width: 30,
-          height: 30,
-          viewBox: '0 0 24 24',
-          fill: accent,
-          children: [{ type: 'path', props: { d: path } }],
-        },
-      },
-    ],
-  );
-}
-
 /**
- * Render a 1200×630 terminal-editorial OG card as a PNG Buffer.
- * Pass `cardId` (`sp`, `dc`, `gh`, `gl`, `tg`, `x`, `li`, `st`, `email`) for
- * a platform × portfolio hybrid surface with the brand's own colors & mark.
+ * Render a clean, full-bleed 1200×630 editorial OG card as a PNG Buffer.
+ * Matches hgh.dev's Zinc + Blue + JetBrains Mono identity without box clutter.
  */
 export async function renderOgImage({
-  path,
+  path = '',
   title,
   description,
   meta = [],
-  host,
-  handle,
-  accent,
-  cardId = '',
-  badge = '',
+  host = 'hgh.dev',
+  handle = 'hambn',
+  author = 'hamed ghasempour',
+  accent = '#3b82f6',
+  kicker = '',
 }) {
   await ensureReady();
-  const base = SERVICE_THEMES[cardId] || DEFAULT_THEME;
-  const theme = accent ? { ...base, accent } : base;
-  const prompt = path ? `~/${path}` : `~/../${handle || 'hambn'}`;
-  const headline = clampText(title, 68);
-  const summary = clampText(description, 195);
-  const pills = meta.filter(Boolean).slice(0, 4);
-  const glyph = brandGlyph(cardId, theme.accent);
-  const motif = renderMotif(theme.motif, theme.accent);
+  const headline = clampText(title, 64);
+  const summary = clampText(description, 180);
+  const cleanPath = String(path || '')
+    .replace(/^\/+|\/+$/g, '')
+    .trim();
+  const footItems = meta.filter(Boolean).slice(0, 3);
+  const titleSize = headline.length > 36 ? 50 : headline.length > 22 ? 58 : 66;
 
   const tree = el(
     'div',
     {
+      position: 'relative',
       width: '100%',
       height: '100%',
       display: 'flex',
-      backgroundColor: theme.outer,
+      flexDirection: 'column',
+      justifyContent: 'space-between',
+      backgroundColor: '#09090b',
+      backgroundImage:
+        'radial-gradient(circle at 92% 8%, rgba(59, 130, 246, 0.16), transparent 46%), radial-gradient(circle at 12% 96%, rgba(59, 130, 246, 0.06), transparent 40%)',
       color: '#fafafa',
       fontFamily: 'JetBrains Mono',
-      padding: '24px',
+      padding: '64px 80px 58px',
       boxSizing: 'border-box',
     },
     [
+      // Crisp full-bleed top accent hairline
+      el('div', {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: '4px',
+        backgroundColor: accent,
+        display: 'flex',
+      }),
+
+      // Top row: minimal domain/route breadcrumb on left, quiet kicker on right
       el(
         'div',
         {
-          width: '100%',
-          height: '100%',
           display: 'flex',
-          flexDirection: 'column',
-          backgroundColor: theme.surface,
-          border: `1px solid ${theme.border}`,
-          borderRadius: '18px',
-          overflow: 'hidden',
-          boxSizing: 'border-box',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          width: '100%',
         },
         [
-          // Top brand/route accent bar
-          el('div', {
-            width: '100%',
-            height: '4px',
-            backgroundColor: theme.accent,
-            display: 'flex',
-          }),
-          // Terminal-style header bar in subtle tinted surface
           el(
             'div',
             {
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
-              backgroundColor: theme.headerBg,
-              borderBottom: `1px solid ${theme.border}`,
-              padding: '20px 44px',
-              fontSize: '21px',
+              fontSize: '23px',
+              letterSpacing: '-0.02em',
             },
             [
-              el('div', { display: 'flex', alignItems: 'center', gap: '12px' }, [
-                el('span', { color: theme.accent, fontWeight: 700 }, '$'),
-                el('span', { color: '#d4d4d8' }, prompt),
-              ]),
-              el(
-                'div',
-                { display: 'flex', alignItems: 'center', gap: '14px' },
-                [
-                  motif,
-                  badge
-                    ? el(
-                        'span',
-                        {
-                          fontSize: '15px',
-                          fontWeight: 700,
-                          color: theme.accent,
-                          backgroundColor: theme.outer,
-                          border: `1px solid ${theme.border}`,
-                          borderRadius: '6px',
-                          padding: '3px 10px',
-                        },
-                        badge,
-                      )
-                    : null,
-                  el('span', { color: '#93939d', fontSize: '20px' }, host || 'hgh.dev'),
-                ].filter(Boolean),
-              ),
+              el('span', { color: '#fafafa', fontWeight: 700 }, host),
+              ...(cleanPath
+                ? [
+                    el('span', { color: accent, fontWeight: 700, margin: '0 4px' }, '/'),
+                    el('span', { color: '#a1a1aa', fontWeight: 400 }, cleanPath),
+                  ]
+                : []),
             ],
           ),
-          // Center body: brand mark (for service cards) + headline + summary
+          kicker
+            ? el(
+                'div',
+                {
+                  fontSize: '20px',
+                  color: '#a1a1aa',
+                  letterSpacing: '-0.01em',
+                },
+                kicker,
+              )
+            : null,
+        ].filter(Boolean),
+      ),
+
+      // Center focal block: crisp blue left rule + authoritative headline + concise summary
+      el(
+        'div',
+        {
+          display: 'flex',
+          flexDirection: 'row',
+          alignItems: 'stretch',
+          gap: '28px',
+          width: '100%',
+          marginTop: '12px',
+          marginBottom: '12px',
+        },
+        [
+          el('div', {
+            width: '4px',
+            borderRadius: '4px',
+            backgroundColor: accent,
+            flexShrink: 0,
+            display: 'flex',
+          }),
           el(
             'div',
             {
-              flex: 1,
-              width: '100%',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'center',
-              gap: '22px',
-              padding: '32px 44px',
-              boxSizing: 'border-box',
+              gap: '20px',
+              flex: 1,
             },
             [
               el(
                 'div',
-                { display: 'flex', alignItems: 'center', gap: '20px' },
-                [
-                  glyph,
-                  el(
-                    'div',
-                    {
-                      fontSize: headline.length > 40 ? '42px' : '52px',
-                      fontWeight: 700,
-                      lineHeight: 1.18,
-                      letterSpacing: '-0.03em',
-                      color: '#fafafa',
-                    },
-                    headline,
-                  ),
-                ].filter(Boolean),
+                {
+                  fontSize: `${titleSize}px`,
+                  fontWeight: 700,
+                  lineHeight: 1.12,
+                  letterSpacing: '-0.035em',
+                  color: '#fafafa',
+                },
+                headline,
               ),
               summary
                 ? el(
                     'div',
                     {
-                      fontSize: '22px',
+                      fontSize: '24px',
                       fontWeight: 400,
-                      lineHeight: 1.55,
-                      color: '#b4b4bd',
+                      lineHeight: 1.52,
+                      letterSpacing: '-0.01em',
+                      color: '#a1a1aa',
+                      maxWidth: '940px',
                     },
                     summary,
                   )
                 : null,
             ].filter(Boolean),
           ),
-          // Footer metadata & handle
+        ],
+      ),
+
+      // Bottom anchor: hairline divider, author + @handle left, typographic metadata right
+      el(
+        'div',
+        {
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          width: '100%',
+          paddingTop: '28px',
+          borderTop: '1px solid #27272a',
+        },
+        [
           el(
             'div',
             {
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
-              borderTop: `1px solid ${theme.border}`,
-              padding: '20px 44px',
-              backgroundColor: theme.headerBg,
+              gap: '14px',
+              fontSize: '21px',
             },
             [
-              el(
-                'div',
-                { display: 'flex', alignItems: 'center', gap: '10px' },
-                pills.length
-                  ? pills.map((label) =>
-                      el(
-                        'span',
-                        {
-                          fontSize: '17px',
-                          color: '#d4d4d8',
-                          backgroundColor: theme.pillBg,
-                          border: `1px solid ${theme.border}`,
-                          borderRadius: '8px',
-                          padding: '6px 14px',
-                        },
-                        label,
-                      ),
-                    )
-                  : [
-                      el(
-                        'span',
-                        { fontSize: '19px', color: theme.accent, fontWeight: 700 },
-                        `@${handle || 'hambn'}`,
-                      ),
-                    ],
-              ),
-              el(
+              el('span', { color: '#e4e4e7', fontWeight: 700 }, author),
+              el('span', { color: '#52525b' }, '/'),
+              el('span', { color: accent, fontWeight: 700 }, `@${handle}`),
+            ],
+          ),
+          footItems.length
+            ? el(
                 'div',
                 {
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '10px',
-                  fontSize: '18px',
-                  color: '#a1a1aa',
+                  gap: '12px',
+                  fontSize: '19px',
+                  color: '#71717a',
                 },
-                [
-                  el('span', {
-                    width: '10px',
-                    height: '10px',
-                    borderRadius: '9999px',
-                    backgroundColor: theme.accent,
-                  }),
-                  el('span', {}, handle ? `${handle} · ${host || 'hgh.dev'}` : host || 'hgh.dev'),
-                ],
-              ),
-            ],
-          ),
-        ],
+                footItems.flatMap((item, idx) =>
+                  idx === 0
+                    ? [el('span', {}, item)]
+                    : [el('span', { color: '#3f3f46' }, '·'), el('span', {}, item)],
+                ),
+              )
+            : null,
+        ].filter(Boolean),
       ),
     ],
   );

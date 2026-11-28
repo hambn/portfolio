@@ -20,11 +20,13 @@
   /* ── Motion ── */
   --ease-default: cubic-bezier(0.4, 0, 0.2, 1); /* @kind other */
   --ease-out: cubic-bezier(0, 0, 0.2, 1); /* @kind other */
+  --ease-spring: cubic-bezier(0.22, 1, 0.36, 1); /* @kind other */
+  --ease-snappy: cubic-bezier(0.16, 1, 0.3, 1); /* @kind other */
 
-  --duration-fast: 80ms; /* @kind other */
-  --duration-base: 150ms; /* @kind other */
-  --duration-slow: 300ms; /* @kind other */
+  --duration-fast: 100ms; /* @kind other */
+  --duration-base: 180ms; /* @kind other */
+  --duration-slow: 320ms; /* @kind other */
 
-  --transition-base: var(--duration-base) var(--ease-default); /* @kind other */
-  --transition-slow: var(--duration-slow) var(--ease-default); /* @kind other */
+  --transition-base: var(--duration-base) var(--ease-spring); /* @kind other */
+  --transition-slow: var(--duration-slow) var(--ease-spring); /* @kind other */
 }

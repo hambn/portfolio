@@ -7,6 +7,8 @@ export const CORS = {
 };
 
 export function json(data: unknown, status = 200, ttl = 0): Response {
+  const swr = ttl > 0 ? Math.min(ttl * 4, 86400) : 0;
+  const cdnCc = ttl > 0 ? `public, max-age=${ttl}, stale-while-revalidate=${swr}` : 'no-store';
   return new Response(JSON.stringify(data), {
     status,
     headers: {
@@ -16,8 +18,8 @@ export function json(data: unknown, status = 200, ttl = 0): Response {
       'Cache-Control': ttl > 0 ? `public, max-age=${ttl}` : 'no-store',
       ...(ttl > 0
         ? {
-            'Cloudflare-CDN-Cache-Control': `public, max-age=${ttl}`,
-            'CDN-Cache-Control': `public, max-age=${ttl}`,
+            'Cloudflare-CDN-Cache-Control': cdnCc,
+            'CDN-Cache-Control': cdnCc,
           }
         : {}),
     },

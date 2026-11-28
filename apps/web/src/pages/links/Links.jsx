@@ -4,14 +4,13 @@
 import '../../components/card/cards.css';
 import './link-cards.css';
 import './link-fonts.css';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { apiUrl } from '../../lib/api.js';
 import { EXTERNAL } from '../../lib/external.js';
 import { writeCollapsed } from '../../lib/cardState.js';
-import { buildLinkServices, findLinkService, linkShareUrl } from '../../lib/linksDirectory.js';
+import { findLinkService } from '../../lib/linksDirectory.js';
 import { useSiteCard } from '../../lib/siteFeed.js';
 import { useContent } from '../../hooks/useContent.js';
-import { useCopy } from '../../hooks/useCopy.js';
 import ErrorState from '../../components/ErrorState.jsx';
 import ErrorBoundary from '../../components/ErrorBoundary.jsx';
 import Icon from '../../components/Icon.jsx';
@@ -128,21 +127,7 @@ export default function Links({ route }) {
   const { data: config, error, retry } = useContent('links');
   const { data: profile } = useContent('profile');
   const discordFeed = useSiteCard('discord');
-  const [origin, setOrigin] = useState('');
-  const [embedsOpen, setEmbedsOpen] = useState(false);
-  const [copiedSlug, setCopiedSlug] = useState('');
-
-  useEffect(() => {
-    const base = import.meta.env.BASE_URL.replace(/\/+$/, '');
-    setOrigin(`${window.location.origin}${base}`);
-  }, []);
-
-  const [copiedPage, copyPage] = useCopy(origin ? `${origin}/links/` : '');
   const cards = useMemo(() => (config ? cardList(config) : []), [config]);
-  const services = useMemo(
-    () => (config ? buildLinkServices(config, profile) : []),
-    [config, profile],
-  );
   const serviceSlug = (route || '').split('/')[1] || '';
   const focusedService = useMemo(
     () => (config && serviceSlug ? findLinkService(config, serviceSlug, profile) : null),
@@ -168,13 +153,6 @@ export default function Links({ route }) {
       pulseCard(el);
     });
   }, [cards, serviceSlug]);
-
-  const copyEmbedLink = (slug) => {
-    if (!origin) return;
-    navigator.clipboard?.writeText(linkShareUrl(slug, origin)).catch(() => {});
-    setCopiedSlug(slug);
-    window.setTimeout(() => setCopiedSlug((cur) => (cur === slug ? '' : cur)), 1600);
-  };
 
   const rawStatus =
     discordFeed.status === 'ready'
@@ -258,59 +236,6 @@ export default function Links({ route }) {
           ))}
         </div>
       </LinksFeed>
-
-      {origin && (
-        <div className="links-foot">
-          <div className="links-foot-row">
-            <span className="links-foot-note">direct share &amp; embed links</span>
-            <div className="links-foot-actions">
-              <button
-                type="button"
-                className={`links-share-page${embedsOpen ? ' is-done' : ''}`}
-                onClick={() => setEmbedsOpen((open) => !open)}
-                aria-expanded={embedsOpen}
-                title="Copy shareable /links/<service>/ embed URLs"
-              >
-                <Icon name="link" />
-                embeds
-              </button>
-              <button
-                type="button"
-                className={`links-share-page${copiedPage ? ' is-done' : ''}`}
-                onClick={copyPage}
-                title="Copy links page URL"
-              >
-                <Icon name={copiedPage ? 'check' : 'arrow-up-right'} />
-                {copiedPage ? 'copied' : 'share'}
-              </button>
-            </div>
-          </div>
-
-          {embedsOpen && (
-            <div className="links-embed-strip" role="region" aria-label="shareable embed links">
-              {services.map((svc) => {
-                const done = copiedSlug === svc.slug;
-                return (
-                  <button
-                    key={svc.slug}
-                    type="button"
-                    className={`links-embed-chip${done ? ' is-done' : ''}`}
-                    onClick={() => copyEmbedLink(svc.slug)}
-                    title={`Copy ${linkShareUrl(svc.slug, origin)}`}
-                  >
-                    <span
-                      className="links-embed-dot"
-                      style={{ background: svc.accent }}
-                      aria-hidden="true"
-                    />
-                    {done ? 'copied!' : `/links/${svc.slug}`}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
     </main>
   );
 }

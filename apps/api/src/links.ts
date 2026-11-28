@@ -1,5 +1,6 @@
 import type { Services } from './contracts.js';
 import type { Handler } from './routes.js';
+import { withCache } from './lib/cache.js';
 import { json } from './lib/http.js';
 import { DISCORD_TTL, PROFILE_TTL, PROJECTS_RESPONSE_TTL, STEAM_TTL } from './lib/ttl.js';
 import { handle as spotify } from './providers/spotify.js';
@@ -100,8 +101,18 @@ function selection(url: URL): string[] {
 
 export async function handle(request: Request, services: Services): Promise<Response> {
   const keys = selection(new URL(request.url));
-  const results = await Promise.all(keys.map((key) => loadCard(key, request, services)));
-  // Uncached: the envelope carries live Spotify playback. Each card still
-  // reports its own max-age so the client knows when that card goes stale.
-  return json({ generatedAt: services.now(), cards: Object.fromEntries(results) });
+  // Batches that include live Spotify playback stay uncached. Non-live subsets
+  // (e.g. `?include=projects` or background warm-ups) can be edge-cached for
+  // the shortest card TTL so repeat visitors hit Cloudflare's cache in ~15ms.
+  const canCache = keys.length > 0 && !keys.includes('spotify');
+  const build = async () => {
+    const results = await Promise.all(keys.map((key) => loadCard(key, request, services)));
+    const readyTtls = results
+      .map(([, card]) => (!card.error && card.maxAge > 0 ? card.maxAge : 0))
+      .filter((ttl) => ttl > 0);
+    const allHealthy = results.every(([, card]) => !card.error);
+    const ttl = canCache && allHealthy && readyTtls.length ? Math.min(60, ...readyTtls) : 0;
+    return json({ generatedAt: services.now(), cards: Object.fromEntries(results) }, 200, ttl);
+  };
+  return canCache ? withCache(services, request, build) : build();
 }

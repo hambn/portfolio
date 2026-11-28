@@ -139,9 +139,9 @@
   padding: 0 11px;
 }
 .projects-sort .projects-chip.is-on {
-  background: var(--background-muted);
-  color: var(--foreground);
-  border-color: transparent;
+  background: var(--primary-subtle);
+  color: var(--primary);
+  border-color: var(--primary-ring);
 }
 .projects-langs {
   display: flex;
@@ -287,15 +287,20 @@
   padding: 16px 18px;
   transition:
     border-color var(--transition-base),
-    background-color var(--transition-base);
+    background-color var(--transition-base),
+    transform 200ms var(--ease-spring);
 }
 /* A finger has no hover: on a touch screen the card would stay lifted after
  * a tap until something else was touched. */
 @media (hover: hover) {
   .project-card:hover {
-    border-color: var(--border-strong);
+    border-color: color-mix(in srgb, var(--primary) 35%, var(--border-strong));
     background: var(--background-subtle);
+    transform: translateY(-2px);
   }
+}
+.project-card:active {
+  transform: scale(0.992);
 }
 .project-card:focus-within {
   border-color: var(--border-strong);

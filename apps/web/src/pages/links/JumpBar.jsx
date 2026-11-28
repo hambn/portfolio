@@ -52,10 +52,50 @@ export function pulseCard(el) {
 export default function JumpBar({ cards }) {
   const barRef = useRef(null);
   const islandRef = useRef(null);
+  const platformsRef = useRef(null);
+  const pillRef = useRef(null);
+  const placedRef = useRef(false);
   const [activeId, setActiveId] = useState(null);
   useIsland(barRef, islandRef);
   const collapsed = useCollapsedIds(cards).split(' ').filter(Boolean);
   const allCollapsed = collapsed.length === cards.length;
+
+  // Glide the active highlight pill smoothly across platform chips as the
+  // visitor scrolls or taps a chip, and re-measure when the dock folds.
+  useEffect(() => {
+    const host = platformsRef.current;
+    const pill = pillRef.current;
+    const bar = barRef.current;
+    if (!host || !pill || !bar) return undefined;
+
+    const sync = (instant = false) => {
+      const target = activeId ? host.querySelector(`[data-card="${activeId}"]`) : null;
+      if (!target) {
+        pill.style.opacity = '0';
+        return;
+      }
+      if (instant) pill.style.transition = 'none';
+      pill.style.transform = `translate3d(${target.offsetLeft}px, ${target.offsetTop}px, 0)`;
+      pill.style.width = `${target.offsetWidth}px`;
+      pill.style.height = `${target.offsetHeight}px`;
+      pill.style.opacity = '1';
+      if (instant) {
+        void pill.offsetWidth;
+        pill.style.removeProperty('transition');
+      }
+    };
+
+    sync(!placedRef.current);
+    if (activeId) placedRef.current = true;
+
+    const onLayout = () => sync(true);
+    bar.addEventListener('island:layout', onLayout);
+    window.addEventListener('resize', onLayout);
+    return () => {
+      bar.removeEventListener('island:layout', onLayout);
+      window.removeEventListener('resize', onLayout);
+    };
+  }, [activeId, cards.length]);
 
   // Track whichever card currently sits closest to the top of the reading band.
   useEffect(() => {
@@ -91,6 +131,7 @@ export default function JumpBar({ cards }) {
   }, [cards]);
 
   const jump = (id) => {
+    setActiveId(id);
     const el = document.getElementById(`card-${id}`);
     if (!el) return;
     const key = collapsedKey(id);
@@ -114,7 +155,8 @@ export default function JumpBar({ cards }) {
     <nav className="links-jump" ref={barRef} aria-label="link cards">
       <div className="links-jump-island" ref={islandRef}>
         <div className="links-jump-list">
-          <div className="links-jump-platforms">
+          <div className="links-jump-platforms" ref={platformsRef}>
+            <span className="links-jump-pill" ref={pillRef} aria-hidden="true" />
             {cards.map((card) => (
               <button
                 key={card.id}

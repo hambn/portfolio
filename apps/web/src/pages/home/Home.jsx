@@ -5,7 +5,6 @@ import './home.css';
 import React, { useEffect, useState } from 'react';
 import { PortfolioData } from '../../lib/data.js';
 import { useContent } from '../../hooks/useContent.js';
-import FooterLinks from './FooterLinks.jsx';
 import Intro from './Intro.jsx';
 import RecentPosts, { RECENT_COUNT } from './RecentPosts.jsx';
 import Stack from './Stack.jsx';
@@ -17,7 +16,6 @@ export { warm } from './warm.js';
 export default function Home() {
   const { data: profile } = useContent('profile');
   const { data: resume } = useContent('resume');
-  const { data: links } = useContent('links');
   // The prerendered page carries just the newest posts; without them (dev, or
   // a page opened by navigation) they come from the blog index.
   const [recent, setRecent] = useState(
@@ -54,7 +52,6 @@ export default function Home() {
       <Timeline resume={resume} />
       <RecentPosts posts={recent} />
       <Stack skills={resume?.skills} blogTags={blogTags} />
-      <FooterLinks links={links} />
     </main>
   );
 }

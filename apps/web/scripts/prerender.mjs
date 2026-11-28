@@ -236,32 +236,36 @@ function inlineStylesheet(html) {
   });
 }
 
-/* ── entry chunk ──
- * Vite leaves the module script at the end of <body>, so the request for it
- * only starts once the parser has walked the whole document — including the
- * inlined stylesheet and the JSON-LD block. A modulepreload at the top of
- * <head> starts it immediately instead, shortening the critical path to the
- * first byte of app code. Its static imports (the react chunk) are preloaded
- * by Vite's own hints. */
-function preloadEntry(html) {
-  const src = /<script type="module"[^>]*src="([^"]+)"/.exec(html)?.[1];
-  if (!src) return html;
-  if (html.includes(`rel="modulepreload" crossorigin href="${src}"`)) return html;
-  return html.replace(
+/* ── early head preloads ──
+ * Pull Vite's modulepreload hints (react, entry, shared runtime) up to the top
+ * of <head>, right next to the font preload and BEFORE the 13–70 KB of inlined
+ * critical CSS, so the browser discovers them in the first 14 KB TCP packet. */
+function hoistPreloads(html) {
+  const tags = [];
+  const stripped = html.replace(/<link\s+rel="modulepreload"[^>]*>/g, (tag) => {
+    tags.push(tag.trim());
+    return '';
+  });
+  const src = /<script type="module"[^>]*src="([^"]+)"/.exec(stripped)?.[1];
+  if (src && !tags.some((t) => t.includes(`href="${src}"`))) {
+    tags.unshift(`<link rel="modulepreload" crossorigin href="${src}" />`);
+  }
+  const externalApi = /^https?:\/\//.test(API_BASE) ? new URL(API_BASE).origin : '';
+  if (externalApi && externalApi !== SITE) {
+    tags.unshift(`<link rel="preconnect" href="${esc(externalApi)}" crossorigin />`);
+  }
+  if (!tags.length) return stripped;
+  return stripped.replace(
     /(<meta name="viewport"[^>]*>)/,
-    (viewport) => `${viewport}\n    <link rel="modulepreload" crossorigin href="${src}" />`,
+    (viewport) => `${viewport}\n    ${tags.join('\n    ')}`,
   );
 }
 
 /* ── body font ──
- * Every page is set in JetBrains Mono, and painting it first in a system
- * stand-in and swapping a moment later reads as a broken page. Preloading the
- * upright latin file (the one styles/fonts.css declares with
- * `font-display: block`) starts the download with the HTML instead of after
- * the stylesheet is parsed; Chrome then holds the first paint for it, so the
- * page appears once, already in its own face. That costs roughly 80-100 ms of
- * first paint on a cold visit and nothing afterwards: the file is hashed and
- * cached as immutable. The italic is left to load on demand. */
+ * Preloading the upright latin JetBrains Mono woff2 starts the download in the
+ * first TCP packet alongside the entry/react scripts. Paired with `font-display:
+ * swap` and the metric-matched fallback in styles/fonts.css, fast visits paint
+ * directly in JetBrains Mono and slow links never block text paint. */
 function preloadFont(html) {
   const href = /url\(([^)]*jetbrains-mono-latin-wght-normal[^)]*\.woff2)\)/.exec(html)?.[1];
   if (!href) return html;
@@ -273,7 +277,7 @@ function preloadFont(html) {
 }
 
 const template = preloadFont(
-  preloadEntry(inlineStylesheet(readFileSync(join(dist, 'index.html'), 'utf8'))),
+  hoistPreloads(inlineStylesheet(readFileSync(join(dist, 'index.html'), 'utf8'))),
 )
   .replace(/(<meta\s+name="author"\s+content=")[^"]*(")/, between(esc(profile.name)))
   .replace(/(<meta\s+property="og:image"\s+content=")[^"]*(")/, between(esc(profile.avatar)))
@@ -356,15 +360,38 @@ function page({
     data.recentPosts = posts.slice(0, 3).map(({ slug, title, date }) => ({ slug, title, date }));
     data.blogTags = blogTags;
   }
-  if (home || ['projects', 'links', 'resume'].includes(path)) data.links = links;
+  if (['projects', 'links', 'resume'].includes(path)) data.links = links;
   if (path === 'projects') data.projects = projects;
   if (path === 'blog' || path?.startsWith('blog/')) data.blogIndex = postIndex;
   if (path?.startsWith('blog/')) {
     const post = posts.find((p) => `blog/${p.slug}` === path);
     if (post) data.postHtml = { [post.slug]: renderedPosts.get(post.slug) };
   }
-  const content = notFound ? '' : render(path || 'home', data);
+  let content = notFound ? '' : render(path || 'home', data);
+  // Hoist any `<link rel="preload" as="image" ...>` emitted by React SSR out
+  // of #root into the top of <head> so the LCP avatar starts in packet #1.
+  const hoistedImages = [];
+  content = content.replace(/<link\s+rel="preload"\s+as="image"[^>]*\/?>/g, (tag) => {
+    hoistedImages.push(
+      tag.replace(/\bimageSrcSet=/g, 'imagesrcset=').replace(/\bfetchPriority=/g, 'fetchpriority='),
+    );
+    return '';
+  });
   const serialized = JSON.stringify(data).replace(/</g, '\\u003c');
+
+  // Split route modulepreloads (early in <head>) from route inline styles.
+  const routeModulePreloads = [];
+  const routeRest = preload
+    .split('\n')
+    .filter((line) => {
+      if (line.includes('rel="modulepreload"')) {
+        routeModulePreloads.push(line.trim());
+        return false;
+      }
+      return Boolean(line);
+    })
+    .join('\n');
+  const earlyHints = [...hoistedImages, ...routeModulePreloads];
 
   // No image preload here on purpose: React already emits one for the home
   // avatar because it renders with fetchPriority="high". A second link for the
@@ -389,7 +416,7 @@ function page({
       ? `  <link rel="alternate" type="application/json+oembed" title="${esc(title)}" href="${esc(oembedUrl)}" />`
       : '',
     `  <meta name="robots" content="${notFound ? 'noindex' : INDEX_ROBOTS}" />`,
-    preload,
+    routeRest,
     extraHead,
   ]
     .filter(Boolean)
@@ -408,6 +435,12 @@ function page({
         `<div id="root">${content}</div><script id="portfolio-data" type="application/json">${serialized}</script>`,
       ),
     );
+  if (earlyHints.length) {
+    html = html.replace(
+      /(<meta name="viewport"[^>]*>)/,
+      (viewport) => `${viewport}\n    ${earlyHints.join('\n    ')}`,
+    );
+  }
   // The template's structured data is a placeholder: every page replaces it,
   // and a not-found page, which describes nothing, drops it.
   html = html.replace(
@@ -449,7 +482,7 @@ function writeOembed(relPath, { title, ogUrl, provider = ogHost }) {
   const payload = {
     version: '1.0',
     type: 'link',
-    author_name: profile.handle ? `${profile.name} (@${profile.handle})` : profile.name,
+    author_name: profile.name,
     author_url: abs(),
     provider_name: provider,
     provider_url: abs(),
@@ -461,23 +494,29 @@ function writeOembed(relPath, { title, ogUrl, provider = ogHost }) {
   writeFileSync(join(dist, relPath), `${JSON.stringify(payload, null, 2)}\n`);
 }
 
-function linkRedirectPage(service, ogUrl, oembedUrl) {
+function minimalRedirectFallback(service) {
+  const html = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="robots" content="noindex" />
+    <meta http-equiv="refresh" content="0;url=${esc(service.url)}" />
+    <title>${esc(service.label)}</title>
+    <script>window.location.replace(${JSON.stringify(service.url)});</script>
+  </head>
+  <body>
+    <p>Redirecting to <a href="${esc(service.url)}" rel="noopener noreferrer">${esc(service.url)}</a>…</p>
+  </body>
+</html>
+`;
+  return withCsp(html);
+}
+
+function linkContactPage(service, ogUrl, oembedUrl) {
   const shareUrl = abs(`links/${service.slug}`);
   const title = `${service.label} — ${profile.name}`;
   const cardTitle = `${service.label} — ${service.handle}`;
   const linksIndexUrl = `${BASE}/links/`;
-  const heading = service.redirect
-    ? `Opening ${service.label}…`
-    : `${service.label} — ${service.handle}`;
-  const redirectScript = service.redirect
-    ? `<script>window.location.replace(${JSON.stringify(service.url)});</script>`
-    : '';
-  const noscriptRedirect = service.redirect
-    ? `<noscript><meta http-equiv="refresh" content="0;url=${esc(service.url)}" /></noscript>`
-    : '';
-  const primaryInk = ['#e4e4e7', '#1ed760', '#66c0f4'].includes(service.accent.toLowerCase())
-    ? '#09090b'
-    : '#fff';
   const html = `<!doctype html>
 <html lang="en">
   <head>
@@ -490,8 +529,8 @@ function linkRedirectPage(service, ogUrl, oembedUrl) {
     <meta name="author" content="${esc(profile.name)}" />
     <meta name="robots" content="noindex, follow" />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
-    <meta name="theme-color" content="${esc(service.accent)}" />
-    <meta property="og:site_name" content="${esc(profile.name)} · ${esc(ogHost)}" />
+    <meta name="theme-color" content="#3b82f6" />
+    <meta property="og:site_name" content="${esc(ogHost)}" />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="en_US" />
     <meta property="og:url" content="${esc(shareUrl)}" />
@@ -509,30 +548,28 @@ function linkRedirectPage(service, ogUrl, oembedUrl) {
     <meta name="twitter:image" content="${esc(ogUrl)}" />
     <meta name="twitter:image:alt" content="${esc(cardTitle)}" />
     <link rel="alternate" type="application/json+oembed" title="${esc(cardTitle)}" href="${esc(oembedUrl)}" />
-    ${noscriptRedirect}
     <style>
       *{box-sizing:border-box;margin:0;padding:0}
       body{min-height:100vh;display:grid;place-items:center;padding:24px;background:#09090b;color:#fafafa;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
-      main{width:min(520px,100%);border:1px solid #27272a;border-top:3px solid ${esc(service.accent)};border-radius:14px;background:#111114;padding:28px}
+      main{width:min(520px,100%);border:1px solid #27272a;border-top:3px solid #3b82f6;border-radius:14px;background:#111114;padding:28px}
       .path{color:#93939d;font-size:13px;margin-bottom:14px}
-      .path b{color:${esc(service.accent)}}
+      .path b{color:#3b82f6}
       h1{font-size:20px;font-weight:700;margin-bottom:8px}
       p{color:#b4b4bd;font-size:14px;line-height:1.6;margin-bottom:20px}
       .actions{display:flex;flex-wrap:wrap;gap:10px}
       a{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;font-size:13px;text-decoration:none}
-      .primary{background:${esc(service.accent)};color:${primaryInk};font-weight:600}
+      .primary{background:#2563eb;color:#fff;font-weight:600}
       .secondary{border:1px solid #27272a;color:#b4b4bd}
     </style>
-    ${redirectScript}
   </head>
   <body>
     <main>
-      <div class="path"><b>$</b> ~/links/${esc(service.slug)}</div>
-      <h1>${esc(heading)}</h1>
+      <div class="path"><b>${esc(ogHost)}</b>/links/${esc(service.slug)}</div>
+      <h1>${esc(cardTitle)}</h1>
       <p>${esc(service.tagline)}</p>
       <div class="actions">
-        <a class="primary" href="${esc(service.url)}" rel="noopener noreferrer">${service.redirect ? `Open ${esc(service.label)}` : `Email ${esc(service.handle)}`}</a>
-        <a class="secondary" href="${esc(linksIndexUrl)}">← All links on ${esc(ogHost)}</a>
+        <a class="primary" href="${esc(service.url)}" rel="noopener noreferrer">Email ${esc(service.handle)}</a>
+        <a class="secondary" href="${esc(linksIndexUrl)}">All links</a>
       </div>
     </main>
   </body>
@@ -543,16 +580,18 @@ function linkRedirectPage(service, ogUrl, oembedUrl) {
 
 function ogCardMeta(metadata) {
   if (metadata.post) {
+    const readMeta = [
+      isoDate(metadata.post.date),
+      metadata.post.minutes ? `${metadata.post.minutes} min read` : '',
+    ]
+      .filter(Boolean)
+      .join(' · ');
     return {
-      path: `Documents/blogs/${metadata.post.slug}`,
+      path: 'blog',
       title: metadata.post.title,
       description: metadata.post.description,
-      badge: 'post',
-      meta: [
-        isoDate(metadata.post.date),
-        metadata.post.minutes ? `${metadata.post.minutes} min read` : '',
-        ...(metadata.post.tags || []).slice(0, 2),
-      ],
+      kicker: readMeta,
+      meta: (metadata.post.tags || []).slice(0, 3),
     };
   }
   switch (metadata.page) {
@@ -561,35 +600,40 @@ function ogCardMeta(metadata) {
         path: '',
         title: profile.name,
         description: profile.bio,
-        meta: [`@${profile.handle}`, `${posts.length} posts`, `${featured.length} projects`],
+        kicker: profile.title || 'devops engineer',
+        meta: (resume.skills || []).slice(0, 3),
       };
     case 'projects':
       return {
         path: 'projects',
-        title: 'projects',
+        title: 'Projects',
         description: metadata.desc,
-        meta: [`${featured.length} featured`, ...projectLanguages],
+        kicker: `${featured.length} featured`,
+        meta: projectLanguages.length ? projectLanguages : ['github', 'gitlab', 'codeberg'],
       };
     case 'blog':
       return {
-        path: 'Documents/blogs',
-        title: 'blogs',
+        path: 'blog',
+        title: 'Blog',
         description: metadata.desc,
-        meta: [`${posts.length} posts`, ...blogTags.slice(0, 3)],
+        kicker: `${posts.length} posts`,
+        meta: blogTags.slice(0, 3),
       };
     case 'links':
       return {
-        path: 'Documents/links',
-        title: 'links',
+        path: 'links',
+        title: 'Links & Contact',
         description: metadata.desc,
-        meta: [`${linkServices.length} platforms`, 'github', 'discord', 'spotify'],
+        kicker: `${linkServices.length} profiles`,
+        meta: ['github', 'discord', 'telegram'],
       };
     case 'resume':
       return {
-        path: 'Documents/resume',
-        title: 'resume',
+        path: 'resume',
+        title: 'Resume',
         description: metadata.desc,
-        meta: [firstItem('work')?.role, `${resume.skills?.length || 0} tools`],
+        kicker: firstItem('work')?.role || profile.title || '',
+        meta: (resume.skills || []).slice(0, 3),
       };
     default:
       return { path: metadata.path, title: metadata.title, description: metadata.desc, meta: [] };
@@ -607,7 +651,12 @@ for (const route of [
   const oembedUrl = `${siteRoot}/${oembedRel}`;
   ogTasks.push({
     file: join(dist, ogRel),
-    opts: { ...ogCardMeta(metadata), host: ogHost, handle: profile.handle },
+    opts: {
+      ...ogCardMeta(metadata),
+      host: ogHost,
+      handle: profile.handle,
+      author: profile.name,
+    },
   });
   writeOembed(oembedRel, { title: metadata.title, ogUrl });
   write(
@@ -645,50 +694,42 @@ for (const route of [
   );
 }
 
-// Shareable `/links/<service>/` redirect pages with custom branded Discord/OG embeds.
-// Spotify & Discord point their oEmbed discovery at the live API when an HTTPS
-// API origin is configured, so Discord displays live now-playing / presence.
-const liveOembedServices = new Set(['spotify', 'discord']);
-const httpsApi = /^https:\/\//.test(API_BASE)
-  ? API_BASE.replace(/\/+$/, '')
-  : API_BASE.startsWith('/') && /^https:\/\//.test(SITE)
-    ? `${SITE}${API_BASE.replace(/\/+$/, '')}`
-    : '';
-
+// External `/links/<service>/` paths issue real HTTP 302 redirects via
+// Cloudflare's `_redirects` file (0 Worker invocations), so chat unfurlers
+// follow through and render each destination website's own native embed.
+const redirectRules = [
+  '# External link short-URLs — HTTP 302 so unfurlers fetch the destination site embed.',
+];
 for (const service of linkServices) {
-  const ogRel = `og/links-${service.slug}.png`;
-  const oembedRel = `oembed/links-${service.slug}.json`;
-  const ogUrl = `${siteRoot}/${ogRel}`;
-  const staticOembedUrl = `${siteRoot}/${oembedRel}`;
-  const oembedUrl =
-    httpsApi && liveOembedServices.has(service.slug)
-      ? `${httpsApi}/oembed/${service.slug}`
-      : staticOembedUrl;
-  let targetHost = service.handle;
-  try {
-    targetHost = new URL(service.url).host || service.handle;
-  } catch {}
-  ogTasks.push({
-    file: join(dist, ogRel),
-    opts: {
-      path: `links/${service.slug}`,
-      title: `${service.label} — ${service.handle}`,
-      description: service.tagline,
-      accent: service.accent,
-      cardId: service.cardId,
-      badge: service.slug === 'spotify' ? 'now playing' : service.redirect ? 'redirect' : 'contact',
-      meta: [targetHost, `${ogHost}/links/${service.slug}`],
-      host: ogHost,
-      handle: profile.handle,
-    },
-  });
-  writeOembed(oembedRel, {
-    title: `${service.label} — ${service.handle}`,
-    ogUrl,
-    provider: `${ogHost} · ${service.label}`,
-  });
-  write(`links/${service.slug}`, linkRedirectPage(service, ogUrl, oembedUrl));
+  if (service.redirect) {
+    const basePath = `${BASE}/links/${service.slug}`;
+    redirectRules.push(`${basePath} ${service.url} 302`);
+    redirectRules.push(`${basePath}/ ${service.url} 302`);
+    // Minimal HTML fallback for static hosts that do not process `_redirects`.
+    write(`links/${service.slug}`, minimalRedirectFallback(service));
+  } else {
+    const ogRel = `og/links-${service.slug}.png`;
+    const oembedRel = `oembed/links-${service.slug}.json`;
+    const ogUrl = `${siteRoot}/${ogRel}`;
+    const oembedUrl = `${siteRoot}/${oembedRel}`;
+    ogTasks.push({
+      file: join(dist, ogRel),
+      opts: {
+        path: `links/${service.slug}`,
+        title: `${service.label} — ${service.handle}`,
+        description: service.tagline,
+        kicker: 'contact',
+        meta: [service.handle],
+        host: ogHost,
+        handle: profile.handle,
+        author: profile.name,
+      },
+    });
+    writeOembed(oembedRel, { title: `${service.label} — ${service.handle}`, ogUrl });
+    write(`links/${service.slug}`, linkContactPage(service, ogUrl, oembedUrl));
+  }
 }
+writeFileSync(join(dist, '_redirects'), `${redirectRules.join('\n')}\n`);
 
 await Promise.all(
   ogTasks.map(async ({ file, opts }) => writeFileSync(file, await renderOgImage(opts))),

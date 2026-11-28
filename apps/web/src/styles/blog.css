@@ -859,12 +859,16 @@
   border-radius: var(--radius-lg);
   background: var(--glass);
   opacity: 0;
-  transition: opacity var(--transition-base);
+  transform: scale(0.99);
+  transition:
+    opacity var(--transition-base),
+    transform 220ms var(--ease-spring);
   pointer-events: none;
 }
 .post-row:hover::before,
 .post-row:focus-within::before {
   opacity: 1;
+  transform: scale(1);
 }
 .post-row-link {
   cursor: pointer;
@@ -1026,7 +1030,7 @@
   padding-left: 22px;
 }
 .post-toc-list a.is-active {
-  color: var(--foreground);
+  color: var(--primary);
   border-left-color: var(--primary);
 }
 @media (hover: hover) {

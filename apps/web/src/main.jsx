@@ -20,7 +20,15 @@ function roundFavicon(size) {
   const link = document.querySelector("link[rel='icon']");
   if (!link?.href) return;
   const img = new Image();
-  img.crossOrigin = 'anonymous';
+  // Same-origin icons can be drawn onto canvas without CORS mode, so the
+  // browser reuses the already-cached favicon/avatar with zero extra requests.
+  try {
+    if (new URL(link.href, window.location.href).origin !== window.location.origin) {
+      img.crossOrigin = 'anonymous';
+    }
+  } catch {
+    img.crossOrigin = 'anonymous';
+  }
   img.onload = () => {
     const canvas = document.createElement('canvas');
     canvas.width = size;
@@ -30,14 +38,20 @@ function roundFavicon(size) {
     ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
     ctx.clip();
     ctx.drawImage(img, 0, 0, size, size);
-    link.type = 'image/png';
-    link.href = canvas.toDataURL('image/png');
+    try {
+      link.type = 'image/png';
+      link.href = canvas.toDataURL('image/png');
+    } catch {
+      // Tainted cross-origin fallback — keep the original icon untouched.
+    }
   };
   // The declared icon goes through the API's media proxy; with the API down,
-  // draw from the provider's copy instead.
+  // draw from the provider's copy instead (cross-origin requires CORS mode).
   img.onerror = () => {
     const source = upstreamSource(img.src);
-    if (source) img.src = source;
+    if (!source) return;
+    img.crossOrigin = 'anonymous';
+    img.src = source;
   };
   img.src = link.href;
 }

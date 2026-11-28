@@ -148,7 +148,7 @@ html[data-transition='theme']::view-transition-old(root) {
 }
 html[data-transition='theme']::view-transition-new(root) {
   mix-blend-mode: normal;
-  animation: theme-reveal 380ms var(--ease-default);
+  animation: theme-reveal 340ms var(--ease-spring);
 }
 @keyframes theme-reveal {
   from {
@@ -170,7 +170,7 @@ html[data-transition='theme']::view-transition-new(root) {
   }
 }
 html[data-navigated] #content > main {
-  animation: page-in 140ms var(--ease-out);
+  animation: page-in 180ms var(--ease-spring);
 }
 /* The same fallback for the theme flip (Nav.jsx): colours cross-fade. */
 html.theme-switching,
@@ -252,12 +252,31 @@ html.theme-switching *::after {
   fill: var(--hairline);
 }
 .nav-group {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 2px;
 }
+.nav-indicator {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: var(--radius-md);
+  background: var(--primary-subtle);
+  border: 1px solid color-mix(in srgb, var(--primary) 24%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform, width;
+  transition:
+    transform 280ms var(--ease-spring),
+    width 280ms var(--ease-spring),
+    opacity 180ms var(--ease-spring);
+}
 .nav-brand,
 .nav-item {
+  position: relative;
+  z-index: 1;
   font-family: var(--font-mono);
   font-size: 14px;
   letter-spacing: 0;
@@ -268,13 +287,14 @@ html.theme-switching *::after {
   border-radius: var(--radius-md);
   transition:
     color var(--transition-base),
-    background-color var(--transition-base);
+    background-color var(--transition-base),
+    transform 120ms var(--ease-spring);
 }
 /* Hover is for pointers only: on a touch screen it sticks to the last link
  * tapped and reads as a second, grey "selected" state. */
 @media (hover: hover) {
-  .nav-brand:hover,
-  .nav-item:hover {
+  .nav-brand:not([aria-current='page']):hover,
+  .nav-item:not([aria-current='page']):hover {
     color: var(--foreground);
     background: color-mix(in srgb, var(--foreground) 6%, transparent);
   }
@@ -283,7 +303,7 @@ html.theme-switching *::after {
 .nav-brand:active,
 .nav-item:active {
   color: var(--foreground);
-  background: color-mix(in srgb, var(--foreground) 8%, transparent);
+  transform: scale(0.96);
 }
 .nav-brand {
   display: inline-flex;
@@ -349,7 +369,8 @@ html.theme-switching *::after {
   transition:
     color var(--transition-base),
     background-color var(--transition-base),
-    border-color var(--transition-base);
+    border-color var(--transition-base),
+    transform 140ms var(--ease-spring);
 }
 .nav-palette {
   font-size: 15px;
@@ -365,6 +386,7 @@ html.theme-switching *::after {
 .nav-theme:active {
   color: var(--foreground);
   background: color-mix(in srgb, var(--foreground) 8%, transparent);
+  transform: scale(0.92);
 }
 /* Both icons share one cell; the one that is out turns away as it fades. */
 .nav-theme .icon {
@@ -524,7 +546,13 @@ html.theme-switching *::after {
   margin: 0;
 }
 @media (hover: none) {
-  .keys {
+  .keys,
+  .site-footer-shell {
+    display: none;
+  }
+}
+@media (max-width: 639px) {
+  .site-footer-shell {
     display: none;
   }
 }

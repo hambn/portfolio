@@ -1,5 +1,5 @@
 // Nav.jsx — top navigation + theme toggle.
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useContent } from '../hooks/useContent.js';
 import { followRoute, routeHref } from '../lib/router.js';
 import { storage } from '../lib/storage.js';
@@ -42,6 +42,43 @@ export function toggleTheme() {
 
 export default function Nav({ page }) {
   const { data: profile } = useContent('profile');
+  const groupRef = useRef(null);
+  const pillRef = useRef(null);
+  const placedRef = useRef(false);
+
+  // Glide the subtle active indicator pill to whichever nav link matches the
+  // current route. Positioned imperatively after mount so SSR and hydration
+  // match cleanly and the first paint snaps without sliding in from x=0.
+  useEffect(() => {
+    const group = groupRef.current;
+    const pill = pillRef.current;
+    if (!group || !pill) return undefined;
+
+    const place = (instant = false) => {
+      const active = group.querySelector('[aria-current="page"]');
+      if (!active) {
+        pill.style.opacity = '0';
+        return;
+      }
+      if (instant) pill.style.transition = 'none';
+      pill.style.transform = `translate3d(${active.offsetLeft}px, 0, 0)`;
+      pill.style.width = `${active.offsetWidth}px`;
+      pill.style.opacity = '1';
+      if (instant) {
+        void pill.offsetWidth;
+        pill.style.removeProperty('transition');
+      }
+    };
+
+    place(!placedRef.current);
+    placedRef.current = true;
+
+    const onResize = () => place(true);
+    window.addEventListener('resize', onResize);
+    // Re-measure once webfont finishes loading so pill width fits JetBrains Mono.
+    document.fonts?.ready?.then(() => place(true)).catch(() => {});
+    return () => window.removeEventListener('resize', onResize);
+  }, [page, profile?.handle]);
 
   // Everything visual lives in core.css; the active route is expressed as
   // aria-current so CSS and assistive tech read it from the same attribute.
@@ -67,7 +104,8 @@ export default function Nav({ page }) {
         </mask>
         <rect className="nav-edge-line" width="100%" height="100%" mask="url(#nav-edge-mask)" />
       </svg>
-      <div className="nav-group">
+      <div className="nav-group" ref={groupRef}>
+        <span className="nav-indicator" ref={pillRef} aria-hidden="true" />
         <a
           className="nav-brand"
           aria-current={page === 'home' ? 'page' : undefined}

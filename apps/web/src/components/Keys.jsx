@@ -149,32 +149,34 @@ export default function Keys() {
   }, [open]);
 
   return (
-    <div className="keys" ref={wrapRef}>
-      <button
-        type="button"
-        className="keys-hint"
-        aria-expanded={open}
-        aria-controls="keys-panel"
-        onClick={() => setOpen((was) => !was)}
-      >
-        <kbd>?</kbd> keys
-      </button>
-      {open && (
-        <div className="keys-panel" id="keys-panel" role="group" aria-label="keyboard shortcuts">
-          <dl>
-            {ROWS.map(({ keys, label }) => (
-              <div key={label}>
-                <dt>
-                  {keys.map((k) => (
-                    <kbd key={k}>{k}</kbd>
-                  ))}
-                </dt>
-                <dd>{label}</dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-      )}
+    <React.Fragment>
+      <div className="keys" ref={wrapRef}>
+        <button
+          type="button"
+          className="keys-hint"
+          aria-expanded={open}
+          aria-controls="keys-panel"
+          onClick={() => setOpen((was) => !was)}
+        >
+          <kbd>?</kbd> keys
+        </button>
+        {open && (
+          <div className="keys-panel" id="keys-panel" role="group" aria-label="keyboard shortcuts">
+            <dl>
+              {ROWS.map(({ keys, label }) => (
+                <div key={label}>
+                  <dt>
+                    {keys.map((k) => (
+                      <kbd key={k}>{k}</kbd>
+                    ))}
+                  </dt>
+                  <dd>{label}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        )}
+      </div>
       {palette && (
         <Suspense fallback={null}>
           <Palette go={GO} onClose={() => setPalette(false)} />
@@ -190,6 +192,6 @@ export default function Keys() {
           />
         </Suspense>
       )}
-    </div>
+    </React.Fragment>
   );
 }

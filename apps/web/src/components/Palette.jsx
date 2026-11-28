@@ -13,6 +13,8 @@ export default function Palette({ go, onClose }) {
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
   const { data: posts } = useContent('blogIndex');
+  const { data: linksData } = useContent('links');
+  const { data: projectsData } = useContent('projects');
   const listRef = useRef(null);
   const pointer = useRef({ x: -1, y: -1 });
 
@@ -26,8 +28,8 @@ export default function Palette({ go, onClose }) {
   }, []);
 
   const items = useMemo(() => {
-    const links = PortfolioData.peek('links');
-    const projects = PortfolioData.peek('projects');
+    const links = linksData || PortfolioData.peek('links');
+    const projects = projectsData || PortfolioData.peek('projects');
     const email = links?.email?.address;
     const raw = [
       ...Object.entries(go).map(([key, page]) => ({
@@ -94,7 +96,7 @@ export default function Palette({ go, onClose }) {
       ...item,
       search: `${item.kind} ${item.label} ${item.more || ''}`.toLowerCase(),
     }));
-  }, [go, posts]);
+  }, [go, posts, linksData, projectsData]);
 
   const shown = useMemo(() => {
     const words = query.toLowerCase().split(/\s+/).filter(Boolean);
@@ -161,6 +163,14 @@ export default function Palette({ go, onClose }) {
             spellCheck="false"
           />
           <kbd>esc</kbd>
+          <button
+            type="button"
+            className="palette-close"
+            onClick={onClose}
+            aria-label="close search"
+          >
+            ×
+          </button>
         </label>
         {shown.length ? (
           <ul className="palette-list" id="palette-list" role="listbox" ref={listRef}>

@@ -74,25 +74,26 @@ export function preloadPage(page, { recover = false } = {}) {
 }
 
 /**
- * Get every page ready to open at once: its code and styles, then every font
- * face those styles declare (the link cards' brand faces, the italic), then
- * whatever a page module asks for in its optional `warm` export (the link
- * cards' images). Called once, after the first page has loaded.
+ * Warm the lightweight route chunks (excluding the heavy Links bundle + brand
+ * fonts), safe for both desktop and mobile fast connections.
+ */
+export function warmLightPages() {
+  return Promise.all(
+    ['home', 'projects', 'blog', 'resume'].map((page) => preloadPage(page).catch(() => null)),
+  );
+}
+
+/**
+ * Get every page ready to open at once: its code and styles, plus whatever
+ * each page module's optional `warm` export asks for. Link card brand fonts
+ * load on demand with `font-display: swap` instead of forcing 150 KB of
+ * unused font downloads on Home/Blog visits.
  */
 export function warmPages() {
   const modules = Object.keys(loaders).map((page) => preloadPage(page).catch(() => null));
-  return Promise.all(modules).then((loadedModules) => {
-    // Vite resolves a route chunk only once its stylesheet is applied, so the
-    // @font-face rules are registered by now; `block` faces would otherwise
-    // hold their text back until the page that uses them is opened.
-    document.fonts?.forEach((face) => {
-      if (face.status === 'unloaded' && !face.family.includes('Fallback'))
-        face.load().catch(() => {});
-    });
-    return Promise.all(
-      loadedModules.map((module) => Promise.resolve(module?.warm?.()).catch(() => {})),
-    );
-  });
+  return Promise.all(modules).then((loadedModules) =>
+    Promise.all(loadedModules.map((module) => Promise.resolve(module?.warm?.()).catch(() => {}))),
+  );
 }
 
 /**

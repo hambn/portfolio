@@ -206,3 +206,29 @@ test('inlined stylesheets are not downloaded again after hydration', async ({ pa
   await expect(page.locator('main h1')).toBeVisible();
   expect(stylesheets.some((path) => /\/Blog-[^/]+\.css$/.test(path))).toBe(true);
 });
+
+test('mobile search palette opens and footer sh button stays hidden on phones', async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    hasTouch: true,
+    isMobile: true,
+  });
+  const page = await context.newPage();
+  await page.routeWebSocket('**/api/discord/socket', () => {});
+  await page.route('**/api/**', (route) =>
+    route.fulfill({ status: 503, json: { error: 'unavailable' } }),
+  );
+  await page.goto('/');
+  await page.waitForLoadState('networkidle');
+  await expect(page.locator('.site-footer-shell')).toBeHidden();
+  await page.getByRole('button', { name: 'search and commands' }).click();
+  const dialog = page.getByRole('dialog', { name: 'command palette' });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole('combobox', { name: 'command' }).fill('projects');
+  await expect(dialog.getByRole('option', { name: /projects/ })).toBeVisible();
+  await dialog.getByRole('button', { name: 'close search' }).click();
+  await expect(dialog).toBeHidden();
+  await context.close();
+});

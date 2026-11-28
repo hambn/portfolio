@@ -15,7 +15,7 @@
 // The island's corner radius, and the fillets' radius once docked.
 const RADIUS = 12;
 // How close, in px, the island must come before the bridge starts to form.
-const REACH = 30;
+const REACH = 38;
 
 const clamp01 = (n) => Math.min(1, Math.max(0, n));
 const r2 = (n) => Math.round(n * 100) / 100;

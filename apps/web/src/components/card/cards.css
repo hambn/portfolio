@@ -2,11 +2,11 @@
  * covered in the first third of --sc-time. lib/cardState.js reads the same
  * time and easing to move the body where the browser cannot animate `auto`. */
 .sc-body {
-  --sc-time: 0.24s;
+  --sc-time: 0.28s;
   --sc-ease: cubic-bezier(0.22, 1, 0.36, 1);
   overflow: hidden;
   transition:
-    opacity 0.16s ease-out,
+    opacity 0.2s var(--sc-ease),
     visibility var(--sc-time);
 }
 .sc-body.open {

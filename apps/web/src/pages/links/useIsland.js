@@ -2,10 +2,10 @@ import { useEffect } from 'react';
 import { islandPath } from './islandShape.js';
 
 // How the bar folds between its two layouts as it docks and undocks.
-const FOLD = { duration: 460, easing: 'cubic-bezier(0.32, 0.72, 0, 1)' };
-// The spring that merges the island into the nav once they touch: a little
-// under critically damped, so the join lands with the faintest overshoot.
-const SPRING = { stiffness: 320, damping: 26 };
+const FOLD = { duration: 420, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' };
+// The spring that merges the island into the nav once they touch: tuned just
+// under critical damping so the liquid fillet lands with a subtle organic snap.
+const SPRING = { stiffness: 260, damping: 24 };
 
 // The jump bar and the nav are drawn as one shape (islandShape.js). Out of
 // reach of the nav the bar is an island of its own; scrolled up close, a
@@ -50,6 +50,7 @@ export function useIsland(barRef, islandRef) {
       bar.toggleAttribute('data-docked', next);
       const to = island.getBoundingClientRect();
       bar.style.setProperty('--jump-slack', `${full - to.height}px`);
+      bar.dispatchEvent(new CustomEvent('island:layout'));
       if (motion.matches) return;
       const size = (r) => ({ width: `${r.width}px`, height: `${r.height}px` });
       const toMargin = getComputedStyle(bar).marginBottom;
@@ -57,19 +58,18 @@ export function useIsland(barRef, islandRef) {
         island.animate([size(from), size(to)], FOLD),
         bar.animate([{ marginBottom: fromMargin }, { marginBottom: toMargin }], FOLD),
       ];
-      // Only a change of layout needs the logos to fade through it.
+      // Smoothly cross-morph the inner chip row with zero blank delay so the
+      // icons feel continuously present rather than blinking out and back in.
       if (Math.abs(from.width - to.width) > 2 || Math.abs(from.height - to.height) > 2) {
         folds.push(
           list.animate(
             [
-              { opacity: 0, transform: 'scale(0.96)' },
+              { opacity: 0.62, transform: 'scale(0.965)' },
               { opacity: 1, transform: 'none' },
             ],
             {
-              duration: 280,
-              delay: 80,
-              easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
-              fill: 'backwards',
+              duration: 300,
+              easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
             },
           ),
         );

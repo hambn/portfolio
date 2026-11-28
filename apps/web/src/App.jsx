@@ -4,7 +4,7 @@ import Shell from './components/Shell.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import ErrorState from './components/ErrorState.jsx';
 import NotFound from './components/NotFound.jsx';
-import { pageComponent, pages, preloadPage, warmPages } from './pages/index.js';
+import { pageComponent, pages, preloadPage, warmLightPages, warmPages } from './pages/index.js';
 
 import { currentRoute, routeOf } from './lib/router.js';
 import { PortfolioData } from './lib/data.js';
@@ -92,6 +92,7 @@ export default function App({ initialRoute, initialPage }) {
     warmSite({
       content: PortfolioData,
       preload: warmPages,
+      preloadLight: warmLightPages,
     });
   }, []);
 

@@ -41,33 +41,7 @@
   color: var(--foreground-subtle);
   font-size: 13px;
 }
-.links-foot {
-  margin-top: 28px;
-  padding-top: 18px;
-  border-top: 1px solid var(--hairline);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.links-foot-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-.links-foot-note {
-  color: var(--foreground-subtle);
-  font-size: var(--text-xs);
-}
-.links-foot-actions {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.links-live-pill,
-.links-share-page {
+.links-live-pill {
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -84,19 +58,19 @@
   transition:
     color var(--transition-base),
     border-color var(--transition-base),
-    background-color var(--transition-base);
+    background-color var(--transition-base),
+    transform 140ms var(--ease-spring);
 }
 @media (hover: hover) {
-  .links-live-pill:hover,
-  .links-share-page:hover {
+  .links-live-pill:hover {
     color: var(--foreground);
     border-color: var(--hairline-strong);
     background: var(--glass-hover);
+    transform: translateY(-1px);
   }
 }
-.links-share-page.is-done {
-  color: var(--primary);
-  border-color: var(--primary-ring);
+.links-live-pill:active {
+  transform: scale(0.96);
 }
 .links-live-dot {
   width: 7px;
@@ -188,11 +162,28 @@
   gap: 6px;
 }
 .links-jump-platforms {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 3px 4px;
   max-width: 440px;
+}
+.links-jump-pill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--primary) 13%, var(--hairline));
+  border: 1px solid color-mix(in srgb, var(--primary) 26%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform, width, height;
+  transition:
+    transform 300ms var(--ease-spring),
+    width 300ms var(--ease-spring),
+    height 300ms var(--ease-spring),
+    opacity 180ms var(--ease-spring);
 }
 .links-jump-sep {
   width: 1px;
@@ -202,6 +193,8 @@
   flex-shrink: 0;
 }
 .links-jump-item {
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -219,7 +212,7 @@
   transition:
     color var(--transition-base),
     background-color var(--transition-base),
-    transform 0.1s;
+    transform 150ms var(--ease-spring);
 }
 /* Each name is set in its own service's face, as on the card it opens. */
 .links-jump-label {
@@ -266,24 +259,26 @@
     color: var(--foreground);
     background: var(--hairline);
   }
+  .links-jump-item:hover .links-jump-icon {
+    transform: scale(1.1);
+  }
 }
 .links-jump-item:active {
-  transform: scale(0.97);
+  transform: scale(0.93);
 }
 /* An open card's chip is lit and wears its service's colour; a collapsed
    card's chip goes quiet. */
 .links-jump-item[aria-expanded='true'] {
   color: var(--foreground);
 }
-.links-jump-item[data-active='true'] {
-  background: var(--hairline);
-}
 .links-jump-icon {
   width: 15px;
   height: 15px;
   flex-shrink: 0;
   fill: currentColor;
-  transition: fill var(--transition-base);
+  transition:
+    fill var(--transition-base),
+    transform 180ms var(--ease-spring);
 }
 .links-jump-item[aria-expanded='true'] .links-jump-icon {
   fill: var(--brand, currentColor);
@@ -350,53 +345,23 @@
 /* The jump bar scrolls a card to just below itself. */
 .links-item {
   scroll-margin-top: 116px;
-  content-visibility: auto;
-  contain-intrinsic-size: auto 340px;
 }
 .links-item.is-target .link-card::after {
-  border-width: 2px;
-  border-color: var(--primary);
+  animation: link-card-pulse 880ms var(--ease-spring);
 }
-
-.links-embed-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 10px 12px;
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-lg);
-  background: var(--glass);
-}
-.links-embed-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 9px;
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-md);
-  background: var(--background);
-  color: var(--foreground-muted);
-  font-family: var(--font-mono);
-  font-size: 11.5px;
-  cursor: pointer;
-  transition:
-    color var(--transition-base),
-    border-color var(--transition-base);
-}
-.links-embed-chip.is-done {
-  color: var(--primary);
-  border-color: var(--primary-ring);
-}
-@media (hover: hover) {
-  .links-embed-chip:hover {
-    color: var(--foreground);
-    border-color: var(--hairline-strong);
+@keyframes link-card-pulse {
+  0% {
+    border-width: 1px;
+    border-color: var(--card-ring);
   }
-}
-.links-embed-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
+  24% {
+    border-width: 2px;
+    border-color: var(--primary);
+  }
+  100% {
+    border-width: 1px;
+    border-color: var(--card-ring);
+  }
 }
 
 /* One frame for every card, whatever the service inside it. The edge is a

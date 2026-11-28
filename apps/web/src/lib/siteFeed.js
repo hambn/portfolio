@@ -253,25 +253,27 @@ let warmed = false;
  * moving between pages waits on nothing. Skipped for visitors who asked their
  * browser to save data.
  */
-export function warmSite({ content, preload }) {
+export function warmSite({ content, preload, preloadLight }) {
   if (warmed || typeof window === 'undefined') return;
   warmed = true;
   const conn = navigator.connection;
   if (conn?.saveData || /^(slow-2g|2g|3g)$/.test(conn?.effectiveType || '')) return;
-  // On touch/mobile devices, skip eager multi-page chunk + banner prefetching
-  // so the phone's CPU and radio stay dedicated to the page being read; links
-  // still warm on tap/pointerover (App.jsx).
   const isTouch = window.matchMedia?.('(hover: none)').matches;
   afterLoad(() =>
     idle(() => {
-      if (isTouch) return;
+      // Lightweight JSON + route chunks warm on both desktop and fast phones
+      // so tapping Projects, Blog, or Resume swaps in under one frame.
+      for (const load of [content.getBlogIndex, content.getProjects, content.getResume])
+        load().catch(() => {});
+      if (isTouch) {
+        if (preloadLight) idle(preloadLight);
+        return;
+      }
       content
         .getLinks()
         // Spotify playback is only worth asking for on the page that shows it.
         .then((config) => ensureCards([...cardKeys(config, { live: false }), 'projects']))
         .catch(() => {});
-      for (const load of [content.getBlogIndex, content.getProjects, content.getResume])
-        load().catch(() => {});
       idle(preload);
     }),
   );

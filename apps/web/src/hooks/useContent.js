@@ -5,11 +5,12 @@ const LOADERS = {
   profile: PortfolioData.getProfile,
   resume: PortfolioData.getResume,
   links: PortfolioData.getLinks,
+  projects: PortfolioData.getProjects,
   blogIndex: PortfolioData.getBlogIndex,
 };
 
 /**
- * One piece of site content ('profile' | 'resume' | 'links' | 'blogIndex').
+ * One piece of site content ('profile' | 'resume' | 'links' | 'projects' | 'blogIndex').
  * `data` starts as what the page already carries (PortfolioData.peek), so a
  * prerendered page hydrates without a loading state, and is refreshed by the
  * request. `error` is true once that request has failed; `retry` asks again.
