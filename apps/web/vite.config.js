@@ -1,5 +1,4 @@
 import { defineConfig } from 'vite';
-process.env.VITE_API_BASE_URL ||= 'https://api.portfolio.hgh.dev';
 import { fileURLToPath } from 'node:url';
 import { cpSync, readFileSync, statSync } from 'node:fs';
 import { extname, join, resolve, sep } from 'node:path';
@@ -110,34 +109,39 @@ function contentPlugin() {
 }
 
 // base = deploy route. Default '/' (custom domain hgh.dev). Override per env,
-// e.g. BASE_PATH=/portfolio/ for a github.io project page.
-export default defineConfig({
-  base: process.env.BASE_PATH || '/',
-  plugins: [contentPlugin()],
-  server: { proxy: { '/api/': { target: 'http://localhost:8787', ws: true } } },
-  build: {
-    // Emit .vite/manifest.json so the prerenderer can add modulepreload links
-    // for each route's lazy chunk (scripts/prerender.mjs reads then removes it).
-    manifest: true,
-    // Modern browsers support <link rel="modulepreload"> natively; skipping the
-    // polyfill trims the entry chunk on every route.
-    modulePreload: { polyfill: false },
-    rollupOptions: {
-      output: {
-        // React gets its own long-lived chunk: its hash stays stable across app
-        // deploys, so browser/CDN caches keep it instead of refetching.
-        manualChunks(id) {
-          if (id.includes('/node_modules/react/') || id.includes('/node_modules/react-dom/')) {
-            return 'react';
-          }
+// e.g. BASE_PATH=/portfolio/ for a subpath deployment.
+// Production builds default to same-origin '/api' (unified Cloudflare Worker &
+// Docker nginx); local `vite` dev defaults to the live API unless overridden.
+export default defineConfig(({ command }) => {
+  process.env.VITE_API_BASE_URL ||= command === 'build' ? '/api' : 'https://api.portfolio.hgh.dev';
+  return {
+    base: process.env.BASE_PATH || '/',
+    plugins: [contentPlugin()],
+    server: { proxy: { '/api/': { target: 'http://localhost:8787', ws: true } } },
+    build: {
+      // Emit .vite/manifest.json so the prerenderer can add modulepreload links
+      // for each route's lazy chunk (scripts/prerender.mjs reads then removes it).
+      manifest: true,
+      // Modern browsers support <link rel="modulepreload"> natively; skipping the
+      // polyfill trims the entry chunk on every route.
+      modulePreload: { polyfill: false },
+      rollupOptions: {
+        output: {
+          // React gets its own long-lived chunk: its hash stays stable across app
+          // deploys, so browser/CDN caches keep it instead of refetching.
+          manualChunks(id) {
+            if (id.includes('/node_modules/react/') || id.includes('/node_modules/react-dom/')) {
+              return 'react';
+            }
+          },
         },
       },
     },
-  },
-  esbuild: {
-    // Classic JSX (React.createElement) — every JSX file imports React itself.
-    jsx: 'transform',
-    jsxFactory: 'React.createElement',
-    jsxFragment: 'React.Fragment',
-  },
+    esbuild: {
+      // Classic JSX (React.createElement) — every JSX file imports React itself.
+      jsx: 'transform',
+      jsxFactory: 'React.createElement',
+      jsxFragment: 'React.Fragment',
+    },
+  };
 });

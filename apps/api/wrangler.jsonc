@@ -7,6 +7,15 @@
   "main": "src/entrypoints/worker.ts",
   "compatibility_date": "2026-06-23",
 
+  // Static site served directly from Cloudflare's edge (free & unlimited).
+  // Only /api/* and /discord/socket invoke the Worker first; all HTML pages
+  // and static assets stay at 0 Worker invocations.
+  "assets": {
+    "directory": "../web/dist",
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/api/*", "/discord/socket"],
+  },
+
   // No secrets/IDs are committed here. Public config is injected at deploy via
   // --var where needed (see `deploy` in package.json).
   "vars": {

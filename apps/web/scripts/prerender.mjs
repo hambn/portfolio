@@ -33,6 +33,8 @@ import {
 const root = fileURLToPath(new URL('..', import.meta.url));
 const dist = join(root, 'dist');
 const contents = fileURLToPath(new URL('../../../content', import.meta.url));
+// Match `vite build`: same-origin `/api` served by the unified Cloudflare Worker / nginx.
+process.env.VITE_API_BASE_URL ||= '/api';
 // SITE = canonical origin (sitemap/OG/canonical). BASE = route prefix, '' at root.
 // Both env-overridable; keep in sync with vite's base (BASE_PATH).
 const SITE = (process.env.SITE_URL || 'https://hgh.dev').replace(/\/+$/, '');
@@ -647,7 +649,11 @@ for (const route of [
 // Spotify & Discord point their oEmbed discovery at the live API when an HTTPS
 // API origin is configured, so Discord displays live now-playing / presence.
 const liveOembedServices = new Set(['spotify', 'discord']);
-const httpsApi = /^https:\/\//.test(API_BASE) ? API_BASE.replace(/\/+$/, '') : '';
+const httpsApi = /^https:\/\//.test(API_BASE)
+  ? API_BASE.replace(/\/+$/, '')
+  : API_BASE.startsWith('/') && /^https:\/\//.test(SITE)
+    ? `${SITE}${API_BASE.replace(/\/+$/, '')}`
+    : '';
 
 for (const service of linkServices) {
   const ogRel = `og/links-${service.slug}.png`;

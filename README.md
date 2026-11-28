@@ -1,7 +1,8 @@
 # portfolio
 
 Personal portfolio for **hamed ghasempour** (@hambn). Static React site built
-with Vite, prerendered for SEO, deployed to Cloudflare Pages at https://hgh.dev.
+with Vite, prerendered for SEO, deployed together with its API on a single
+Cloudflare Worker (Workers Static Assets) at https://hgh.dev.
 
 All content is data — edit `content/`, never the code.
 
@@ -42,20 +43,24 @@ Pull requests run `npm run check` and the Playwright suite
 
 ## deploy
 
-Pushing to `main` builds and deploys both the API Worker and the static site to
-**Cloudflare Pages** (`.github/workflows/deploy.yml`).
+Pushing to `main` builds and deploys both the static site (`apps/web/dist`) and
+the API (`apps/api`) atomically to **one single Cloudflare Worker** (`portfolio`)
+using **Workers Static Assets** (`.github/workflows/deploy.yml`).
 
-- Cloudflare Pages project name defaults to `portfolio` (override with the
-  optional Actions repository variable `CLOUDFLARE_PAGES_PROJECT`).
+- Static pages and assets (`/`, `/projects/`, `/blog/*`, `/links/`, `/assets/*`,
+  `/og/*`) are served directly from Cloudflare's edge — free and unlimited, with
+  zero Worker invocations.
+- Only `/api/*` and `/discord/socket` invoke the Worker (`run_worker_first` in
+  `apps/api/wrangler.jsonc`), keeping your 100k/day Worker quota separate.
 - Security and immutable asset cache headers live in `apps/web/public/_headers`.
-- Custom domain `hgh.dev` is attached under **Cloudflare Dashboard → Workers & Pages → portfolio → Custom domains** (and `www` can redirect to the apex in Cloudflare).
-- `CLOUDFLARE_API_TOKEN` needs both **Workers Scripts: Edit** and **Cloudflare Pages: Edit** permissions.
+- Custom domains (`hgh.dev`, `www.hgh.dev`, `api.portfolio.hgh.dev`) live under
+  **Cloudflare Dashboard → Workers & Pages → portfolio → Settings → Domains & Routes**.
 
-Manual static site deploy:
+Manual deploy (site + API together):
 
 ```bash
 npm run build
-npm run web:deploy
+npm run api:deploy
 ```
 
 ### deploy target (env)

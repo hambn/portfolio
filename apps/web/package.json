@@ -7,7 +7,6 @@
     "dev": "vite",
     "build": "vite build && node scripts/prerender.mjs",
     "preview": "vite preview",
-    "deploy": "wrangler pages deploy dist --project-name \"${CLOUDFLARE_PAGES_PROJECT:-portfolio}\"",
     "test:site": "node --test tests/site.test.mjs",
     "test:unit": "node --test tests/spotify-clock.test.mjs tests/api-urls.test.mjs tests/terminal-fs.test.mjs",
     "test:spotify": "node --test tests/spotify-clock.test.mjs",

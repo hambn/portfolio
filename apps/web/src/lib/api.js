@@ -1,8 +1,6 @@
 import { mediaPath, resizedSource } from '@portfolio/shared/media';
 
-export const API_BASE = (
-  import.meta.env.VITE_API_BASE_URL || 'https://api.portfolio.hgh.dev'
-).replace(/\/+$/, '');
+export const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/+$/, '');
 export const apiUrl = (path) => `${API_BASE}/${path.replace(/^\/+/, '')}`;
 
 export function mediaUrl(source) {
