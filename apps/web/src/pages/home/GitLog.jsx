@@ -171,10 +171,14 @@ export default function GitLog({ branches, born }) {
           {lanes.map((lane) => {
             const x = laneX(lane.column, lw);
             const open = !Number.isFinite(lane.end);
-            const dim = hovered && hovered.id !== lane.id;
+            const active = hovered && hovered.id === lane.id;
+            const dim = hovered && !active;
 
             return (
-              <g key={lane.id} className={`${lane.tone}${dim ? ' is-dim' : ''}`}>
+              <g
+                key={lane.id}
+                className={`${lane.tone}${active ? ' is-active' : ''}${dim ? ' is-dim' : ''}`}
+              >
                 <path d={lanePath(lane, ys, lw)} className="git-lane" />
                 {/* merge commit — it belongs to the life line it merges into */}
                 {!open && <circle cx={LANE_X0} cy={ys[lane.topIdx]} r="3.5" className="git-dot" />}

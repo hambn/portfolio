@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Deploy to Cloudflare
 
 on:
   push:
@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: pages
+  group: deploy
   cancel-in-progress: false
 
 jobs:
@@ -23,22 +23,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
-      - uses: actions/upload-pages-artifact@v5
+      - uses: actions/upload-artifact@v4
         with:
+          name: web-dist
           path: apps/web/dist
-
-  deploy:
-    needs: [build, deploy-worker]
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v5
+          retention-days: 1
 
   deploy-worker:
     needs: build
@@ -88,3 +77,99 @@ jobs:
           # Optional. Actions reserves the GITHUB_ prefix for its own secrets,
           # so the repository secret is named PROJECTS_GITHUB_TOKEN.
           PROJECTS_GITHUB_TOKEN: ${{ secrets.PROJECTS_GITHUB_TOKEN }}
+
+  deploy-pages:
+    needs: [build, deploy-worker]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    environment:
+      name: cloudflare-pages
+      url: https://hgh.dev
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: apps/web/dist
+      - name: Deploy static site & sync Cloudflare Pages custom domain / DNS
+        run: |
+          set -euo pipefail
+          PROJECT="${CLOUDFLARE_PAGES_PROJECT:-portfolio}"
+          DOMAIN="${CLOUDFLARE_PAGES_DOMAIN:-hgh.dev}"
+          TARGET="${PROJECT}.pages.dev"
+          API="https://api.cloudflare.com/client/v4"
+          AUTH=(-H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" -H "Content-Type: application/json")
+
+          # 1. Create Pages project if it does not exist yet
+          npx wrangler pages project create "$PROJECT" --production-branch main 2>/dev/null || true
+
+          # 2. Deploy built static site
+          npx wrangler pages deploy apps/web/dist \
+            --project-name "$PROJECT" \
+            --branch main \
+            --commit-hash "$GITHUB_SHA"
+
+          # 3. Attach custom domains to the Pages project (idempotent)
+          for host in "$DOMAIN" "www.$DOMAIN"; do
+            res=$(curl -sS -X POST "${API}/accounts/${CLOUDFLARE_ACCOUNT_ID}/pages/projects/${PROJECT}/domains" \
+              "${AUTH[@]}" --data "{\"name\":\"${host}\"}")
+            ok=$(echo "$res" | jq -r '.success')
+            code=$(echo "$res" | jq -r '.errors[0].code // empty')
+            if [ "$ok" = "true" ]; then
+              echo "Attached custom domain ${host} to Pages project ${PROJECT}"
+            elif [ "$code" = "8000018" ]; then
+              echo "Custom domain ${host} is already attached to ${PROJECT}"
+            else
+              echo "::warning::Could not attach custom domain ${host}: $(echo "$res" | jq -c '.errors')"
+            fi
+          done
+
+          # 4. Point Cloudflare DNS apex & www at <project>.pages.dev (idempotent; only replaces GitHub Pages records)
+          zone_res=$(curl -sS "${API}/zones?name=${DOMAIN}" "${AUTH[@]}")
+          ZONE_ID=$(echo "$zone_res" | jq -r '.result[0].id // empty')
+          if [ -z "$ZONE_ID" ]; then
+            echo "::notice::Token cannot read DNS zone ${DOMAIN}; point ${DOMAIN} and www.${DOMAIN} CNAME -> ${TARGET} in Cloudflare Dashboard."
+            exit 0
+          fi
+
+          apex_recs=$(curl -sS "${API}/zones/${ZONE_ID}/dns_records?name=${DOMAIN}" "${AUTH[@]}")
+          for rid in $(echo "$apex_recs" | jq -r '.result[] | select(.type=="A" and (.content | test("^185\\.199\\.1(08|09|10|11)\\.153$"))) | .id'); do
+            curl -sS -X DELETE "${API}/zones/${ZONE_ID}/dns_records/${rid}" "${AUTH[@]}" >/dev/null
+            echo "Removed legacy GitHub Pages A record ${rid} on ${DOMAIN}"
+          done
+
+          for host in "$DOMAIN" "www.$DOMAIN"; do
+            recs=$(curl -sS "${API}/zones/${ZONE_ID}/dns_records?type=CNAME&name=${host}" "${AUTH[@]}")
+            cid=$(echo "$recs" | jq -r '.result[0].id // empty')
+            cur=$(echo "$recs" | jq -r '.result[0].content // empty')
+            payload=$(jq -n --arg name "$host" --arg content "$TARGET" '{type:"CNAME",name:$name,content:$content,proxied:true,ttl:1}')
+            if [ -z "$cid" ]; then
+              cres=$(curl -sS -X POST "${API}/zones/${ZONE_ID}/dns_records" "${AUTH[@]}" --data "$payload")
+              if [ "$(echo "$cres" | jq -r '.success')" = "true" ]; then
+                echo "Created proxied CNAME ${host} -> ${TARGET}"
+              else
+                echo "::warning::Could not create CNAME ${host}: $(echo "$cres" | jq -c '.errors')"
+              fi
+            elif [ "$cur" != "$TARGET" ]; then
+              ures=$(curl -sS -X PUT "${API}/zones/${ZONE_ID}/dns_records/${cid}" "${AUTH[@]}" --data "$payload")
+              if [ "$(echo "$ures" | jq -r '.success')" = "true" ]; then
+                echo "Updated CNAME ${host}: ${cur} -> ${TARGET}"
+              else
+                echo "::warning::Could not update CNAME ${host}: $(echo "$ures" | jq -c '.errors')"
+              fi
+            else
+              echo "CNAME ${host} already points to ${TARGET}"
+            fi
+          done
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_PAGES_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
+          CLOUDFLARE_PAGES_DOMAIN: ${{ vars.CLOUDFLARE_PAGES_DOMAIN }}

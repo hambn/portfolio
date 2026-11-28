@@ -251,6 +251,27 @@
     padding-top: 124px;
   }
 }
+@media screen and (max-width: 639px) {
+  .resume-main {
+    padding: 112px 18px 64px;
+  }
+  .resume-print-btn {
+    top: 62px;
+    right: 16px;
+  }
+  .resume-header {
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .resume-contact {
+    text-align: left;
+  }
+  .resume-entry-head {
+    flex-wrap: wrap;
+    gap: 2px 12px;
+  }
+}
 
 /* Print: hide the chrome and force a plain black-on-white page. The margin
    lives on the content instead of @page so the browser has no room to print

@@ -21,12 +21,18 @@
 }
 .palette {
   width: min(560px, 100%);
-  border: 1px solid var(--hairline-strong);
-  border-radius: var(--radius-xl);
-  background: var(--background-subtle);
-  box-shadow: 0 24px 60px var(--overlay);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: rgba(14, 14, 17, 0.96);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 22px 54px rgba(0, 0, 0, 0.55);
   overflow: hidden;
-  animation: palette-in 180ms var(--ease-out);
+  animation: palette-in 140ms var(--ease-out);
+}
+[data-theme='light'] .palette {
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.14);
 }
 @keyframes palette-in {
   from {

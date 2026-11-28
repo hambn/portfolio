@@ -7,7 +7,8 @@ import test from 'node:test';
 import { parse } from 'parse5';
 import { routes } from '../src/routes.js';
 import { buildBlogIndex } from '../scripts/blog-index.mjs';
-import { routeMetadata } from '../src/lib/metadata.js';
+import { buildLinkServices } from '../src/lib/linksDirectory.js';
+import { oembedPath, ogImagePath, routeMetadata } from '../src/lib/metadata.js';
 
 const site = (process.env.SITE_URL || 'https://hgh.dev').replace(/\/+$/, '');
 const base = (process.env.BASE_PATH || '/').replace(/\/+$/, '');
@@ -57,10 +58,17 @@ for (const route of [
       ),
       metadata.desc,
     );
+    const ogRel = ogImagePath(metadata);
+    const ogUrl = `${root}/${ogRel}`;
     for (const [attribute, name, expected] of [
-      ['name', 'twitter:image', profile.avatar],
-      ['name', 'twitter:image:alt', profile.name],
-      ['property', 'og:image:alt', profile.name],
+      ['property', 'og:image', ogUrl],
+      ['property', 'og:image:width', '1200'],
+      ['property', 'og:image:height', '630'],
+      ['property', 'og:image:type', 'image/png'],
+      ['property', 'og:image:alt', metadata.title],
+      ['name', 'twitter:card', 'summary_large_image'],
+      ['name', 'twitter:image', ogUrl],
+      ['name', 'twitter:image:alt', metadata.title],
     ]) {
       assert.equal(
         attr(
@@ -70,6 +78,16 @@ for (const route of [
         expected,
       );
     }
+    const png = readFileSync(new URL(ogRel, dist));
+    assert.deepEqual([...png.subarray(0, 8)], [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const oembedRel = oembedPath(metadata);
+    const oembedLink = nodes.find(
+      (node) => node.tagName === 'link' && attr(node, 'type') === 'application/json+oembed',
+    );
+    assert.equal(attr(oembedLink, 'href'), `${root}/${oembedRel}`);
+    const oembed = JSON.parse(read(oembedRel));
+    assert.equal(oembed.version, '1.0');
+    assert.equal(oembed.thumbnail_url, ogUrl);
     assert.ok(nodes.some((node) => node.tagName === 'main'));
     // One top-level heading per page: a post body repeating its title as `# Title`
     // would otherwise add a second one.
@@ -78,6 +96,25 @@ for (const route of [
     const script = nodes.find((node) => attr(node, 'type') === 'application/ld+json');
     const graph = JSON.parse(script.childNodes[0].value)['@graph'];
     assert.equal(graph[1].url, url);
+    assert.ok(Array.isArray(graph[0].knowsAbout) && graph[0].knowsAbout.length > 0);
+    if (metadata.post) {
+      assert.equal(graph[1].isAccessibleForFree, true);
+      assert.match(graph[1].timeRequired, /^PT\d+M$/);
+      assert.equal(
+        attr(
+          nodes.find((node) => attr(node, 'property') === 'article:author'),
+          'content',
+        ),
+        profile.name,
+      );
+    }
+    assert.equal(
+      attr(
+        nodes.find((node) => attr(node, 'name') === 'referrer'),
+        'content',
+      ),
+      'strict-origin-when-cross-origin',
+    );
     for (const breadcrumb of graph.find((node) => node['@type'] === 'BreadcrumbList')
       ?.itemListElement || []) {
       assert.ok(breadcrumb.item.startsWith(`${root}/`));
@@ -89,9 +126,24 @@ for (const route of [
 
 test('feeds and crawler hints respect the deployment base', () => {
   assert.ok(read('robots.txt').includes(`Sitemap: ${root}/sitemap.xml`));
-  assert.ok(read('feed.xml').includes(`href="${root}/feed.xml"`));
+  const feed = read('feed.xml');
+  assert.ok(feed.includes(`href="${root}/feed.xml"`));
+  assert.match(feed, /<lastBuildDate>[^<]+<\/lastBuildDate>/);
+  const jsonFeed = JSON.parse(read('feed.json'));
+  assert.equal(jsonFeed.version, 'https://jsonfeed.org/version/1.1');
+  assert.equal(jsonFeed.feed_url, `${root}/feed.json`);
+  assert.equal(jsonFeed.items.length, posts.length);
+  for (const item of jsonFeed.items) {
+    assert.ok(item.url.startsWith(`${root}/blog/`));
+    assert.ok(item.image.startsWith(`${root}/og/blog-`));
+    assert.ok(item.content_html.length > 0);
+  }
+  assert.ok(read('index.html').includes(`type="application/feed+json"`));
   const notFound = read('404.html');
   assert.ok(notFound.includes('name="robots" content="noindex"'));
+  const headers = read('_headers');
+  assert.ok(headers.includes('X-Frame-Options: DENY'));
+  assert.ok(headers.includes('Cache-Control: public, max-age=31536000, immutable'));
   // A not-found page claims no URL and describes no entity.
   assert.match(notFound, /<title>not found — /);
   assert.ok(!notFound.includes('rel="canonical"'));
@@ -177,8 +229,48 @@ test('the projects page is complete without a request', () => {
   const data = JSON.parse(
     nodes.find((node) => attr(node, 'id') === 'portfolio-data').childNodes[0].value,
   );
-  assert.equal(data.projects.featured.length, projects.featured.length);
+  assert.ok(data.projects.featured.length === projects.featured.length);
   assert.ok(!('_comment' in data.projects));
+});
+
+test('shareable /links/<service>/ pages ship Discord/OG embeds, oEmbed, and redirects', () => {
+  const links = JSON.parse(readFileSync(new URL('links/links.json', content), 'utf8'));
+  const services = buildLinkServices(links, profile);
+  assert.ok(services.length > 0);
+  for (const service of services) {
+    const html = read(`links/${service.slug}/index.html`);
+    const nodes = elements(parse(html));
+    const ogUrl = `${root}/og/links-${service.slug}.png`;
+    const oembedUrl = `${root}/oembed/links-${service.slug}.json`;
+    assert.equal(
+      attr(
+        nodes.find((node) => attr(node, 'name') === 'theme-color'),
+        'content',
+      ),
+      service.accent,
+    );
+    assert.equal(
+      attr(
+        nodes.find((node) => attr(node, 'property') === 'og:image'),
+        'content',
+      ),
+      ogUrl,
+    );
+    const oembedHref = attr(
+      nodes.find((node) => attr(node, 'type') === 'application/json+oembed'),
+      'href',
+    );
+    assert.ok(
+      oembedHref === oembedUrl || oembedHref?.endsWith(`/oembed/${service.slug}`),
+      `unexpected oEmbed href for ${service.slug}: ${oembedHref}`,
+    );
+    assert.equal(nodes.filter((node) => node.tagName === 'h1').length, 1);
+    assert.ok(html.includes(service.url));
+    const png = readFileSync(new URL(`og/links-${service.slug}.png`, dist));
+    assert.deepEqual([...png.subarray(0, 8)], [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const oembed = JSON.parse(read(`oembed/links-${service.slug}.json`));
+    assert.equal(oembed.thumbnail_url, ogUrl);
+  }
 });
 
 test('blog discovery omits drafts and rejects duplicate route slugs', () => {

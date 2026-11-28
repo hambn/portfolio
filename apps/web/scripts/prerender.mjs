@@ -14,13 +14,17 @@ import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { createServer } from 'vite';
 import { buildBlogIndex } from './blog-index.mjs';
+import { renderOgImage } from './og-image.mjs';
 import { renderPost } from './render-post.mjs';
 import './build-info.mjs';
 import { routes } from '../src/routes.js';
+import { buildLinkServices } from '../src/lib/linksDirectory.js';
 import {
   INDEX_ROBOTS,
   isoDate,
   notFoundTitle,
+  oembedPath,
+  ogImagePath,
   pageGraph,
   projectListLd,
   routeMetadata,
@@ -72,6 +76,8 @@ const posts = JSON.parse(blog.json);
 // What a page carries and the browser fetches: the posts without their
 // Markdown, which only the build reads.
 const postIndex = JSON.parse(blog.index);
+const renderedPosts = new Map(posts.map((post) => [post.slug, renderPost(post.body)]));
+const blogTags = [...new Set(posts.flatMap((post) => post.tags || []))];
 
 // Identity meta that's the same on every page (author, avatar, social handles,
 // JSON-LD) lives in the static index.html and would otherwise stay hardcoded.
@@ -105,6 +111,7 @@ const personLd = {
   image: profile.avatar,
   worksFor: orgLd(firstItem('work')?.company),
   alumniOf: orgLd(firstItem('education')?.school),
+  knowsAbout: resume.skills?.length ? resume.skills : undefined,
   sameAs,
 };
 
@@ -329,6 +336,9 @@ function page({
   path,
   type = 'website',
   notFound = false,
+  ogImage = `${siteRoot}/og/home.png`,
+  ogAlt = title,
+  oembedUrl = '',
   jsonLd,
   extraHead = '',
   preload = '',
@@ -339,15 +349,17 @@ function page({
   // The not-found page shares home's path but renders none of its content.
   const home = !path && !notFound;
   if (home || path === 'resume') data.resume = resume;
-  // Home lists the newest posts; it gets their headings, not the whole index.
-  if (home)
+  // Home lists the newest posts and cross-links skills that match blog tags.
+  if (home) {
     data.recentPosts = posts.slice(0, 3).map(({ slug, title, date }) => ({ slug, title, date }));
+    data.blogTags = blogTags;
+  }
   if (home || ['projects', 'links', 'resume'].includes(path)) data.links = links;
   if (path === 'projects') data.projects = projects;
   if (path === 'blog' || path?.startsWith('blog/')) data.blogIndex = postIndex;
   if (path?.startsWith('blog/')) {
     const post = posts.find((p) => `blog/${p.slug}` === path);
-    if (post) data.postHtml = { [post.slug]: renderPost(post.body) };
+    if (post) data.postHtml = { [post.slug]: renderedPosts.get(post.slug) };
   }
   const content = notFound ? '' : render(path || 'home', data);
   const serialized = JSON.stringify(data).replace(/</g, '\\u003c');
@@ -361,12 +373,19 @@ function page({
     notFound ? '' : `  <meta property="og:url" content="${esc(url)}" />`,
     `  <meta property="og:site_name" content="${esc(profile.name)}" />`,
     `  <meta property="og:locale" content="en_US" />`,
-    `  <meta name="twitter:image" content="${esc(profile.avatar)}" />`,
-    `  <meta property="og:image:alt" content="${esc(profile.name)}" />`,
-    `  <meta name="twitter:image:alt" content="${esc(profile.name)}" />`,
+    `  <meta property="og:image:width" content="1200" />`,
+    `  <meta property="og:image:height" content="630" />`,
+    `  <meta property="og:image:type" content="image/png" />`,
+    `  <meta property="og:image:alt" content="${esc(ogAlt)}" />`,
+    `  <meta name="twitter:image" content="${esc(ogImage)}" />`,
+    `  <meta name="twitter:image:alt" content="${esc(ogAlt)}" />`,
     `  <meta name="twitter:title" content="${esc(title)}" />`,
     `  <meta name="twitter:description" content="${esc(desc)}" />`,
-    `  <link rel="alternate" type="application/rss+xml" title="blog" href="${siteRoot}/feed.xml" />`,
+    `  <link rel="alternate" type="application/rss+xml" title="${esc(profile.name)} — blog" href="${siteRoot}/feed.xml" />`,
+    `  <link rel="alternate" type="application/feed+json" title="${esc(profile.name)} — blog" href="${siteRoot}/feed.json" />`,
+    oembedUrl
+      ? `  <link rel="alternate" type="application/json+oembed" title="${esc(title)}" href="${esc(oembedUrl)}" />`
+      : '',
     `  <meta name="robots" content="${notFound ? 'noindex' : INDEX_ROBOTS}" />`,
     preload,
     extraHead,
@@ -379,6 +398,7 @@ function page({
     .replace(/(<meta\s+property="og:title"\s+content=")[^"]*(")/, between(esc(title)))
     .replace(/(<meta\s+property="og:description"\s+content=")[^"]*(")/, between(esc(desc)))
     .replace(/(<meta\s+property="og:type"\s+content=")[^"]*(")/, between(type))
+    .replace(/(<meta\s+property="og:image"\s+content=")[^"]*(")/, between(esc(ogImage)))
     .replace('</head>', literal(`${head}\n</head>`))
     .replace(
       '<div id="root"></div>',
@@ -414,21 +434,194 @@ const meta = Object.fromEntries(
   routes.map((r) => [r.page, { title: r.title(ctx), desc: r.description(ctx) }]),
 );
 
+const ogHost = new URL(SITE).host;
+const ogDir = join(dist, 'og');
+const oembedDir = join(dist, 'oembed');
+mkdirSync(ogDir, { recursive: true });
+mkdirSync(oembedDir, { recursive: true });
+const ogTasks = [];
+const projectLanguages = [...new Set(featured.map((p) => p.language).filter(Boolean))].slice(0, 3);
+const linkServices = buildLinkServices(links, profile);
+
+function writeOembed(relPath, { title, ogUrl, provider = ogHost }) {
+  const payload = {
+    version: '1.0',
+    type: 'link',
+    author_name: profile.handle ? `${profile.name} (@${profile.handle})` : profile.name,
+    author_url: abs(),
+    provider_name: provider,
+    provider_url: abs(),
+    title,
+    thumbnail_url: ogUrl,
+    thumbnail_width: 1200,
+    thumbnail_height: 630,
+  };
+  writeFileSync(join(dist, relPath), `${JSON.stringify(payload, null, 2)}\n`);
+}
+
+function linkRedirectPage(service, ogUrl, oembedUrl) {
+  const shareUrl = abs(`links/${service.slug}`);
+  const title = `${service.label} — ${profile.name}`;
+  const cardTitle = `${service.label} — ${service.handle}`;
+  const linksIndexUrl = `${BASE}/links/`;
+  const heading = service.redirect
+    ? `Opening ${service.label}…`
+    : `${service.label} — ${service.handle}`;
+  const redirectScript = service.redirect
+    ? `<script>window.location.replace(${JSON.stringify(service.url)});</script>`
+    : '';
+  const noscriptRedirect = service.redirect
+    ? `<noscript><meta http-equiv="refresh" content="0;url=${esc(service.url)}" /></noscript>`
+    : '';
+  const primaryInk = ['#e4e4e7', '#1ed760', '#66c0f4'].includes(service.accent.toLowerCase())
+    ? '#09090b'
+    : '#fff';
+  const html = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>${esc(title)}</title>
+    <link rel="icon" type="image/png" href="${esc(avatarImage(profile.avatar, 72).src)}" />
+    <link rel="canonical" href="${esc(shareUrl)}" />
+    <meta name="description" content="${esc(service.tagline)}" />
+    <meta name="author" content="${esc(profile.name)}" />
+    <meta name="robots" content="noindex, follow" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta name="theme-color" content="${esc(service.accent)}" />
+    <meta property="og:site_name" content="${esc(profile.name)} · ${esc(ogHost)}" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:url" content="${esc(shareUrl)}" />
+    <meta property="og:title" content="${esc(cardTitle)}" />
+    <meta property="og:description" content="${esc(service.tagline)}" />
+    <meta property="og:image" content="${esc(ogUrl)}" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:alt" content="${esc(cardTitle)}" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:creator" content="@${esc(links.x?.handle || profile.handle)}" />
+    <meta name="twitter:title" content="${esc(cardTitle)}" />
+    <meta name="twitter:description" content="${esc(service.tagline)}" />
+    <meta name="twitter:image" content="${esc(ogUrl)}" />
+    <meta name="twitter:image:alt" content="${esc(cardTitle)}" />
+    <link rel="alternate" type="application/json+oembed" title="${esc(cardTitle)}" href="${esc(oembedUrl)}" />
+    ${noscriptRedirect}
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{min-height:100vh;display:grid;place-items:center;padding:24px;background:#09090b;color:#fafafa;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+      main{width:min(520px,100%);border:1px solid #27272a;border-top:3px solid ${esc(service.accent)};border-radius:14px;background:#111114;padding:28px}
+      .path{color:#93939d;font-size:13px;margin-bottom:14px}
+      .path b{color:${esc(service.accent)}}
+      h1{font-size:20px;font-weight:700;margin-bottom:8px}
+      p{color:#b4b4bd;font-size:14px;line-height:1.6;margin-bottom:20px}
+      .actions{display:flex;flex-wrap:wrap;gap:10px}
+      a{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;font-size:13px;text-decoration:none}
+      .primary{background:${esc(service.accent)};color:${primaryInk};font-weight:600}
+      .secondary{border:1px solid #27272a;color:#b4b4bd}
+    </style>
+    ${redirectScript}
+  </head>
+  <body>
+    <main>
+      <div class="path"><b>$</b> ~/links/${esc(service.slug)}</div>
+      <h1>${esc(heading)}</h1>
+      <p>${esc(service.tagline)}</p>
+      <div class="actions">
+        <a class="primary" href="${esc(service.url)}" rel="noopener noreferrer">${service.redirect ? `Open ${esc(service.label)}` : `Email ${esc(service.handle)}`}</a>
+        <a class="secondary" href="${esc(linksIndexUrl)}">← All links on ${esc(ogHost)}</a>
+      </div>
+    </main>
+  </body>
+</html>
+`;
+  return withCsp(html);
+}
+
+function ogCardMeta(metadata) {
+  if (metadata.post) {
+    return {
+      path: `Documents/blogs/${metadata.post.slug}`,
+      title: metadata.post.title,
+      description: metadata.post.description,
+      badge: 'post',
+      meta: [
+        isoDate(metadata.post.date),
+        metadata.post.minutes ? `${metadata.post.minutes} min read` : '',
+        ...(metadata.post.tags || []).slice(0, 2),
+      ],
+    };
+  }
+  switch (metadata.page) {
+    case 'home':
+      return {
+        path: '',
+        title: profile.name,
+        description: profile.bio,
+        meta: [`@${profile.handle}`, `${posts.length} posts`, `${featured.length} projects`],
+      };
+    case 'projects':
+      return {
+        path: 'projects',
+        title: 'projects',
+        description: metadata.desc,
+        meta: [`${featured.length} featured`, ...projectLanguages],
+      };
+    case 'blog':
+      return {
+        path: 'Documents/blogs',
+        title: 'blogs',
+        description: metadata.desc,
+        meta: [`${posts.length} posts`, ...blogTags.slice(0, 3)],
+      };
+    case 'links':
+      return {
+        path: 'Documents/links',
+        title: 'links',
+        description: metadata.desc,
+        meta: [`${linkServices.length} platforms`, 'github', 'discord', 'spotify'],
+      };
+    case 'resume':
+      return {
+        path: 'Documents/resume',
+        title: 'resume',
+        description: metadata.desc,
+        meta: [firstItem('work')?.role, `${resume.skills?.length || 0} tools`],
+      };
+    default:
+      return { path: metadata.path, title: metadata.title, description: metadata.desc, meta: [] };
+  }
+}
+
 for (const route of [
   ...routes.map((entry) => entry.page),
   ...posts.map((post) => `blog/${post.slug}`),
 ]) {
   const metadata = routeMetadata(route, profile, posts);
+  const ogRel = ogImagePath(metadata);
+  const oembedRel = oembedPath(metadata);
+  const ogUrl = `${siteRoot}/${ogRel}`;
+  const oembedUrl = `${siteRoot}/${oembedRel}`;
+  ogTasks.push({
+    file: join(dist, ogRel),
+    opts: { ...ogCardMeta(metadata), host: ogHost, handle: profile.handle },
+  });
+  writeOembed(oembedRel, { title: metadata.title, ogUrl });
   write(
     metadata.path,
     page({
       ...metadata,
+      ogImage: ogUrl,
+      ogAlt: metadata.title,
+      oembedUrl,
       preload: assetLinks(metadata.page),
       extraHead: metadata.post
         ? [
             isoDate(metadata.post.date)
               ? `  <meta property="article:published_time" content="${isoDate(metadata.post.date)}" />`
               : '',
+            `  <meta property="article:author" content="${esc(profile.name)}" />`,
             ...metadata.post.tags.map(
               (tag) => `  <meta property="article:tag" content="${esc(tag)}" />`,
             ),
@@ -450,6 +643,51 @@ for (const route of [
   );
 }
 
+// Shareable `/links/<service>/` redirect pages with custom branded Discord/OG embeds.
+// Spotify & Discord point their oEmbed discovery at the live API when an HTTPS
+// API origin is configured, so Discord displays live now-playing / presence.
+const liveOembedServices = new Set(['spotify', 'discord']);
+const httpsApi = /^https:\/\//.test(API_BASE) ? API_BASE.replace(/\/+$/, '') : '';
+
+for (const service of linkServices) {
+  const ogRel = `og/links-${service.slug}.png`;
+  const oembedRel = `oembed/links-${service.slug}.json`;
+  const ogUrl = `${siteRoot}/${ogRel}`;
+  const staticOembedUrl = `${siteRoot}/${oembedRel}`;
+  const oembedUrl =
+    httpsApi && liveOembedServices.has(service.slug)
+      ? `${httpsApi}/oembed/${service.slug}`
+      : staticOembedUrl;
+  let targetHost = service.handle;
+  try {
+    targetHost = new URL(service.url).host || service.handle;
+  } catch {}
+  ogTasks.push({
+    file: join(dist, ogRel),
+    opts: {
+      path: `links/${service.slug}`,
+      title: `${service.label} — ${service.handle}`,
+      description: service.tagline,
+      accent: service.accent,
+      cardId: service.cardId,
+      badge: service.slug === 'spotify' ? 'now playing' : service.redirect ? 'redirect' : 'contact',
+      meta: [targetHost, `${ogHost}/links/${service.slug}`],
+      host: ogHost,
+      handle: profile.handle,
+    },
+  });
+  writeOembed(oembedRel, {
+    title: `${service.label} — ${service.handle}`,
+    ogUrl,
+    provider: `${ogHost} · ${service.label}`,
+  });
+  write(`links/${service.slug}`, linkRedirectPage(service, ogUrl, oembedUrl));
+}
+
+await Promise.all(
+  ogTasks.map(async ({ file, opts }) => writeFileSync(file, await renderOgImage(opts))),
+);
+
 // SPA fallback for unknown deep links — boots the app, kept out of the index.
 writeFileSync(
   join(dist, '404.html'),
@@ -457,6 +695,7 @@ writeFileSync(
 );
 
 // feed.xml — RSS 2.0 so readers and aggregators can follow the blog.
+const lastBuildDate = rfc822(posts[0]?.date);
 const feed = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
@@ -464,7 +703,7 @@ const feed = `<?xml version="1.0" encoding="UTF-8"?>
     <link>${abs('blog')}</link>
     <description>${esc(meta.blog.desc)}</description>
     <language>en</language>
-    <atom:link href="${siteRoot}/feed.xml" rel="self" type="application/rss+xml" />
+${lastBuildDate ? `    <lastBuildDate>${lastBuildDate}</lastBuildDate>\n` : ''}    <atom:link href="${siteRoot}/feed.xml" rel="self" type="application/rss+xml" />
 ${posts
   .map((p) => {
     const url = abs(`blog/${p.slug}`);
@@ -486,6 +725,33 @@ ${posts
 </rss>
 `;
 writeFileSync(join(dist, 'feed.xml'), feed);
+
+// feed.json — JSON Feed 1.1 for modern feed readers and tools.
+const jsonFeed = {
+  version: 'https://jsonfeed.org/version/1.1',
+  title: meta.blog.title,
+  home_page_url: abs('blog'),
+  feed_url: `${siteRoot}/feed.json`,
+  description: meta.blog.desc,
+  language: 'en',
+  icon: profile.avatar,
+  authors: [{ name: profile.name, url: abs(), avatar: profile.avatar }],
+  items: posts.map((p) => {
+    const url = abs(`blog/${p.slug}`);
+    const published = isoDate(p.date);
+    return {
+      id: url,
+      url,
+      title: p.title,
+      ...(p.description ? { summary: p.description } : {}),
+      content_html: renderedPosts.get(p.slug),
+      image: `${siteRoot}/og/blog-${p.slug}.png`,
+      ...(published ? { date_published: `${published}T00:00:00Z` } : {}),
+      ...(p.tags?.length ? { tags: p.tags } : {}),
+    };
+  }),
+};
+writeFileSync(join(dist, 'feed.json'), `${JSON.stringify(jsonFeed, null, 2)}\n`);
 
 // sitemap.xml — every indexable URL, matching the trailing-slash form served.
 // lastmod is only emitted where there's a real content date (posts + blog index).
@@ -557,6 +823,7 @@ const llms = [
   '',
   bullet('Full text', `${siteRoot}/llms-full.txt`, 'this index plus the resume and every post'),
   bullet('RSS feed', `${siteRoot}/feed.xml`),
+  bullet('JSON feed', `${siteRoot}/feed.json`),
   bullet('Sitemap', `${siteRoot}/sitemap.xml`),
   '',
 ].join('\n');
@@ -633,5 +900,5 @@ writeFileSync(
 rmSync(join(dist, '.vite'), { recursive: true, force: true });
 
 console.log(
-  `[prerender] wrote ${routes.length + posts.length} pages + 404 + feed + sitemap (${entries.length} urls)`,
+  `[prerender] wrote ${routes.length + posts.length} pages + ${linkServices.length} link embeds + ${ogTasks.length} og cards + 404 + feeds + sitemap (${entries.length} urls)`,
 );

@@ -62,12 +62,12 @@ export function useIsland(barRef, islandRef) {
         folds.push(
           list.animate(
             [
-              { opacity: 0, transform: 'scale(0.94)', filter: 'blur(3px)' },
-              { opacity: 1, transform: 'none', filter: 'blur(0)' },
+              { opacity: 0, transform: 'scale(0.96)' },
+              { opacity: 1, transform: 'none' },
             ],
             {
-              duration: 340,
-              delay: 110,
+              duration: 280,
+              delay: 80,
               easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
               fill: 'backwards',
             },
@@ -137,8 +137,16 @@ export function useIsland(barRef, islandRef) {
     onResize();
     window.addEventListener('scroll', schedule, { passive: true });
     window.addEventListener('resize', onResize);
+    // Redraw immediately when content above the jump bar changes height
+    // (e.g. toggling the embed-links strip or live presence banner).
+    let ro = null;
+    if (typeof ResizeObserver === 'function' && bar.previousElementSibling) {
+      ro = new ResizeObserver(schedule);
+      ro.observe(bar.previousElementSibling);
+    }
     return () => {
       cancelAnimationFrame(frame);
+      ro?.disconnect();
       window.removeEventListener('scroll', schedule);
       window.removeEventListener('resize', onResize);
       folds.forEach((run) => run.cancel());

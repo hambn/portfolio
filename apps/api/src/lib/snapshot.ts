@@ -111,7 +111,7 @@ export async function downloadImage(
   }
 }
 
-/** Download a profile's avatar and banner, one after the other. */
+/** Download a profile's avatar and banner in parallel. */
 export async function downloadImages(
   services: Services,
   provider: string,
@@ -119,17 +119,18 @@ export async function downloadImages(
   previous: Record<ImageKind, StoredImage | null> | undefined,
   init: RequestInit,
 ): Promise<Record<ImageKind, StoredImage | null>> {
-  const images: Record<ImageKind, StoredImage | null> = { avatar: null, banner: null };
-  for (const kind of ['avatar', 'banner'] as const) {
+  const fetchOne = async (kind: ImageKind): Promise<StoredImage | null> => {
     const source = profile[kind];
-    if (!source || !allowedMedia(provider, source)) continue;
+    if (!source || !allowedMedia(provider, source)) return null;
     // Keep a previously downloaded image when the CDN is temporarily unavailable.
-    images[kind] =
+    return (
       (await downloadImage(services, provider, source, init, 2 * 1024 * 1024)) ??
       previous?.[kind] ??
-      null;
-  }
-  return images;
+      null
+    );
+  };
+  const [avatar, banner] = await Promise.all([fetchOne('avatar'), fetchOne('banner')]);
+  return { avatar, banner };
 }
 
 interface ImageSnapshot {

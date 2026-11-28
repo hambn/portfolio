@@ -4,12 +4,12 @@
 
 /* The first paint uses the same responsive layout as the interactive app. */
 .home-page {
-  max-width: 760px;
+  max-width: 780px;
   margin: 0 auto;
-  padding: 130px 24px 80px;
+  padding: 112px 24px 80px;
 }
 .home-section {
-  margin-bottom: 56px;
+  margin-bottom: 52px;
 }
 
 /* ── Intro ── */
@@ -17,17 +17,17 @@
   display: flex;
   align-items: center;
   gap: 20px;
-  margin-bottom: 32px;
+  margin-bottom: 28px;
 }
 .home-name {
-  font-size: var(--text-3xl);
+  font-size: 1.75rem;
   font-weight: 700;
-  letter-spacing: -0.025em;
-  margin-bottom: 6px;
+  letter-spacing: -0.03em;
+  margin-bottom: 5px;
   line-height: 1.2;
 }
 .home-handle {
-  font-size: var(--text-base);
+  font-size: var(--text-sm);
   font-weight: 500;
   color: var(--primary);
 }
@@ -41,22 +41,23 @@
   margin: 0 8px;
   color: var(--foreground-faint);
 }
-/* intro paragraphs — ~70 characters per line, comfortable for prose */
+/* intro paragraphs — comfortable reading measure in monospace */
 .home-intro {
   word-spacing: var(--word-prose);
   color: var(--foreground-muted);
-  font-size: var(--text-base);
-  line-height: 1.8;
-  max-width: 640px;
-  margin-bottom: 36px;
+  font-size: 14.5px;
+  line-height: 1.75;
+  max-width: 660px;
+  margin-bottom: 32px;
   display: grid;
-  gap: 18px;
+  gap: 16px;
 }
 .home-actions {
   display: flex;
+  align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  margin-bottom: 56px;
+  margin-bottom: 52px;
 }
 
 /* `$ command` heading with a rule across the rest of the line */
@@ -92,9 +93,13 @@
   color: var(--foreground);
   transition: background-color var(--transition-base);
 }
-.recent-posts a:hover,
 .recent-posts a:focus-visible {
   background: var(--glass-hover);
+}
+@media (hover: hover) {
+  .recent-posts a:hover {
+    background: var(--glass-hover);
+  }
 }
 .recent-posts time {
   flex-shrink: 0;
@@ -129,9 +134,11 @@
     color var(--transition-base),
     background-color var(--transition-base);
 }
-.home-footer-link:hover {
-  color: var(--foreground);
-  background: var(--background-muted);
+@media (hover: hover) {
+  .home-footer-link:hover {
+    color: var(--foreground);
+    background: var(--background-muted);
+  }
 }
 .home-footer-link > .icon:first-child {
   font-size: 15px;
@@ -181,40 +188,46 @@
 }
 
 .btn-default {
-  background: var(--primary-solid);
-  color: var(--primary-foreground);
-  border-color: var(--primary-solid);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
-}
-.btn-default:hover:not(:disabled) {
-  background: var(--primary-hover);
-  border-color: var(--primary-hover);
+  background: var(--foreground);
+  color: var(--background);
+  border-color: var(--foreground);
+  font-weight: 600;
 }
 .btn-ghost {
   background: transparent;
   color: var(--foreground-muted);
   border-color: transparent;
 }
-.btn-ghost:hover:not(:disabled) {
-  background: var(--background-muted);
-  color: var(--foreground);
-}
 .btn-outline {
-  background: var(--glass);
-  box-shadow: var(--glass-edge);
+  background: transparent;
   color: var(--foreground);
-  border-color: var(--hairline-strong);
+  border-color: var(--border-strong);
 }
-.btn-outline:hover:not(:disabled) {
-  background: var(--glass-hover);
-  border-color: var(--foreground-subtle);
+@media (hover: hover) {
+  .btn-default:hover:not(:disabled) {
+    opacity: 0.88;
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--foreground) 5%, transparent);
+    color: var(--foreground);
+  }
+  .btn-outline:hover:not(:disabled) {
+    background: var(--background-subtle);
+    border-color: var(--foreground-subtle);
+  }
 }
 .btn-md {
-  font-size: var(--text-sm);
-  padding: 8px 16px;
+  font-size: 13px;
+  padding: 7px 15px;
 }
 
 /* Avatar is the home LCP element — fixed box so it never shifts the hero. */
+.home-avatar-wrap {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+}
 .home-avatar {
   width: 72px;
   height: 72px;
@@ -222,6 +235,29 @@
   border: 1px solid var(--hairline-strong);
   background: var(--border);
   flex-shrink: 0;
+}
+/* Live Discord presence dot tucked on the avatar's corner (only rendered when online/idle/dnd). */
+.home-presence {
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 2.5px solid var(--background);
+  background: var(--success);
+  transition: transform var(--transition-base);
+}
+.home-presence.is-idle {
+  background: var(--warning);
+}
+.home-presence.is-dnd {
+  background: var(--destructive);
+}
+@media (hover: hover) {
+  .home-presence:hover {
+    transform: scale(1.15);
+  }
 }
 /* Section label, written the way the command is typed: lowercase, at the
    size of the text around it. Also the <h2> in the timeline header. */
@@ -241,8 +277,10 @@
   color: var(--foreground-muted);
   transition: color 150ms;
 }
-.link-quiet:hover {
-  color: var(--foreground);
+@media (hover: hover) {
+  .link-quiet:hover {
+    color: var(--foreground);
+  }
 }
 /* Shell prompt sigil in front of a terminal-styled section label. */
 .prompt-sigil {
@@ -356,7 +394,12 @@
 .git-graph g,
 .git-graph path,
 .git-graph circle {
-  transition: opacity 200ms var(--ease-default);
+  transition:
+    opacity 200ms var(--ease-default),
+    stroke-width 160ms var(--ease-default);
+}
+.git-graph g.is-active .git-lane {
+  stroke-width: 2.6;
 }
 .git-lane.is-life {
   stroke: var(--graph-life);
@@ -473,22 +516,30 @@
 /* Tooling chips under the intro. */
 .stack-chip {
   padding: 4px 10px;
-  border: 1px solid var(--hairline);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  background: var(--glass);
-  box-shadow: var(--glass-edge);
-  font-size: var(--text-xs);
+  background: color-mix(in srgb, var(--background-subtle) 65%, transparent);
+  font-size: 12px;
   color: var(--foreground-muted);
   transition:
     border-color 150ms,
     background-color 150ms,
     color 150ms;
 }
+.stack-chip.is-linked {
+  color: var(--foreground);
+  border-color: var(--border-strong);
+}
 @media (hover: hover) {
   .stack-chip:hover {
-    border-color: var(--hairline-strong);
-    background: var(--glass-hover);
+    border-color: var(--border-strong);
+    background: var(--background-subtle);
     color: var(--foreground);
+  }
+  .stack-chip.is-linked:hover {
+    border-color: var(--primary-ring);
+    background: var(--primary-subtle);
+    color: var(--primary);
   }
 }
 @media (max-width: 639px) {

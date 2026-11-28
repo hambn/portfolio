@@ -1,45 +1,54 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { build } from 'esbuild';
-import { Miniflare, createFetchMock } from 'miniflare';
-import { mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { Miniflare } from 'miniflare';
 import { fileURLToPath } from 'node:url';
 
 test('real Worker runtime serves cached media, snapshots, HEAD, and prefixed routes', async (t) => {
-  const directory = await mkdtemp(join(tmpdir(), 'portfolio-worker-'));
-  t.after(() => rm(directory, { recursive: true, force: true }));
-  const scriptPath = join(directory, 'worker.js');
-  await build({
+  const { outputFiles } = await build({
     entryPoints: [fileURLToPath(new URL('../src/entrypoints/worker.ts', import.meta.url))],
-    outfile: scriptPath,
     bundle: true,
+    write: false,
     format: 'esm',
     platform: 'browser',
     target: 'es2022',
   });
-  const fetchMock = createFetchMock();
-  fetchMock.disableNetConnect();
-  fetchMock
-    .get('https://i.scdn.co')
-    .intercept({ path: '/image/test' })
-    .reply(200, 'image-bytes', { headers: { 'Content-Type': 'image/png' } });
-  fetchMock
-    .get('https://www.linkedin.com')
-    .intercept({ path: '/in/hambn/' })
-    .reply(
-      200,
-      '<link rel="canonical" href="https://www.linkedin.com/in/hambn/"><section class="top-card-layout"><h1 class="top-card-layout__title">LinkedIn Worker Test</h1><span>655 followers</span></section>',
-    );
+  const script = outputFiles[0].text;
+  const manifest = {
+    mainModule: 'worker.js',
+    modules: { 'worker.js': { type: 'esm', contents: script } },
+  };
+  const hits = new Map();
   const worker = new Miniflare({
-    modules: true,
-    modulesRoot: directory,
-    scriptPath,
-    compatibilityDate: '2026-06-23',
-    kvNamespaces: ['SPOTIFY_KV'],
-    bindings: { CACHE_VERSION: 'test' },
-    fetchMock,
+    workers: [
+      {
+        config: {
+          name: 'api',
+          compatibilityDate: '2026-06-23',
+          manifest,
+          env: {
+            SPOTIFY_KV: { type: 'kv', id: 'SPOTIFY_KV' },
+            CACHE_VERSION: { type: 'text', value: 'test' },
+          },
+        },
+        dev: {
+          outboundService: {
+            type: 'fetcher',
+            handler(request) {
+              const { href } = new URL(request.url);
+              hits.set(href, (hits.get(href) ?? 0) + 1);
+              if (href === 'https://i.scdn.co/image/test')
+                return new Response('image-bytes', { headers: { 'Content-Type': 'image/png' } });
+              if (href === 'https://www.linkedin.com/in/hambn/')
+                return new Response(
+                  '<link rel="canonical" href="https://www.linkedin.com/in/hambn/"><section class="top-card-layout"><h1 class="top-card-layout__title">LinkedIn Worker Test</h1><span>655 followers</span></section>',
+                );
+              throw new Error(`Unexpected outbound fetch: ${href}`);
+            },
+          },
+        },
+      },
+    ],
   });
   t.after(() => worker.dispose());
   const kv = await worker.getKVNamespace('SPOTIFY_KV');
@@ -67,32 +76,48 @@ test('real Worker runtime serves cached media, snapshots, HEAD, and prefixed rou
   assert.equal(linkedIn.name, 'LinkedIn Worker Test');
   assert.equal(linkedIn.followers, '655');
   assert.equal((await worker.dispatchFetch('https://api.test/api/linkedin')).status, 200);
-  fetchMock.assertNoPendingInterceptors();
+  assert.equal(hits.get('https://i.scdn.co/image/test'), 1);
+  assert.equal(hits.get('https://www.linkedin.com/in/hambn/'), 1);
+  assert.equal(hits.size, 2);
 
   const presenceWorker = new Miniflare({
     workers: [
       {
-        name: 'api',
-        modules: true,
-        modulesRoot: directory,
-        scriptPath,
-        compatibilityDate: '2026-06-23',
-        kvNamespaces: ['SPOTIFY_KV'],
-        bindings: { CACHE_VERSION: 'test', DISCORD_ID: '123' },
-        outboundService: 'upstream',
+        config: {
+          name: 'api',
+          compatibilityDate: '2026-06-23',
+          manifest,
+          env: {
+            SPOTIFY_KV: { type: 'kv', id: 'SPOTIFY_KV' },
+            CACHE_VERSION: { type: 'text', value: 'test' },
+            DISCORD_ID: { type: 'text', value: '123' },
+          },
+        },
+        dev: {
+          outboundService: { type: 'worker', worker: 'upstream' },
+        },
       },
       {
-        name: 'upstream',
-        modules: true,
-        compatibilityDate: '2026-06-23',
-        script: `
-        export default { fetch() {
-          const pair = new WebSocketPair();
-          pair[1].accept();
-          pair[1].addEventListener('message', event => pair[1].send(event.data));
-          return new Response(null, { status: 101, webSocket: pair[0] });
-        } };
-      `,
+        config: {
+          name: 'upstream',
+          compatibilityDate: '2026-06-23',
+          manifest: {
+            mainModule: 'upstream.js',
+            modules: {
+              'upstream.js': {
+                type: 'esm',
+                contents: `
+                  export default { fetch() {
+                    const pair = new WebSocketPair();
+                    pair[1].accept();
+                    pair[1].addEventListener('message', event => pair[1].send(event.data));
+                    return new Response(null, { status: 101, webSocket: pair[0] });
+                  } };
+                `,
+              },
+            },
+          },
+        },
       },
     ],
   });

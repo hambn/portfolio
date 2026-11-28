@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { identities } from '../identities.js';
 import type { Services } from '../contracts.js';
 import {
+  allowedHost,
   fetchAllowed,
   fetchWithTimeout,
   readBytes,
@@ -109,12 +110,14 @@ async function api<T extends z.ZodType>(services: Services, path: string, schema
   return readJSON(response, schema);
 }
 
+const allowedProfile = allowedHost(['github.com']);
+
 /** The signed-out profile page, for what only the page shows. */
 async function page(services: Services, username: string): Promise<GitHubPage> {
   const response = await fetchAllowed(
     services,
     `https://github.com/${encodeURIComponent(username)}`,
-    (url) => url.startsWith('https://github.com/'),
+    allowedProfile,
     { headers: { 'User-Agent': 'portfolio-api', Accept: 'text/html' } },
   );
   await expectOk(response, `github_page_${response.status}`);

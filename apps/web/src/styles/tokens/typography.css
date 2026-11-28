@@ -24,10 +24,11 @@
   --text-3xl: 1.875rem; /*  30px */
 
   /* ── Reading ──
-   * Running text is set a touch heavier than regular and pulled slightly
-   * together: light-on-dark mono at 400 reads thin, and its fixed advance
-   * leaves words looser than a proportional face would. */
-  --fw-body: 430; /* @kind other */
+   * JetBrains Mono is a variable font (100–800). On near-black, 420 balances
+   * dark-mode halation without reading thin (light mode steps up to 430 in
+   * colors.css so both themes match optically), and slight negative tracking
+   * pulls fixed-advance words together cleanly. */
+  --fw-body: 420; /* @kind other */
   --tracking-body: -0.012em; /* @kind other */
   --leading-body: 1.65; /* @kind other */
   /* A monospace space is a full 0.6em, the width of a letter. Between the

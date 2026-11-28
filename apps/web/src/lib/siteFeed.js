@@ -256,9 +256,15 @@ let warmed = false;
 export function warmSite({ content, preload }) {
   if (warmed || typeof window === 'undefined') return;
   warmed = true;
-  if (navigator.connection?.saveData) return;
+  const conn = navigator.connection;
+  if (conn?.saveData || /^(slow-2g|2g|3g)$/.test(conn?.effectiveType || '')) return;
+  // On touch/mobile devices, skip eager multi-page chunk + banner prefetching
+  // so the phone's CPU and radio stay dedicated to the page being read; links
+  // still warm on tap/pointerover (App.jsx).
+  const isTouch = window.matchMedia?.('(hover: none)').matches;
   afterLoad(() =>
     idle(() => {
+      if (isTouch) return;
       content
         .getLinks()
         // Spotify playback is only worth asking for on the page that shows it.

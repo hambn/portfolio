@@ -26,26 +26,34 @@ export default function Home() {
       PortfolioData.peek('blogIndex')?.slice(0, RECENT_COUNT) ||
       null,
   );
+  const [blogTags, setBlogTags] = useState(
+    () =>
+      PortfolioData.peek('blogTags') ||
+      PortfolioData.peek('blogIndex')?.flatMap((p) => p.tags || []) ||
+      null,
+  );
 
   useEffect(() => {
-    if (recent) return undefined;
+    if (recent && blogTags) return undefined;
     let alive = true;
     PortfolioData.getBlogIndex()
       .then((posts) => {
-        if (alive) setRecent(posts.slice(0, RECENT_COUNT));
+        if (!alive) return;
+        setRecent((cur) => cur || posts.slice(0, RECENT_COUNT));
+        setBlogTags((cur) => cur || [...new Set(posts.flatMap((p) => p.tags || []))]);
       })
       .catch(() => {});
     return () => {
       alive = false;
     };
-  }, [recent]);
+  }, [recent, blogTags]);
 
   return (
     <main className="home-page">
       <Intro profile={profile} />
       <Timeline resume={resume} />
       <RecentPosts posts={recent} />
-      <Stack skills={resume?.skills} />
+      <Stack skills={resume?.skills} blogTags={blogTags} />
       <FooterLinks links={links} />
     </main>
   );

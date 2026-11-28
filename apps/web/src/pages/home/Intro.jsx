@@ -1,9 +1,12 @@
 import React from 'react';
 import { avatarImage } from '../../lib/api.js';
 import { followRoute, routeHref } from '../../lib/router.js';
+import { useSiteCard } from '../../lib/siteFeed.js';
 import Icon from '../../components/Icon.jsx';
 
 const AVATAR_SIZE = 72;
+const ACTIVE_PRESENCE = new Set(['online', 'idle', 'dnd']);
+const STATUS_LABEL = { online: 'online', idle: 'idle', dnd: 'do not disturb' };
 
 const ROUTES = [
   { route: 'projects', label: 'projects', className: 'btn btn-default btn-md' },
@@ -23,21 +26,44 @@ export function introAvatar(profile) {
 export default function Intro({ profile }) {
   // falls back to the one-line bio used for meta/cards
   const paragraphs = profile?.intro?.length ? profile.intro : [profile?.bio].filter(Boolean);
+  // Piggybacks on the visit's single /site batch (zero extra requests).
+  // Stays unrendered until real presence arrives so SSR matches hydration.
+  const discord = useSiteCard('discord');
+  const status = discord.status === 'ready' ? discord.data?.status : null;
+  const activity =
+    discord.status === 'ready'
+      ? discord.data?.activities?.find((a) => a.type === 0 || a.type === 2)?.name
+      : null;
+  const livePresence = ACTIVE_PRESENCE.has(status) ? status : null;
+  const presenceTitle = livePresence
+    ? `${STATUS_LABEL[livePresence]}${activity ? ` — ${activity}` : ' on discord'}`
+    : '';
 
   return (
     <React.Fragment>
       <div className="home-hero">
-        {/* fetchPriority high: this is the home page's LCP candidate, and React
-            hoists a matching <link rel="preload"> into the prerendered <head>. */}
-        <img
-          {...introAvatar(profile)}
-          alt={profile?.name || ''}
-          width={AVATAR_SIZE}
-          height={AVATAR_SIZE}
-          decoding="async"
-          fetchPriority="high"
-          className="home-avatar"
-        />
+        <div className="home-avatar-wrap">
+          {/* fetchPriority high: this is the home page's LCP candidate, and React
+              hoists a matching <link rel="preload"> into the prerendered <head>. */}
+          <img
+            {...introAvatar(profile)}
+            alt={profile?.name || ''}
+            width={AVATAR_SIZE}
+            height={AVATAR_SIZE}
+            decoding="async"
+            fetchPriority="high"
+            className="home-avatar"
+          />
+          {livePresence && (
+            <a
+              href={`${routeHref('links')}#card-dc`}
+              onClick={followRoute('links')}
+              className={`home-presence is-${livePresence}`}
+              title={presenceTitle}
+              aria-label={presenceTitle}
+            />
+          )}
+        </div>
         <div>
           <h1 className="home-name">{profile?.name || ''}</h1>
           <p className="home-handle">

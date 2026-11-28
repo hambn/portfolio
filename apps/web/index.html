@@ -26,10 +26,10 @@
       content="DevOps engineer — infrastructure, virtualization, networking, containers, CI/CD, monitoring, and the tooling around them."
     />
     <meta property="og:image" content="https://avatars.githubusercontent.com/hambn" />
-    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:creator" content="@hambn4" />
-    <meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)" />
-    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta name="theme-color" content="#3b82f6" />
 
     <!-- Structured data -->
     <script type="application/ld+json">
@@ -65,7 +65,10 @@
       (function () {
         try {
           var t = localStorage.getItem('hambn-theme');
-          document.documentElement.setAttribute('data-theme', t === 'light' ? 'light' : 'dark');
+          var theme = t === 'light' ? 'light' : 'dark';
+          document.documentElement.setAttribute('data-theme', theme);
+          var tc = document.querySelector('meta[name="theme-color"]');
+          if (tc) tc.content = theme === 'light' ? '#ffffff' : '#09090b';
           // Link cards collapsed on a previous visit (see src/lib/cardState.js).
           var collapsed = [];
           for (var i = 0; i < localStorage.length; i++) {
