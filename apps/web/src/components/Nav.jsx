@@ -99,11 +99,10 @@ export default function Nav({ page }) {
           type="button"
           className="nav-palette"
           onClick={() => window.dispatchEvent(new CustomEvent('portfolio:palette'))}
-          aria-label="command palette"
-          title="command palette (Ctrl+K)"
+          aria-label="search and commands"
+          title="search & commands (Ctrl+K or :)"
         >
           <Icon name="search" />
-          <kbd aria-hidden="true">:</kbd>
         </button>
 
         <button

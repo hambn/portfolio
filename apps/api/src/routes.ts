@@ -11,6 +11,7 @@ import { handle as projects } from './providers/projects.js';
 import { handle as media } from './media/handler.js';
 import { handle as links } from './links.js';
 import { handle as contact } from './mail/contact.js';
+import { handle as oembed } from './oembed.js';
 
 export type Handler = (request: Request, services: Services) => Promise<Response>;
 export interface Route {
@@ -36,6 +37,8 @@ const exact: Record<string, Route> = {
   '/gitlab': { handler: gitlab },
   '/gitlab/contributions': { handler: gitlab },
   '/projects': { handler: projects },
+  '/oembed/spotify': { handler: oembed },
+  '/oembed/discord': { handler: oembed },
 };
 
 // Paths whose handler also accepts an optional image kind and trailing slash.
@@ -90,6 +93,8 @@ const about: Record<string, { about: string; query?: Record<string, string> }> =
   '/x': { about: 'X profile; /x/avatar and /x/banner are its images.' },
   '/telegram': { about: 'Telegram profile; /telegram/avatar is its image.' },
   '/linkedin': { about: 'LinkedIn profile; /linkedin/avatar and /linkedin/banner are its images.' },
+  '/oembed/spotify': { about: 'Live oEmbed 1.0 payload for Spotify now-playing embeds.' },
+  '/oembed/discord': { about: 'Live oEmbed 1.0 payload for Discord presence embeds.' },
   '/media/<provider>/<asset>': { about: 'Allowlisted raster image proxy.' },
 };
 

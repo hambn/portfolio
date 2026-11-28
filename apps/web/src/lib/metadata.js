@@ -9,6 +9,22 @@ export const INDEX_ROBOTS =
 
 export const notFoundTitle = (profile) => `not found — ${profile.name}`;
 
+/** Relative path (no leading slash) of a route's build-time 1200×630 OG card. */
+export const ogImagePath = (meta) =>
+  meta?.post
+    ? `og/blog-${meta.post.slug}.png`
+    : meta?.service
+      ? `og/links-${meta.service}.png`
+      : `og/${meta?.page || 'home'}.png`;
+
+/** Relative path (no leading slash) of a route's static oEmbed JSON. */
+export const oembedPath = (meta) =>
+  meta?.post
+    ? `oembed/blog-${meta.post.slug}.json`
+    : meta?.service
+      ? `oembed/links-${meta.service}.json`
+      : `oembed/${meta?.page || 'home'}.json`;
+
 function setMeta(attribute, name, content) {
   let element = document.head.querySelector(`meta[${attribute}="${name}"]`);
   if (!element) {
@@ -35,6 +51,17 @@ export function routeMetadata(route, profile, posts = []) {
   const entry = routes.find((item) => item.page === page);
   if (!entry) return null;
   const slug = segments.join('/');
+  if (page === 'links' && segments.length === 1 && slug) {
+    return {
+      page,
+      path: `links/${slug}`,
+      title: `${slug} — ${profile.name}`,
+      desc: entry.description({ profile }),
+      type: 'website',
+      post: null,
+      service: slug,
+    };
+  }
   const post = page === 'blog' && slug ? posts.find((item) => item.slug === slug) : null;
   if (segments.length && !post) return null;
   return {
@@ -89,7 +116,7 @@ export function pageGraph(meta, person, siteRoot, posts = [], mainEntity) {
     dateModified: isoDate(post.date) || undefined,
     inLanguage: 'en',
     isAccessibleForFree: true,
-    image: person.image,
+    image: `${siteRoot}/og/blog-${post.slug}.png`,
     keywords: post.tags?.length ? post.tags.join(', ') : undefined,
     wordCount: post.words || undefined,
     timeRequired: post.minutes ? `PT${post.minutes}M` : undefined,
@@ -172,6 +199,7 @@ export function updateDocumentMetadata(meta, profile, posts) {
     canonical?.href || window.location.origin,
   ).href.replace(/\/+$/, '');
   const url = `${siteRoot}/${meta.path ? `${meta.path}/` : ''}`;
+  const ogImage = `${siteRoot}/${ogImagePath(meta)}`;
   if (!canonical) {
     canonical = document.createElement('link');
     canonical.rel = 'canonical';
@@ -183,8 +211,12 @@ export function updateDocumentMetadata(meta, profile, posts) {
   setMeta('property', 'og:description', meta.desc);
   setMeta('property', 'og:type', meta.type);
   setMeta('property', 'og:url', url);
+  setMeta('property', 'og:image', ogImage);
+  setMeta('property', 'og:image:alt', meta.title);
   setMeta('name', 'twitter:title', meta.title);
   setMeta('name', 'twitter:description', meta.desc);
+  setMeta('name', 'twitter:image', ogImage);
+  setMeta('name', 'twitter:image:alt', meta.title);
   document.head
     .querySelectorAll('meta[property^="article:"]')
     .forEach((element) => element.remove());

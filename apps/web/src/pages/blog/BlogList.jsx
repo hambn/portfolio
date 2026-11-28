@@ -7,6 +7,25 @@ import { ClickableTag, fmtDate, goToTag, readUrlTags } from './blog-ui.jsx';
 
 const POSTS_PER_PAGE = 15;
 
+/** Highlight case-insensitive occurrences of `needle` inside `text`. */
+function highlight(text, needle) {
+  const q = needle.trim();
+  if (!q || !text) return text;
+  const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const parts = String(text).split(new RegExp(`(${escaped})`, 'gi'));
+  return parts.length === 1
+    ? text
+    : parts.map((part, i) =>
+        i % 2 === 1 ? (
+          <mark key={i} className="blog-mark">
+            {part}
+          </mark>
+        ) : (
+          part
+        ),
+      );
+}
+
 const FilterIcon = () => (
   <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
     <path
@@ -145,14 +164,31 @@ export default function PostList({ posts }) {
               setQuery(e.target.value);
               loadBodies();
             }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape' && query) {
+                e.stopPropagation();
+                setQuery('');
+              }
+            }}
             onFocus={loadBodies}
             placeholder="search posts..."
             aria-label="search posts"
             className="blog-search"
           />
-          <kbd className="blog-search-key" aria-hidden="true">
-            /
-          </kbd>
+          {query ? (
+            <button
+              type="button"
+              className="blog-search-clear"
+              onClick={() => setQuery('')}
+              aria-label="clear search"
+            >
+              <Icon name="x" />
+            </button>
+          ) : (
+            <kbd className="blog-search-key" aria-hidden="true">
+              /
+            </kbd>
+          )}
         </div>
 
         {allTags.length > 0 && (
@@ -229,13 +265,15 @@ export default function PostList({ posts }) {
                 className="post-row-link"
               >
                 <span className="post-row-head">
-                  <span className="post-row-title">{post.title}</span>
+                  <span className="post-row-title">{highlight(post.title, query)}</span>
                   <span className="post-row-date">
                     <time dateTime={post.date || undefined}>{fmtDate(post.date)}</time>
                     <span className="post-row-read">{post.minutes} min</span>
                   </span>
                 </span>
-                {post.description && <span className="post-row-desc">{post.description}</span>}
+                {post.description && (
+                  <span className="post-row-desc">{highlight(post.description, query)}</span>
+                )}
               </a>
               {post.tags.length > 0 && (
                 <div className="post-tags">

@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Deploy to Cloudflare
 
 on:
   push:
@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: pages
+  group: deploy
   cancel-in-progress: false
 
 jobs:
@@ -23,22 +23,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
-      - uses: actions/upload-pages-artifact@v5
+      - uses: actions/upload-artifact@v4
         with:
+          name: web-dist
           path: apps/web/dist
-
-  deploy:
-    needs: [build, deploy-worker]
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v5
+          retention-days: 1
 
   deploy-worker:
     needs: build
@@ -88,3 +77,36 @@ jobs:
           # Optional. Actions reserves the GITHUB_ prefix for its own secrets,
           # so the repository secret is named PROJECTS_GITHUB_TOKEN.
           PROJECTS_GITHUB_TOKEN: ${{ secrets.PROJECTS_GITHUB_TOKEN }}
+
+  deploy-pages:
+    needs: [build, deploy-worker]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    environment:
+      name: cloudflare-pages
+      url: https://hgh.dev
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: apps/web/dist
+      - name: Deploy static site to Cloudflare Pages
+        run: |
+          PROJECT="${CLOUDFLARE_PAGES_PROJECT:-portfolio}"
+          npx wrangler pages project create "$PROJECT" --production-branch main 2>/dev/null || true
+          npx wrangler pages deploy apps/web/dist \
+            --project-name "$PROJECT" \
+            --branch main \
+            --commit-hash "$GITHUB_SHA"
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_PAGES_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT }}

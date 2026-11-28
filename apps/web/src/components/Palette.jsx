@@ -26,7 +26,9 @@ export default function Palette({ go, onClose }) {
   }, []);
 
   const items = useMemo(() => {
-    const email = PortfolioData.peek('links')?.email?.address;
+    const links = PortfolioData.peek('links');
+    const projects = PortfolioData.peek('projects');
+    const email = links?.email?.address;
     const raw = [
       ...Object.entries(go).map(([key, page]) => ({
         id: `page-${page}`,
@@ -42,6 +44,27 @@ export default function Palette({ go, onClose }) {
         more: post.tags.join(' '),
         run: () => navigate(`blog/${post.slug}`),
       })),
+      ...(projects?.featured || [])
+        .filter((entry) => entry?.repo || entry?.url)
+        .map((entry, idx) => {
+          const name = entry.name || entry.repo?.split('/').pop() || `project-${idx}`;
+          const target = entry.repo || entry.url;
+          return {
+            id: `proj-${name}`,
+            kind: 'repo',
+            label: name,
+            more: entry.description || '',
+            run: () => window.open(target, '_blank', 'noopener'),
+          };
+        }),
+      {
+        id: 'terminal',
+        kind: 'action',
+        label: 'open interactive shell',
+        more: 'terminal cli bash sh',
+        hint: '`',
+        run: () => window.dispatchEvent(new CustomEvent('portfolio:terminal')),
+      },
       { id: 'theme', kind: 'action', label: 'toggle theme', hint: 't', run: toggleTheme },
       ...(email
         ? [

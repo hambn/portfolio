@@ -71,6 +71,15 @@ function view(content, answer) {
 
 const HOST_ORDER = Object.keys(GIT_HOSTS);
 const sameAccount = (a, b) => a.host === b.host && a.username === b.username;
+const SORTS = [
+  { id: 'interest', label: 'default' },
+  { id: 'pushed', label: 'updated' },
+];
+const sortRepos = (repos, sort) => {
+  if (sort === 'pushed')
+    return [...repos].sort((a, b) => (b.pushedAt || '').localeCompare(a.pushedAt || ''));
+  return repos;
+};
 
 /**
  * A new answer with some hosts still unavailable keeps those hosts' sections
@@ -113,16 +122,6 @@ function ProjectCard({ project, featured = false }) {
             project.name
           )}
         </h3>
-        {project.stars > 0 && (
-          <span
-            className="project-card-stars"
-            title={`${project.stars} ${project.stars === 1 ? 'star' : 'stars'}`}
-          >
-            <Icon name="star" />
-            {project.stars}
-            <span className="sr-only"> {project.stars === 1 ? 'star' : 'stars'}</span>
-          </span>
-        )}
       </div>
 
       {project.description && <p className="project-card-desc">{project.description}</p>}
@@ -185,6 +184,9 @@ export default function Projects() {
   // 'loading' | 'failed' | null: the git hosts asked directly, when the API
   // had no listing to give.
   const [direct, setDirect] = useState(null);
+  const [query, setQuery] = useState('');
+  const [language, setLanguage] = useState('');
+  const [sort, setSort] = useState('interest');
 
   useEffect(() => {
     if (feed.status === 'pending') {
@@ -237,12 +239,39 @@ export default function Projects() {
     feed.status === 'pending' || direct === 'loading' ? 'loading' : usable ? 'ready' : 'failed';
   const shown = view(content, answer);
   const featured = shown?.featured || [];
-  const sections = (shown?.sections || []).filter((section) => section.repos?.length);
+  const rawSections = (shown?.sections || []).filter((section) => section.repos?.length);
+  const languages = useMemo(() => {
+    const counts = new Map();
+    for (const section of rawSections) {
+      for (const repo of section.repos) {
+        if (repo.language) counts.set(repo.language, (counts.get(repo.language) || 0) + 1);
+      }
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  }, [rawSections]);
+  const filtering = Boolean(query.trim() || language || sort !== 'interest');
+  const sections = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return rawSections
+      .map((section) => {
+        const filtered = section.repos.filter((repo) => {
+          if (language && repo.language !== language) return false;
+          if (!q) return true;
+          return `${repo.name} ${repo.description || ''} ${repo.language || ''} ${(repo.topics || []).join(' ')}`
+            .toLowerCase()
+            .includes(q);
+        });
+        return { ...section, repos: sortRepos(filtered, sort) };
+      })
+      .filter((section) => section.repos.length > 0);
+  }, [rawSections, query, language, sort]);
+  const totalRepos = rawSections.reduce((sum, s) => sum + s.repos.length, 0);
+  const shownRepos = sections.reduce((sum, s) => sum + s.repos.length, 0);
   const accounts = projectAccounts(content);
-  const pending = !sections.length && status === 'loading' && (accounts.length > 0 || !content);
-  const unreachable = !sections.length && direct === 'failed';
+  const pending = !rawSections.length && status === 'loading' && (accounts.length > 0 || !content);
+  const unreachable = !rawSections.length && direct === 'failed';
   // Hosts the API has not heard from yet, while others are already listed.
-  const waiting = sections.length ? shown?.unavailable || [] : [];
+  const waiting = rawSections.length ? shown?.unavailable || [] : [];
 
   return (
     <main className="projects-page">
@@ -261,6 +290,101 @@ export default function Projects() {
             ))}
           </ul>
         </section>
+      )}
+
+      {rawSections.length > 0 && (
+        <div className="projects-controls">
+          <div className="projects-toolbar">
+            <div className="projects-search-field">
+              <Icon name="search" className="projects-search-icon" />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape' && query) {
+                    event.stopPropagation();
+                    setQuery('');
+                  }
+                }}
+                placeholder={`filter ${totalRepos} repositories...`}
+                aria-label="filter repositories"
+                className="projects-search"
+              />
+              {query ? (
+                <button
+                  type="button"
+                  className="projects-search-clear"
+                  onClick={() => setQuery('')}
+                  aria-label="clear search"
+                >
+                  <Icon name="x" />
+                </button>
+              ) : (
+                <kbd className="projects-search-key" aria-hidden="true">
+                  /
+                </kbd>
+              )}
+            </div>
+            <div className="projects-sort" role="group" aria-label="sort repositories">
+              {SORTS.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  className={`projects-chip${sort === option.id ? ' is-on' : ''}`}
+                  aria-pressed={sort === option.id}
+                  onClick={() => setSort(option.id)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {languages.length > 1 && (
+            <div className="projects-langs" role="group" aria-label="filter by language">
+              {languages.map(([name, count]) => {
+                const on = language === name;
+                return (
+                  <button
+                    key={name}
+                    type="button"
+                    className={`projects-chip${on ? ' is-on' : ''}`}
+                    aria-pressed={on}
+                    onClick={() => setLanguage((cur) => (cur === name ? '' : name))}
+                  >
+                    <span
+                      className="project-card-dot"
+                      style={{ background: LANG_COLORS[name] || '#888' }}
+                    />
+                    {name}
+                    <span className="projects-chip-count">{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {filtering && (
+            <p className="projects-filter-status" role="status">
+              showing {shownRepos} of {totalRepos} repositories
+              <button
+                type="button"
+                className="projects-reset"
+                onClick={() => {
+                  setQuery('');
+                  setLanguage('');
+                  setSort('interest');
+                }}
+              >
+                reset
+              </button>
+            </p>
+          )}
+        </div>
+      )}
+
+      {rawSections.length > 0 && sections.length === 0 && (
+        <p className="projects-note">no repositories match that filter.</p>
       )}
 
       {sections.map((section) => (

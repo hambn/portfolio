@@ -1,7 +1,7 @@
 # portfolio
 
 Personal portfolio for **hamed ghasempour** (@hambn). Static React site built
-with Vite, prerendered for SEO, deployed to GitHub Pages at https://hgh.dev.
+with Vite, prerendered for SEO, deployed to Cloudflare Pages at https://hgh.dev.
 
 All content is data — edit `content/`, never the code.
 
@@ -14,7 +14,7 @@ conventions: [`.agents/structure.md`](.agents/structure.md).
 ```bash
 npm ci
 npm run dev        # http://localhost:5173/
-npm run build      # → apps/web/dist/  (prerender + 404.html + .nojekyll)
+npm run build      # → apps/web/dist/  (prerender + 404.html + _headers)
 npm run preview    # serve the production build locally
 ```
 
@@ -42,14 +42,21 @@ Pull requests run `npm run check` and the Playwright suite
 
 ## deploy
 
-Pushing to `main` builds and deploys automatically
-(`.github/workflows/deploy.yml`). One-time: set repo **Settings → Pages →
-Source** to **GitHub Actions**.
+Pushing to `main` builds and deploys both the API Worker and the static site to
+**Cloudflare Pages** (`.github/workflows/deploy.yml`).
 
-Custom domain `hgh.dev` is set via `apps/web/public/CNAME` + DNS:
+- Cloudflare Pages project name defaults to `portfolio` (override with the
+  optional Actions repository variable `CLOUDFLARE_PAGES_PROJECT`).
+- Security and immutable asset cache headers live in `apps/web/public/_headers`.
+- Custom domain `hgh.dev` is attached under **Cloudflare Dashboard → Workers & Pages → portfolio → Custom domains** (and `www` can redirect to the apex in Cloudflare).
+- `CLOUDFLARE_API_TOKEN` needs both **Workers Scripts: Edit** and **Cloudflare Pages: Edit** permissions.
 
-- apex `A` → `185.199.108.153`, `.109.153`, `.110.153`, `.111.153`
-- `www` `CNAME` → `hambn.github.io`
+Manual static site deploy:
+
+```bash
+npm run build
+npm run web:deploy
+```
 
 ### deploy target (env)
 

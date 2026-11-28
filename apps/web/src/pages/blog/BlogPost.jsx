@@ -1,8 +1,10 @@
-// BlogPost.jsx — single post view: the build's rendered HTML, plus diagrams.
+// BlogPost.jsx — single post view: the build's rendered HTML, TOC + scrollspy,
+// code/permalink copy, and on-demand Mermaid diagrams.
 import React, { useEffect, useRef, useState } from 'react';
 import { PortfolioData } from '../../lib/data.js';
 import { REPO } from '../../components/Footer.jsx';
 import Icon from '../../components/Icon.jsx';
+import { useCopy } from '../../hooks/useCopy.js';
 import { followRoute, routeHref } from '../../lib/router.js';
 import { ClickableTag, fmtDate, goToTag } from './blog-ui.jsx';
 import { EXTERNAL } from '../../lib/external.js';
@@ -101,9 +103,33 @@ async function drawDiagrams(root) {
   }
 }
 
-// One click handler on the article serves every copy button in it.
+// One click handler on the article serves both code copy buttons and `#`
+// heading permalink anchors.
 const copyTimers = new WeakMap();
-async function copyCode(event) {
+async function handleArticleClick(event) {
+  const anchor = event.target instanceof Element ? event.target.closest('.heading-anchor') : null;
+  if (anchor && navigator.clipboard) {
+    const href = anchor.getAttribute('href') || '';
+    if (href.startsWith('#')) {
+      const full = `${window.location.origin}${window.location.pathname}${href}`;
+      navigator.clipboard
+        .writeText(full)
+        .then(() => {
+          clearTimeout(copyTimers.get(anchor));
+          anchor.textContent = '✓';
+          anchor.classList.add('is-copied');
+          copyTimers.set(
+            anchor,
+            setTimeout(() => {
+              anchor.textContent = '#';
+              anchor.classList.remove('is-copied');
+            }, 1400),
+          );
+        })
+        .catch(() => {});
+    }
+    return;
+  }
   const button = event.target instanceof Element ? event.target.closest('.code-copy') : null;
   const code = button?.parentElement.querySelector('pre > code');
   if (!code || !navigator.clipboard) return;
@@ -122,6 +148,15 @@ async function copyCode(event) {
   } catch {
     // Leave the button unchanged when clipboard access is denied.
   }
+}
+
+/** Extract h2/h3 headings from the rendered post HTML for the table of contents. */
+function collectHeadings(root) {
+  return [...root.querySelectorAll('h2[id], h3[id]')].map((el) => {
+    const clone = el.cloneNode(true);
+    clone.querySelectorAll('.heading-anchor').forEach((a) => a.remove());
+    return { id: el.id, text: clone.textContent.trim(), level: Number(el.tagName[1]) };
+  });
 }
 
 // A neighbouring post, at the foot of the one being read. `hotkey` is the key
@@ -147,6 +182,11 @@ function PostStep({ post, hotkey, newer = false }) {
 export default function PostView({ post, older, newer, onBack }) {
   const ref = useRef(null);
   const [html, setHtml] = useState(() => PortfolioData.peekPost(post.slug));
+  const [toc, setToc] = useState([]);
+  const [activeId, setActiveId] = useState('');
+  const [linkCopied, copyPostLink] = useCopy(
+    typeof window !== 'undefined' ? window.location.href : '',
+  );
   // Opened from another page: the browser looked for the URL's fragment before
   // this post's headings existed, so go to it once they do.
   const arrivedLate = useRef(html == null);
@@ -184,15 +224,60 @@ export default function PostView({ post, older, newer, onBack }) {
       }
       if (wanted) root.querySelector(`[id="${CSS.escape(wanted)}"]`)?.scrollIntoView();
     }
+
+    const headings = collectHeadings(root);
+    setToc(headings);
+    setActiveId(headings[0]?.id || '');
+
+    let spy;
+    if (headings.length >= 2 && typeof IntersectionObserver === 'function') {
+      const elements = headings.map((h) => document.getElementById(h.id)).filter(Boolean);
+      const visible = new Set();
+      spy = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) visible.add(entry.target.id);
+            else visible.delete(entry.target.id);
+          }
+          const top = headings.find((h) => visible.has(h.id));
+          if (top) setActiveId(top.id);
+        },
+        { rootMargin: '-72px 0px -65% 0px', threshold: 0 },
+      );
+      elements.forEach((el) => spy.observe(el));
+    }
+
     const hasDiagrams = Boolean(
       root.querySelector('pre > code.language-mermaid, .mermaid[data-source]'),
     );
-    if (!hasDiagrams) return undefined;
-    drawDiagrams(root);
-    const themed = new MutationObserver(() => drawDiagrams(root));
-    themed.observe(document.documentElement, { attributeFilter: ['data-theme'] });
-    return () => themed.disconnect();
+    let themed;
+    if (hasDiagrams) {
+      drawDiagrams(root);
+      themed = new MutationObserver(() => drawDiagrams(root));
+      themed.observe(document.documentElement, { attributeFilter: ['data-theme'] });
+    }
+    return () => {
+      spy?.disconnect();
+      themed?.disconnect();
+    };
   }, [html]);
+
+  const showToc = toc.length >= 2;
+  const tocList = showToc && (
+    <ol className="post-toc-list">
+      {toc.map((item) => (
+        <li key={item.id} className={item.level === 3 ? 'is-sub' : undefined}>
+          <a
+            href={`#${item.id}`}
+            className={activeId === item.id ? 'is-active' : undefined}
+            onClick={() => setActiveId(item.id)}
+          >
+            {item.text}
+          </a>
+        </li>
+      ))}
+    </ol>
+  );
 
   return (
     <main className="blog-page">
@@ -217,24 +302,43 @@ export default function PostView({ post, older, newer, onBack }) {
         </div>
       )}
 
+      {showToc && (
+        <React.Fragment>
+          <details className="post-toc-inline">
+            <summary>on this page</summary>
+            {tocList}
+          </details>
+          <aside className="post-toc-rail" aria-label="table of contents">
+            <p className="post-toc-heading">on this page</p>
+            {tocList}
+          </aside>
+        </React.Fragment>
+      )}
+
       <div
         ref={ref}
         className="markdown-body"
-        onClick={copyCode}
+        onClick={handleArticleClick}
         dangerouslySetInnerHTML={{ __html: html || '' }}
       />
 
-      {post.path && (
-        <a
-          className="post-source"
-          href={`${REPO}/blob/main/content/blogs/${post.path}`}
-          {...EXTERNAL}
-        >
-          <Icon name="git-commit" />
-          content/blogs/{post.path}
-          <Icon name="arrow-up-right" className="icon-nudge is-out" />
-        </a>
-      )}
+      <div className="post-meta-foot">
+        {post.path && (
+          <a
+            className="post-source"
+            href={`${REPO}/blob/main/content/blogs/${post.path}`}
+            {...EXTERNAL}
+          >
+            <Icon name="git-commit" />
+            content/blogs/{post.path}
+            <Icon name="arrow-up-right" className="icon-nudge is-out" />
+          </a>
+        )}
+        <button type="button" className="post-share" onClick={copyPostLink}>
+          <Icon name={linkCopied ? 'check' : 'link'} />
+          {linkCopied ? 'link copied' : 'copy link'}
+        </button>
+      </div>
 
       {(older || newer) && (
         <nav className="post-steps" aria-label="more posts">

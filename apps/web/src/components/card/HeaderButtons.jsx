@@ -1,6 +1,6 @@
-// Copy / open / collapse: the three controls every link card header ends
-// with. They look the same on every card (link-cards.css); what each one
-// does on a given card is spelled out in its tooltip and accessible name.
+// Copy / open / collapse: clean, subtle controls shared across link card headers.
+// Each button inherits its card's own brand font and tint rather than forcing
+// portfolio styling onto third-party platform cards.
 import React from 'react';
 import { EXTERNAL } from '../../lib/external.js';
 
@@ -27,7 +27,7 @@ const Glyph = ({ name }) => (
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
-    strokeWidth={name === 'copy' || name === 'open' ? 2 : 2.5}
+    strokeWidth={name === 'copy' || name === 'open' ? 1.75 : 2}
     strokeLinecap="round"
     strokeLinejoin="round"
     aria-hidden="true"
@@ -59,11 +59,10 @@ export function HeaderButtons({
       >
         <Glyph name={copied ? 'check' : 'copy'} />
         <span className="link-card-hdr-label" aria-live="polite">
-          {copied ? 'copied' : 'copy'}
+          {copied ? 'Copied' : 'Copy'}
         </span>
       </button>
       {href && (
-        // A real link: a mailto: goes to the mail app, anything else to a new tab.
         <a
           className="link-card-hdr-btn"
           href={href}
@@ -72,9 +71,10 @@ export function HeaderButtons({
           {...(href.startsWith('mailto:') ? {} : EXTERNAL)}
         >
           <Glyph name="open" />
-          <span className="link-card-hdr-label">open</span>
+          <span className="link-card-hdr-label">Open</span>
         </a>
       )}
+      <span className="link-card-hdr-sep" aria-hidden="true" />
       <button
         type="button"
         onClick={onToggle}

@@ -1,0 +1,752 @@
+/* Floating draggable/resizable/minimizable terminal + tmux + vi/vim/nvim. */
+.term-window {
+  position: fixed;
+  z-index: 190;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: rgba(11, 11, 14, 0.94);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 20px 52px rgba(0, 0, 0, 0.58);
+  overflow: hidden;
+  font-size: var(--text-xs);
+  animation: term-in 120ms var(--ease-out);
+}
+[data-theme='light'] .term-window {
+  border-color: var(--border-strong);
+  background: rgba(250, 250, 252, 0.96);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.14);
+}
+.term-window.is-max {
+  inset: 12px;
+  width: auto;
+  height: auto;
+}
+@keyframes term-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .term-window {
+    animation: none;
+  }
+}
+
+/* 8-direction resize handles */
+.term-resize {
+  position: absolute;
+  z-index: 5;
+}
+.term-resize-n {
+  top: 0;
+  left: 10px;
+  right: 10px;
+  height: 5px;
+  cursor: ns-resize;
+}
+.term-resize-s {
+  bottom: 0;
+  left: 10px;
+  right: 10px;
+  height: 6px;
+  cursor: ns-resize;
+}
+.term-resize-e {
+  top: 10px;
+  bottom: 10px;
+  right: 0;
+  width: 6px;
+  cursor: ew-resize;
+}
+.term-resize-w {
+  top: 10px;
+  bottom: 10px;
+  left: 0;
+  width: 6px;
+  cursor: ew-resize;
+}
+.term-resize-ne {
+  top: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  cursor: nesw-resize;
+}
+.term-resize-nw {
+  top: 0;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  cursor: nwse-resize;
+}
+.term-resize-se {
+  bottom: 0;
+  right: 0;
+  width: 14px;
+  height: 14px;
+  cursor: nwse-resize;
+}
+.term-resize-sw {
+  bottom: 0;
+  left: 0;
+  width: 12px;
+  height: 12px;
+  cursor: nesw-resize;
+}
+
+/* Titlebar */
+.term-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 32px;
+  padding: 0 8px 0 12px;
+  border-bottom: 1px solid var(--hairline);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--foreground-subtle);
+  user-select: none;
+  cursor: grab;
+  flex-shrink: 0;
+}
+[data-theme='light'] .term-bar {
+  border-bottom-color: var(--hairline);
+  background: rgba(9, 9, 11, 0.025);
+}
+.term-bar:active {
+  cursor: grabbing;
+}
+.term-window.is-max .term-bar {
+  cursor: default;
+}
+.term-title {
+  min-width: 0;
+  color: var(--foreground-subtle);
+  font-size: 11.5px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.term-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.term-bar-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--foreground-subtle);
+  font-size: 12px;
+  cursor: pointer;
+  transition:
+    color var(--transition-base),
+    background-color var(--transition-base);
+}
+@media (hover: hover) {
+  .term-bar-icon:hover {
+    color: var(--foreground);
+    background: var(--background-muted);
+  }
+  .term-bar-close:hover {
+    color: var(--destructive);
+    background: color-mix(in srgb, var(--destructive) 12%, transparent);
+  }
+}
+
+/* Minimized dock pill */
+.term-dock {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 190;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+  background: rgba(11, 11, 14, 0.94);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  font-size: var(--text-xs);
+}
+[data-theme='light'] .term-dock {
+  border-color: var(--border-strong);
+  background: rgba(250, 250, 252, 0.96);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+.term-dock-pill,
+.term-dock-close {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  background: none;
+  color: var(--foreground-muted);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    color var(--transition-base),
+    background-color var(--transition-base);
+}
+.term-dock-pill {
+  padding: 8px 12px;
+}
+.term-dock-pill > .icon {
+  color: var(--primary);
+}
+.term-dock-close {
+  padding: 8px 10px;
+  border-left: 1px solid var(--hairline);
+  color: var(--foreground-subtle);
+}
+@media (hover: hover) {
+  .term-dock-pill:hover,
+  .term-dock-close:hover {
+    color: var(--foreground);
+    background: var(--background-muted);
+  }
+}
+
+/* Shell stream body — command typing lives right inside here */
+.term-body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: text;
+  outline: none;
+}
+.term-body.is-copy {
+  cursor: default;
+}
+.term-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.term-cmd {
+  color: var(--foreground);
+  font-weight: 500;
+  word-break: break-word;
+}
+.term-prompt {
+  color: var(--primary);
+  font-weight: 600;
+  margin-right: 8px;
+  user-select: none;
+  white-space: nowrap;
+}
+.term-out {
+  margin: 0;
+  color: var(--foreground-muted);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--font-mono);
+}
+.term-out.is-error {
+  color: var(--destructive);
+}
+.term-out.is-accent {
+  color: var(--foreground);
+}
+
+/* Inline prompt directly inside the terminal scroll stream */
+.term-inline-prompt {
+  display: flex;
+  align-items: center;
+  min-height: 22px;
+  cursor: text;
+}
+.term-input-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+.term-mirror {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  white-space: pre;
+  overflow: hidden;
+  pointer-events: none;
+  font: inherit;
+}
+.term-mirror-typed {
+  color: transparent;
+}
+.term-mirror-ghost {
+  color: var(--foreground-faint);
+}
+.term-input {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--foreground);
+  caret-color: var(--primary);
+  font: inherit;
+}
+.term-input::placeholder {
+  color: var(--foreground-faint);
+}
+
+/* Structured `help` output */
+.term-help {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.term-help-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.term-help-heading {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--foreground-subtle);
+  margin-bottom: 2px;
+}
+.term-help-row {
+  display: grid;
+  grid-template-columns: minmax(175px, 215px) 1fr;
+  gap: 12px;
+  line-height: 1.55;
+}
+.term-help-cmd {
+  color: var(--foreground);
+}
+.term-help-desc {
+  color: var(--foreground-muted);
+}
+
+/* Authentic Unix `ls` output */
+.term-ls {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.term-ls-total {
+  color: var(--foreground-subtle);
+  font-size: 11px;
+}
+.term-ls-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+}
+.term-ls-grid.is-one {
+  flex-direction: column;
+  gap: 2px;
+}
+.term-ls-cell,
+.term-ls-name {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+  color: var(--foreground);
+}
+.term-ls-cell.is-dir,
+.term-ls-name.is-dir {
+  color: var(--primary);
+  font-weight: 600;
+}
+.term-ls-cell.is-link,
+.term-ls-name.is-link {
+  color: var(--success);
+}
+.term-ls-cell.is-hidden,
+.term-ls-name.is-hidden {
+  color: var(--foreground-subtle);
+  font-weight: 400;
+}
+@media (hover: hover) {
+  .term-ls-cell:hover,
+  .term-ls-name:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+}
+.term-ls-long {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-x: auto;
+}
+.term-ls-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  white-space: pre;
+  line-height: 1.55;
+}
+.term-ls-blocks,
+.term-ls-perms,
+.term-ls-links,
+.term-ls-owner,
+.term-ls-size,
+.term-ls-date {
+  color: var(--foreground-subtle);
+  flex-shrink: 0;
+}
+.term-ls-size {
+  color: var(--foreground-muted);
+}
+
+.term-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 2px;
+}
+.term-link {
+  color: var(--primary);
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, var(--primary) 45%, transparent);
+}
+@media (hover: hover) {
+  .term-link:hover {
+    text-decoration-color: var(--primary);
+  }
+}
+
+/* ── tmux status bar ── */
+.tmux-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 24px;
+  padding: 0 10px;
+  border-top: 1px solid var(--hairline);
+  background: rgba(255, 255, 255, 0.02);
+  font-size: 11px;
+  color: var(--foreground-subtle);
+  user-select: none;
+  flex-shrink: 0;
+}
+[data-theme='light'] .tmux-bar {
+  border-top-color: var(--hairline);
+  background: rgba(9, 9, 11, 0.03);
+}
+.tmux-session {
+  color: var(--foreground-muted);
+  font-weight: 600;
+}
+.tmux-windows {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  overflow-x: auto;
+}
+.tmux-win {
+  border: 0;
+  background: none;
+  padding: 1px 6px;
+  border-radius: 3px;
+  color: var(--foreground-subtle);
+  font: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tmux-win.is-active {
+  color: var(--foreground);
+  font-weight: 600;
+}
+.tmux-win-add {
+  color: var(--foreground-faint);
+}
+@media (hover: hover) {
+  .tmux-win:hover:not(.is-active) {
+    color: var(--foreground);
+  }
+}
+.tmux-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.tmux-prefix {
+  color: var(--warning);
+  font-weight: 700;
+}
+.tmux-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--warning);
+}
+.tmux-copy-exit {
+  border: 0;
+  background: none;
+  padding: 0 2px;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.tmux-notice {
+  color: var(--foreground-muted);
+}
+.tmux-host {
+  color: var(--foreground-faint);
+}
+
+/* ── Distinct vi / vim / nvim viewers ── */
+.vim-root {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  outline: none;
+}
+.vim-buffer {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: 1.6;
+}
+.vim-line {
+  display: flex;
+  align-items: baseline;
+  padding: 0 14px 0 8px;
+  cursor: pointer;
+}
+.vim-style-nvim .vim-line.is-current {
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+}
+.vim-style-vim .vim-line.is-current {
+  background: rgba(255, 255, 255, 0.06);
+}
+[data-theme='light'] .vim-style-vim .vim-line.is-current {
+  background: rgba(0, 0, 0, 0.05);
+}
+.vim-style-vi .vim-line.is-current {
+  text-decoration: underline;
+  text-decoration-color: var(--foreground-subtle);
+  text-underline-offset: 3px;
+}
+.vim-line.is-match {
+  background: color-mix(in srgb, var(--warning) 18%, transparent);
+}
+.vim-ln {
+  flex-shrink: 0;
+  text-align: right;
+  padding-right: 12px;
+  color: var(--foreground-faint);
+  user-select: none;
+  font-variant-numeric: tabular-nums;
+}
+.vim-style-nvim .vim-line.is-current .vim-ln {
+  color: var(--primary);
+  font-weight: 600;
+}
+.vim-style-vim .vim-line.is-current .vim-ln {
+  color: var(--warning);
+}
+.vim-style-nvim .vim-tilde .vim-ln {
+  color: color-mix(in srgb, var(--primary) 55%, transparent);
+}
+.vim-code {
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--foreground-muted);
+}
+.vim-style-vi .vim-code {
+  color: var(--foreground);
+}
+.vim-code.is-heading {
+  color: var(--foreground);
+  font-weight: 600;
+}
+.vim-code.is-fence {
+  color: var(--primary);
+}
+.vim-style-vim .vim-code.is-fence {
+  color: var(--success);
+}
+.vim-code.is-quote {
+  color: var(--foreground-subtle);
+  font-style: italic;
+}
+.vim-code.is-comment {
+  color: var(--foreground-faint);
+}
+
+/* Status bars */
+.vim-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 10px;
+  font-size: 11px;
+  user-select: none;
+}
+.vim-status.is-nvim {
+  border-top: 1px solid var(--hairline);
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--foreground-muted);
+}
+[data-theme='light'] .vim-status.is-nvim {
+  background: rgba(9, 9, 11, 0.035);
+}
+.vim-status.is-vim {
+  background: var(--foreground);
+  color: var(--background);
+  font-weight: 600;
+}
+.vim-status.is-vim .vim-file,
+.vim-status.is-vim .vim-meta {
+  color: var(--background);
+}
+.vim-status.is-vim .vim-action {
+  color: var(--background);
+  border-color: color-mix(in srgb, var(--background) 35%, transparent);
+}
+.vim-mode {
+  padding: 1px 7px;
+  border-radius: var(--radius-sm);
+  background: var(--primary);
+  color: #fff;
+  font-weight: 700;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+}
+.vim-branch {
+  color: var(--success);
+  font-weight: 600;
+}
+.vim-file {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--foreground);
+}
+.vim-meta {
+  margin-left: auto;
+  color: var(--foreground-subtle);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.vim-action {
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--foreground-muted);
+  padding: 1px 6px;
+  font: inherit;
+  cursor: pointer;
+}
+@media (hover: hover) {
+  .vim-action:hover {
+    color: var(--primary);
+    border-color: var(--primary-ring);
+  }
+}
+.vim-cmdbar {
+  display: flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 2px 12px;
+  border-top: 1px solid var(--hairline);
+  font-size: var(--text-xs);
+}
+.vim-msg {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--foreground-subtle);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vim-inline-q {
+  border: 0;
+  background: none;
+  color: var(--primary);
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+.vim-cmd-input-wrap {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+.vim-cmd-sigil {
+  color: var(--primary);
+  font-weight: 700;
+  margin-right: 4px;
+}
+.vim-cmd-input {
+  flex: 1;
+  border: 0;
+  outline: none;
+  background: none;
+  color: var(--foreground);
+  font: inherit;
+}
+
+@media (max-width: 639px) {
+  .term-window:not(.is-max) {
+    left: 8px !important;
+    right: 8px;
+    bottom: 8px;
+    top: auto !important;
+    width: auto !important;
+    height: min(64vh, 460px) !important;
+  }
+  .term-resize,
+  .tmux-host {
+    display: none;
+  }
+  .term-help-row {
+    grid-template-columns: 1fr;
+    gap: 1px;
+    margin-bottom: 4px;
+  }
+}

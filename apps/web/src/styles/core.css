@@ -276,14 +276,14 @@ html.theme-switching *::after {
   .nav-brand:hover,
   .nav-item:hover {
     color: var(--foreground);
-    background: var(--background-muted);
+    background: color-mix(in srgb, var(--foreground) 6%, transparent);
   }
 }
 /* Pressed: the link answers the finger before the page has changed. */
 .nav-brand:active,
 .nav-item:active {
   color: var(--foreground);
-  background: var(--background-muted);
+  background: color-mix(in srgb, var(--foreground) 8%, transparent);
 }
 .nav-brand {
   display: inline-flex;
@@ -331,47 +331,9 @@ html.theme-switching *::after {
   right: 16px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
 }
-.nav-palette {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 30px;
-  padding: 0 8px;
-  background: none;
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-md);
-  color: var(--foreground-subtle);
-  font-size: 13px;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  transition:
-    color var(--transition-base),
-    background-color var(--transition-base),
-    border-color var(--transition-base);
-}
-.nav-palette kbd {
-  font: inherit;
-  font-size: 11px;
-  line-height: 1;
-  color: var(--foreground-faint);
-  transition: color var(--transition-base);
-}
-@media (hover: hover) {
-  .nav-palette:hover {
-    color: var(--foreground);
-    background: var(--background-muted);
-    border-color: var(--border-strong);
-  }
-  .nav-palette:hover kbd {
-    color: var(--foreground-muted);
-  }
-}
-.nav-palette:active {
-  color: var(--foreground);
-  background: var(--background-muted);
-}
+.nav-palette,
 .nav-theme {
   width: 34px;
   height: 34px;
@@ -383,21 +345,26 @@ html.theme-switching *::after {
   color: var(--foreground-muted);
   border-radius: var(--radius-md);
   font-size: 16px;
+  -webkit-tap-highlight-color: transparent;
   transition:
     color var(--transition-base),
     background-color var(--transition-base),
     border-color var(--transition-base);
 }
+.nav-palette {
+  font-size: 15px;
+}
 @media (hover: hover) {
+  .nav-palette:hover,
   .nav-theme:hover {
     color: var(--foreground);
-    background: var(--background-muted);
-    border-color: var(--border);
+    background: color-mix(in srgb, var(--foreground) 6%, transparent);
   }
 }
+.nav-palette:active,
 .nav-theme:active {
   color: var(--foreground);
-  background: var(--background-muted);
+  background: color-mix(in srgb, var(--foreground) 8%, transparent);
 }
 /* Both icons share one cell; the one that is out turns away as it fades. */
 .nav-theme .icon {
@@ -460,6 +427,27 @@ html.theme-switching *::after {
 }
 .site-footer-clock {
   font-variant-numeric: tabular-nums;
+}
+.site-footer-shell {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: color var(--transition-base);
+}
+.site-footer-shell > .icon {
+  font-size: 13px;
+  color: var(--primary);
+}
+@media (hover: hover) {
+  .site-footer-shell:hover {
+    color: var(--foreground);
+  }
 }
 /* Keyboard shortcuts (components/Keys.jsx): a hint in the status line and the
  * panel it opens. Hidden where there is no keyboard to use them with. */
@@ -626,9 +614,6 @@ html.theme-switching *::after {
   .site-nav .nav-actions {
     position: static;
     flex-shrink: 0;
-  }
-  .site-nav .nav-palette {
-    display: none;
   }
   .site-footer {
     padding: 0 14px;

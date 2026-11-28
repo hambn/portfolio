@@ -42,6 +42,16 @@ export default function Footer() {
       </a>
       <div className="site-footer-side">
         <UtcClock />
+        <button
+          type="button"
+          className="site-footer-shell"
+          onClick={() => window.dispatchEvent(new CustomEvent('portfolio:terminal'))}
+          aria-label="interactive shell"
+          title="open interactive shell (`)"
+        >
+          <Icon name="terminal" />
+          sh
+        </button>
         <Keys />
       </div>
     </footer>

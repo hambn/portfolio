@@ -146,6 +146,8 @@ export default function App({ initialRoute, initialPage }) {
       firstRender.current = false;
       return;
     }
+    // Keep keyboard focus inside the interactive terminal when `cd` navigates.
+    if (document.activeElement?.closest('.term-window')) return;
     const content = document.getElementById('content');
     if (!content) return;
     content.focus({ preventScroll: true });

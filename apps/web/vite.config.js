@@ -119,6 +119,9 @@ export default defineConfig({
     // Emit .vite/manifest.json so the prerenderer can add modulepreload links
     // for each route's lazy chunk (scripts/prerender.mjs reads then removes it).
     manifest: true,
+    // Modern browsers support <link rel="modulepreload"> natively; skipping the
+    // polyfill trims the entry chunk on every route.
+    modulePreload: { polyfill: false },
     rollupOptions: {
       output: {
         // React gets its own long-lived chunk: its hash stays stable across app

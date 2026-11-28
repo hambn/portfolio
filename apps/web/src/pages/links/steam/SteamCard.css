@@ -37,14 +37,12 @@
   border-bottom: 1px solid var(--st-border);
 }
 .st-brand .st-icon {
-  fill: var(--st-ink);
+  fill: var(--st-white);
 }
-/* Wordmark — Steam's own header sets "Steam" in mixed case; the tracked-out
- * uppercase version read as a different brand entirely. */
 .st-card .st-wordmark {
-  color: var(--st-ink);
+  color: var(--st-white);
   font-size: 17px;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   font-weight: 700;
 }

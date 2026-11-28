@@ -1,3 +1,4 @@
+import profile from '../../../content/home/profile.json' with { type: 'json' };
 import links from '../../../content/links/links.json' with { type: 'json' };
 import projects from '../../../content/projects/projects.json' with { type: 'json' };
 import type { ProjectsContent } from '@portfolio/shared/projects';
@@ -11,6 +12,10 @@ import { linkedinUsername } from '@portfolio/shared/linkedin';
 // rather than re-reading the file and re-running the shared username parsers
 // themselves. Rebuild after editing either file.
 export const identities = {
+  profile: {
+    name: profile.name,
+    handle: profile.handle,
+  },
   // The contact form's whole configuration except its credentials: who receives,
   // which verified identity sends, and which vendor carries it.
   email: {

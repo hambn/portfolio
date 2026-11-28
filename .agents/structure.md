@@ -1,7 +1,7 @@
 # Repo structure
 
-Static React portfolio, built with Vite, deployed to GitHub Pages at
-`https://hgh.dev` (base `/`; env-overridable for project-page hosting), plus a
+Static React portfolio, built with Vite, deployed to Cloudflare Pages at
+`https://hgh.dev` (base `/`; env-overridable for subpath hosting), plus a
 TypeScript API for the link cards. An npm-workspaces monorepo (Node 24, see
 `.nvmrc`): one lockfile and one hoisted `node_modules/` at the root.
 
@@ -308,9 +308,9 @@ with `apps/`, `packages/` or `content/`.
   request runs. Do not add a second request to that page.
 - **Canonical URLs end in a slash** (`/blog/`); `navigate()` pushes that form and
   the prerendered links match it.
-- **GitHub Pages.** Known routes are real 200 HTML files; `404.html` is the SPA
-  fallback for unknown URLs. `.nojekyll` present. The Pages artifact is
-  `apps/web/dist`.
+- **Cloudflare Pages.** Known routes are real 200 HTML files; `404.html` is the
+  SPA fallback for unknown URLs; `public/_headers` configures security and
+  immutable asset cache headers. The deploy output is `apps/web/dist`.
 - **Docker builds use the repo root as context.** Each `apps/*/Dockerfile`
   copies the root `package*.json` and every workspace `package.json`, runs
   `npm ci --workspace <its package>` (only its own dependencies), then copies

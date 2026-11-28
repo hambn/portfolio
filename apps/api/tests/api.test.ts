@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { handleRequest } from '../src/app.js';
+import { configuration } from '../src/config.js';
 import { testServices } from './helpers.js';
 import { allowedMedia, mediaPath, rewriteMedia } from '@portfolio/shared/media';
 import { presenceMessage } from '../src/lib/presence.js';
@@ -36,6 +37,68 @@ test('routing, CORS, HEAD, OPTIONS and methods have consistent responses', async
   for (const path of index.routes.filter((route) => route !== '/api/health'))
     assert.ok(index.index.find((entry) => entry.path === path)?.about, `${path} is described`);
   assert.ok(index.index.find((entry) => entry.path === '/api/github/repos')?.query?.sort);
+});
+
+test('live oEmbed endpoints report Spotify now-playing and Discord presence', async () => {
+  const services = testServices({
+    config: configuration({
+      SPOTIFY_CLIENT_ID: 'cid',
+      SPOTIFY_REFRESH_TOKEN: 'rt',
+      DISCORD_ID: '12345',
+    }),
+    fetch: async (input) => {
+      const target = String(input);
+      if (target.includes('accounts.spotify.com/api/token')) {
+        return new Response(JSON.stringify({ access_token: 'tok' }), {
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      if (target.includes('currently-playing')) {
+        return new Response(
+          JSON.stringify({
+            is_playing: true,
+            item: {
+              name: 'Nightcall',
+              artists: [{ name: 'Kavinsky' }],
+              external_urls: { spotify: 'https://open.spotify.com/track/1' },
+              album: { images: [{ url: 'https://i.scdn.co/image/art1' }] },
+            },
+          }),
+          { headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+      if (target.includes('lanyard.rest')) {
+        return new Response(
+          JSON.stringify({
+            success: true,
+            data: {
+              discord_status: 'online',
+              discord_user: { id: '12345', username: 'hambn', avatar: null },
+              activities: [{ type: 0, name: 'Neovim' }],
+            },
+          }),
+          { headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+      return new Response('not found', { status: 404 });
+    },
+  });
+
+  const sp = (await (await handleRequest(request('/oembed/spotify'), services)).json()) as {
+    version: string;
+    author_name: string;
+    thumbnail_url: string;
+  };
+  assert.equal(sp.version, '1.0');
+  assert.equal(sp.author_name, '♫ Listening now: Nightcall — Kavinsky');
+  assert.ok(sp.thumbnail_url.includes('/media/spotify/'));
+
+  const dc = (await (await handleRequest(request('/oembed/discord'), services)).json()) as {
+    version: string;
+    author_name: string;
+  };
+  assert.equal(dc.version, '1.0');
+  assert.equal(dc.author_name, '● Online — Playing Neovim');
 });
 
 test('media cache hits, expiration, version invalidation, HEAD and local URL rewriting', async () => {
