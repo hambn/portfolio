@@ -228,7 +228,8 @@
   opacity: 0;
   transition:
     opacity var(--transition-base),
-    color var(--transition-base);
+    color var(--transition-base),
+    border-color var(--transition-base);
 }
 .markdown-body .code-block:hover .code-copy {
   opacity: 1;
@@ -248,12 +249,14 @@
   .markdown-body .code-block:focus-within .code-lang {
     opacity: 0;
   }
-}
-.markdown-body .code-copy:hover {
-  color: var(--foreground);
+  .markdown-body .code-copy:hover {
+    color: var(--foreground);
+    border-color: var(--border-strong);
+  }
 }
 .markdown-body .code-copy.copied {
   color: var(--success);
+  border-color: color-mix(in srgb, var(--success) 45%, transparent);
   opacity: 1;
 }
 
@@ -475,6 +478,44 @@
 /* ────────────────────────────────────────────────────────────────
    Blog chrome — list, filters, pagination, post header
    ──────────────────────────────────────────────────────────────── */
+/* Pure CSS scroll-driven reading progress hairline pinned under the nav.
+ * Costs zero JS; silently absent where scroll timelines are unsupported or
+ * motion is reduced. */
+.blog-progress {
+  display: none;
+}
+@supports (animation-timeline: scroll()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .blog-progress {
+      display: block;
+      position: fixed;
+      top: 55px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      z-index: 51;
+      background: var(--primary);
+      transform-origin: 0 50%;
+      transform: scaleX(0);
+      pointer-events: none;
+      animation: blog-progress-fill linear both;
+      animation-timeline: scroll(root block);
+    }
+    @media (max-width: 639px) {
+      .blog-progress {
+        top: 51px;
+      }
+    }
+  }
+}
+@keyframes blog-progress-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
 .blog-page {
   max-width: 760px;
   margin: 0 auto;
@@ -756,6 +797,7 @@
   color: var(--foreground-subtle);
   margin: 0 0 6px;
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 .blog-empty {
   color: var(--foreground-subtle);
@@ -824,6 +866,7 @@
 .post-row-date {
   font-size: var(--text-xs);
   color: var(--foreground-subtle);
+  font-variant-numeric: tabular-nums;
   flex-shrink: 0;
   white-space: nowrap;
 }
@@ -883,6 +926,7 @@
   color: var(--foreground-subtle);
   margin-bottom: 8px;
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 .post-read::before {
   content: '·';
@@ -977,10 +1021,12 @@
     background-color var(--transition-base),
     border-color var(--transition-base);
 }
-.blog-tag:hover {
-  background: var(--primary-subtle);
-  color: var(--primary);
-  border-color: var(--primary-ring);
+@media (hover: hover) {
+  .blog-tag:hover {
+    background: var(--primary-subtle);
+    color: var(--primary);
+    border-color: var(--primary-ring);
+  }
 }
 /* A tag is a button: under a finger it needs more than 23px of height. */
 @media (pointer: coarse) {

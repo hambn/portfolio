@@ -11,6 +11,8 @@ import type { Services } from '../contracts.js';
 // app would accept, so an oversized upload is never buffered.
 const MAX_BODY_BYTES = 64 * 1024;
 
+class BodyTooLargeError extends Error {}
+
 async function readBody(incoming: http.IncomingMessage): Promise<ArrayBuffer> {
   const chunks: Buffer[] = [];
   let size = 0;
@@ -18,7 +20,7 @@ async function readBody(incoming: http.IncomingMessage): Promise<ArrayBuffer> {
     size += (chunk as Buffer).byteLength;
     if (size > MAX_BODY_BYTES) {
       incoming.destroy();
-      throw new Error('request_body_too_large');
+      throw new BodyTooLargeError('request_body_too_large');
     }
     chunks.push(chunk as Buffer);
   }
@@ -63,17 +65,26 @@ export function createServer(services: Services) {
       const origin =
         process.env.API_PUBLIC_ORIGIN ||
         `http://${incoming.headers.host || `localhost:${process.env.PORT || 8787}`}`;
-      // POST is the only method any route accepts a body with; the app caps how
-      // much of it a handler is allowed to see.
-      const body = incoming.method === 'POST' ? await readBody(incoming) : undefined;
       // "//host/path" and "/\host/path" start with a slash and still resolve
-      // to another origin.
-      const url = new URL(incoming.url, origin);
-      if (url.origin !== new URL(origin).origin) {
+      // to another origin; a malformed Host header also fails URL parsing.
+      let url: URL;
+      let expectedOrigin: string;
+      try {
+        expectedOrigin = new URL(origin).origin;
+        url = new URL(incoming.url, origin);
+      } catch {
         outgoing.writeHead(400, { 'Content-Type': 'application/json' });
         outgoing.end(JSON.stringify({ error: 'bad_request' }));
         return;
       }
+      if (url.origin !== expectedOrigin) {
+        outgoing.writeHead(400, { 'Content-Type': 'application/json' });
+        outgoing.end(JSON.stringify({ error: 'bad_request' }));
+        return;
+      }
+      // POST is the only method any route accepts a body with; the app caps how
+      // much of it a handler is allowed to see.
+      const body = incoming.method === 'POST' ? await readBody(incoming) : undefined;
       const request = new Request(url, {
         method: incoming.method,
         headers,
@@ -83,7 +94,12 @@ export function createServer(services: Services) {
       outgoing.writeHead(response.status, Object.fromEntries(response.headers));
       if (response.body) await pipeline(Readable.from(response.body), outgoing);
       else outgoing.end();
-    } catch {
+    } catch (error) {
+      if (error instanceof BodyTooLargeError) {
+        if (!outgoing.headersSent) outgoing.writeHead(413, { 'Content-Type': 'application/json' });
+        outgoing.end(JSON.stringify({ error: 'payload_too_large' }));
+        return;
+      }
       if (!outgoing.headersSent) outgoing.writeHead(500, { 'Content-Type': 'application/json' });
       outgoing.end(JSON.stringify({ error: 'server_error' }));
     }

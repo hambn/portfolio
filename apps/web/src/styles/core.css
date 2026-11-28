@@ -26,6 +26,7 @@ body {
   font-weight: var(--fw-body);
   line-height: var(--leading-body);
   letter-spacing: var(--tracking-body);
+  font-optical-sizing: auto;
   /* JetBrains Mono's coding ligatures fuse `--`, `->` and `!=` into one glyph,
      which misreads in prose and in the `$ command` labels. Code blocks turn
      them back on (blog.css). */
@@ -59,16 +60,18 @@ svg {
 .icon-nudge {
   transition: transform var(--transition-base);
 }
-a:hover > .icon-nudge,
-button:hover > .icon-nudge {
-  transform: translateX(2px);
-}
-a:hover > .icon-nudge.is-out {
-  transform: translate(1px, -1px);
-}
-a:hover > .icon-nudge.is-back,
-button:hover > .icon-nudge.is-back {
-  transform: translateX(-2px);
+@media (hover: hover) {
+  a:hover > .icon-nudge,
+  button:hover > .icon-nudge {
+    transform: translateX(2px);
+  }
+  a:hover > .icon-nudge.is-out {
+    transform: translate(1px, -1px);
+  }
+  a:hover > .icon-nudge.is-back,
+  button:hover > .icon-nudge.is-back {
+    transform: translateX(-2px);
+  }
 }
 
 /* Headings break into even lines, paragraphs avoid a lone last word. */
@@ -76,6 +79,7 @@ h1,
 h2,
 h3 {
   text-wrap: balance;
+  text-rendering: optimizeLegibility;
   letter-spacing: -0.025em;
   word-spacing: var(--word-heading);
 }
@@ -314,15 +318,61 @@ html.theme-switching *::after {
   color: var(--foreground-faint);
   transition: color var(--transition-base);
 }
-.nav-item:hover .nav-item-sigil {
-  color: var(--foreground-subtle);
+@media (hover: hover) {
+  .nav-item:hover .nav-item-sigil {
+    color: var(--foreground-subtle);
+  }
 }
 .nav-item[aria-current='page'] .nav-item-sigil {
   color: var(--primary);
 }
-.nav-theme {
+.nav-actions {
   position: absolute;
   right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.nav-palette {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 8px;
+  background: none;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  color: var(--foreground-subtle);
+  font-size: 13px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    color var(--transition-base),
+    background-color var(--transition-base),
+    border-color var(--transition-base);
+}
+.nav-palette kbd {
+  font: inherit;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--foreground-faint);
+  transition: color var(--transition-base);
+}
+@media (hover: hover) {
+  .nav-palette:hover {
+    color: var(--foreground);
+    background: var(--background-muted);
+    border-color: var(--border-strong);
+  }
+  .nav-palette:hover kbd {
+    color: var(--foreground-muted);
+  }
+}
+.nav-palette:active {
+  color: var(--foreground);
+  background: var(--background-muted);
+}
+.nav-theme {
   width: 34px;
   height: 34px;
   display: grid;
@@ -393,8 +443,10 @@ html.theme-switching *::after {
   gap: 7px;
   transition: color var(--transition-base);
 }
-.site-footer-build:hover {
-  color: var(--foreground);
+@media (hover: hover) {
+  .site-footer-build:hover {
+    color: var(--foreground);
+  }
 }
 .site-footer-build > .icon {
   font-size: 14px;
@@ -426,14 +478,12 @@ html.theme-switching *::after {
   cursor: pointer;
   transition: color var(--transition-base);
 }
-.keys-hint:hover,
 .keys-hint[aria-expanded='true'] {
   color: var(--foreground);
 }
-/* The shortcuts are for a keyboard: a phone has no use for the list. */
-@media (hover: none) and (pointer: coarse) {
-  .keys {
-    display: none;
+@media (hover: hover) {
+  .keys-hint:hover {
+    color: var(--foreground);
   }
 }
 .keys kbd {
@@ -513,9 +563,11 @@ html.theme-switching *::after {
     color 150ms,
     border-color 150ms;
 }
-.error-state-retry:hover {
-  color: var(--foreground);
-  border-color: var(--border-strong);
+@media (hover: hover) {
+  .error-state-retry:hover {
+    color: var(--foreground);
+    border-color: var(--border-strong);
+  }
 }
 /* A URL with nothing behind it (components/NotFound.jsx): the shell session
  * that says so, and the way back. */
@@ -549,8 +601,10 @@ html.theme-switching *::after {
   color: var(--foreground-muted);
   transition: color var(--transition-base);
 }
-.not-found-back:hover {
-  color: var(--foreground);
+@media (hover: hover) {
+  .not-found-back:hover {
+    color: var(--foreground);
+  }
 }
 .page-loading {
   max-width: 760px;
@@ -569,9 +623,16 @@ html.theme-switching *::after {
     font-size: 12.5px;
     padding: 6px;
   }
-  .site-nav .nav-theme {
+  .site-nav .nav-actions {
     position: static;
     flex-shrink: 0;
+  }
+  .site-nav .nav-palette {
+    display: none;
+  }
+  .site-footer {
+    padding: 0 14px;
+    gap: 10px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

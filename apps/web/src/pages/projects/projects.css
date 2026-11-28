@@ -43,6 +43,7 @@
 .projects-count {
   color: var(--foreground-subtle);
   font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
 }
 .projects-account {
   margin-left: auto;
@@ -56,8 +57,10 @@
 .projects-account .icon-nudge {
   font-size: 12px;
 }
-.projects-account:hover {
-  color: var(--primary);
+@media (hover: hover) {
+  .projects-account:hover {
+    color: var(--primary);
+  }
 }
 
 .projects-note {
@@ -154,8 +157,10 @@
   inset: 0;
   border-radius: inherit;
 }
-.project-card:hover .project-card-name {
-  color: var(--primary);
+@media (hover: hover) {
+  .project-card:hover .project-card-name {
+    color: var(--primary);
+  }
 }
 .project-card-stars {
   display: inline-flex;
@@ -164,6 +169,7 @@
   font-size: var(--text-xs);
   line-height: 22px;
   color: var(--foreground-muted);
+  font-variant-numeric: tabular-nums;
   flex-shrink: 0;
   white-space: nowrap;
 }
@@ -235,6 +241,7 @@
 }
 .project-card-pushed {
   margin-left: auto;
+  font-variant-numeric: tabular-nums;
 }
 
 .project-card-links {
@@ -254,8 +261,10 @@
   color: var(--foreground-muted);
   transition: color 150ms;
 }
-.project-card-links a:hover {
-  color: var(--primary);
+@media (hover: hover) {
+  .project-card-links a:hover {
+    color: var(--primary);
+  }
 }
 
 @media (max-width: 639px) {

@@ -78,6 +78,25 @@ for (const route of [
     const script = nodes.find((node) => attr(node, 'type') === 'application/ld+json');
     const graph = JSON.parse(script.childNodes[0].value)['@graph'];
     assert.equal(graph[1].url, url);
+    assert.ok(Array.isArray(graph[0].knowsAbout) && graph[0].knowsAbout.length > 0);
+    if (metadata.post) {
+      assert.equal(graph[1].isAccessibleForFree, true);
+      assert.match(graph[1].timeRequired, /^PT\d+M$/);
+      assert.equal(
+        attr(
+          nodes.find((node) => attr(node, 'property') === 'article:author'),
+          'content',
+        ),
+        profile.name,
+      );
+    }
+    assert.equal(
+      attr(
+        nodes.find((node) => attr(node, 'name') === 'referrer'),
+        'content',
+      ),
+      'strict-origin-when-cross-origin',
+    );
     for (const breadcrumb of graph.find((node) => node['@type'] === 'BreadcrumbList')
       ?.itemListElement || []) {
       assert.ok(breadcrumb.item.startsWith(`${root}/`));
@@ -89,7 +108,9 @@ for (const route of [
 
 test('feeds and crawler hints respect the deployment base', () => {
   assert.ok(read('robots.txt').includes(`Sitemap: ${root}/sitemap.xml`));
-  assert.ok(read('feed.xml').includes(`href="${root}/feed.xml"`));
+  const feed = read('feed.xml');
+  assert.ok(feed.includes(`href="${root}/feed.xml"`));
+  assert.match(feed, /<lastBuildDate>[^<]+<\/lastBuildDate>/);
   const notFound = read('404.html');
   assert.ok(notFound.includes('name="robots" content="noindex"'));
   // A not-found page claims no URL and describes no entity.

@@ -102,8 +102,16 @@ export default function Keys() {
       }
       return undefined;
     };
+    const onPalette = () => {
+      setOpen(false);
+      setPalette((was) => !was);
+    };
     document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
+    window.addEventListener('portfolio:palette', onPalette);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      window.removeEventListener('portfolio:palette', onPalette);
+    };
   }, []);
 
   // An open panel closes on a press anywhere outside it.

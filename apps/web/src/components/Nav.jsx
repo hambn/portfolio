@@ -8,6 +8,8 @@ import Icon from './Icon.jsx';
 
 const NAV_ITEMS = ['projects', 'blog', 'links'];
 
+const THEME_COLOR = { dark: '#09090b', light: '#ffffff' };
+
 // The theme lives on <html data-theme> (set before first paint by index.html)
 // and the icons swap in CSS, so toggling needs no React state or re-render.
 let switching;
@@ -15,6 +17,7 @@ export function toggleTheme() {
   const root = document.documentElement;
   const next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
   storage.set('hambn-theme', next);
+  const themeColor = document.querySelector('meta[name="theme-color"]');
   // The new theme opens as a circle from the toggle (core.css, theme-reveal).
   const box = document.querySelector('.nav-theme')?.getBoundingClientRect();
   if (box) {
@@ -25,7 +28,11 @@ export function toggleTheme() {
     root.style.setProperty('--reveal-y', `${y}px`);
     root.style.setProperty('--reveal-r', `${Math.ceil(reach)}px`);
   }
-  if (viewTransition('theme', () => root.setAttribute('data-theme', next))) return;
+  const apply = () => {
+    root.setAttribute('data-theme', next);
+    if (themeColor) themeColor.content = THEME_COLOR[next];
+  };
+  if (viewTransition('theme', apply)) return;
   // Without view transitions, core.css cross-fades colours while this class
   // is on; ordinary hover transitions keep their own timing after.
   root.classList.add('theme-switching');
@@ -87,16 +94,29 @@ export default function Nav({ page }) {
         ))}
       </div>
 
-      <button
-        type="button"
-        className="nav-theme"
-        onClick={toggleTheme}
-        aria-label="toggle theme"
-        title="toggle theme"
-      >
-        <Icon name="sun" className="theme-dark-icon" />
-        <Icon name="moon" className="theme-light-icon" />
-      </button>
+      <div className="nav-actions">
+        <button
+          type="button"
+          className="nav-palette"
+          onClick={() => window.dispatchEvent(new CustomEvent('portfolio:palette'))}
+          aria-label="command palette"
+          title="command palette (Ctrl+K)"
+        >
+          <Icon name="search" />
+          <kbd aria-hidden="true">:</kbd>
+        </button>
+
+        <button
+          type="button"
+          className="nav-theme"
+          onClick={toggleTheme}
+          aria-label="toggle theme"
+          title="toggle theme (t)"
+        >
+          <Icon name="sun" className="theme-dark-icon" />
+          <Icon name="moon" className="theme-light-icon" />
+        </button>
+      </div>
     </nav>
   );
 }

@@ -105,7 +105,19 @@ export async function diskCache(
         const parsed = cacheEntry.safeParse(JSON.parse(bytes.subarray(0, separator).toString()));
         if (!parsed.success) return undefined;
         const entry = parsed.data;
-        if (entry.expires <= now()) return undefined;
+        if (entry.expires <= now()) {
+          const expired = file(key);
+          writes = writes
+            .then(async () => {
+              const size = entries.get(expired);
+              if (size === undefined) return;
+              await unlink(expired).catch(() => {});
+              entries.delete(expired);
+              total = Math.max(0, total - size);
+            })
+            .catch(() => {});
+          return undefined;
+        }
         let headers: Headers;
         try {
           headers = new Headers(entry.headers);

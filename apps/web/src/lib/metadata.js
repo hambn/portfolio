@@ -23,6 +23,8 @@ function setMeta(attribute, name, content) {
 export function updateNotFoundMetadata(profile) {
   document.title = notFoundTitle(profile);
   setMeta('name', 'robots', 'noindex');
+  document.head.querySelector('link[rel="canonical"]')?.remove();
+  document.head.querySelector('meta[property="og:url"]')?.remove();
   document.head
     .querySelectorAll('meta[property^="article:"]')
     .forEach((element) => element.remove());
@@ -86,9 +88,11 @@ export function pageGraph(meta, person, siteRoot, posts = [], mainEntity) {
     datePublished: isoDate(post.date) || undefined,
     dateModified: isoDate(post.date) || undefined,
     inLanguage: 'en',
+    isAccessibleForFree: true,
     image: person.image,
     keywords: post.tags?.length ? post.tags.join(', ') : undefined,
     wordCount: post.words || undefined,
+    timeRequired: post.minutes ? `PT${post.minutes}M` : undefined,
     author,
     publisher: author,
     isPartOf: {
@@ -184,8 +188,11 @@ export function updateDocumentMetadata(meta, profile, posts) {
   document.head
     .querySelectorAll('meta[property^="article:"]')
     .forEach((element) => element.remove());
-  if (meta.post && isoDate(meta.post.date))
-    setMeta('property', 'article:published_time', isoDate(meta.post.date));
+  if (meta.post) {
+    if (isoDate(meta.post.date))
+      setMeta('property', 'article:published_time', isoDate(meta.post.date));
+    if (profile?.name) setMeta('property', 'article:author', profile.name);
+  }
   for (const tag of meta.post?.tags || []) {
     const element = document.createElement('meta');
     element.setAttribute('property', 'article:tag');

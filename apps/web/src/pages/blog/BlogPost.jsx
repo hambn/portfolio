@@ -54,8 +54,9 @@ async function drawDiagrams(root) {
     // shadow, which reads as a glow on a dark page.
     look: 'classic',
     // Drawn a little tighter than the defaults, so a left-to-right flow of
-    // four or five steps still fits the reading column at a readable size.
-    flowchart: { nodeSpacing: 36, rankSpacing: 30, padding: 10 },
+    // four or five steps still fits the reading column at a readable size,
+    // with enough rank breathing room for edge labels.
+    flowchart: { nodeSpacing: 40, rankSpacing: 44, padding: 12 },
     theme: 'base',
     themeVariables: {
       darkMode: !light,
@@ -101,18 +102,23 @@ async function drawDiagrams(root) {
 }
 
 // One click handler on the article serves every copy button in it.
+const copyTimers = new WeakMap();
 async function copyCode(event) {
   const button = event.target instanceof Element ? event.target.closest('.code-copy') : null;
   const code = button?.parentElement.querySelector('pre > code');
   if (!code || !navigator.clipboard) return;
   try {
     await navigator.clipboard.writeText(code.textContent);
+    clearTimeout(copyTimers.get(button));
     button.textContent = 'copied';
     button.classList.add('copied');
-    setTimeout(() => {
-      button.textContent = 'copy';
-      button.classList.remove('copied');
-    }, 1400);
+    copyTimers.set(
+      button,
+      setTimeout(() => {
+        button.textContent = 'copy';
+        button.classList.remove('copied');
+      }, 1400),
+    );
   } catch {
     // Leave the button unchanged when clipboard access is denied.
   }
@@ -169,9 +175,6 @@ export default function PostView({ post, older, newer, onBack }) {
   useEffect(() => {
     const root = ref.current;
     if (html == null || !root) return undefined;
-    drawDiagrams(root);
-    const themed = new MutationObserver(() => drawDiagrams(root));
-    themed.observe(document.documentElement, { attributeFilter: ['data-theme'] });
     if (arrivedLate.current) {
       let wanted = window.location.hash.slice(1);
       try {
@@ -181,11 +184,19 @@ export default function PostView({ post, older, newer, onBack }) {
       }
       if (wanted) root.querySelector(`[id="${CSS.escape(wanted)}"]`)?.scrollIntoView();
     }
+    const hasDiagrams = Boolean(
+      root.querySelector('pre > code.language-mermaid, .mermaid[data-source]'),
+    );
+    if (!hasDiagrams) return undefined;
+    drawDiagrams(root);
+    const themed = new MutationObserver(() => drawDiagrams(root));
+    themed.observe(document.documentElement, { attributeFilter: ['data-theme'] });
     return () => themed.disconnect();
   }, [html]);
 
   return (
     <main className="blog-page">
+      <div className="blog-progress" aria-hidden="true" />
       <button type="button" className="blog-back" onClick={onBack}>
         <Icon name="arrow-left" className="icon-nudge is-back" />
         all posts

@@ -114,10 +114,13 @@ function ProjectCard({ project, featured = false }) {
           )}
         </h3>
         {project.stars > 0 && (
-          <span className="project-card-stars" title={`${project.stars} stars`}>
+          <span
+            className="project-card-stars"
+            title={`${project.stars} ${project.stars === 1 ? 'star' : 'stars'}`}
+          >
             <Icon name="star" />
             {project.stars}
-            <span className="sr-only"> stars</span>
+            <span className="sr-only"> {project.stars === 1 ? 'star' : 'stars'}</span>
           </span>
         )}
       </div>

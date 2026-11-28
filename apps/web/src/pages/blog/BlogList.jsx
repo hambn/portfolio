@@ -41,14 +41,21 @@ export default function PostList({ posts }) {
     setPage(1);
   }, [query, activeTags]);
 
-  // Close the dropdown on an outside click, only while it is open.
+  // Close the dropdown on an outside tap/click or Escape, only while it is open.
   useEffect(() => {
     if (!filterOpen) return undefined;
-    const handler = (e) => {
+    const onOutside = (e) => {
       if (filterRef.current && !filterRef.current.contains(e.target)) setFilterOpen(false);
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    const onKey = (e) => {
+      if (e.key === 'Escape') setFilterOpen(false);
+    };
+    document.addEventListener('pointerdown', onOutside);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onOutside);
+      document.removeEventListener('keydown', onKey);
+    };
   }, [filterOpen]);
 
   // Reflect the active tags in the URL, and react to tag links elsewhere.

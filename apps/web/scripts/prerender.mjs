@@ -105,6 +105,7 @@ const personLd = {
   image: profile.avatar,
   worksFor: orgLd(firstItem('work')?.company),
   alumniOf: orgLd(firstItem('education')?.school),
+  knowsAbout: resume.skills?.length ? resume.skills : undefined,
   sameAs,
 };
 
@@ -366,7 +367,7 @@ function page({
     `  <meta name="twitter:image:alt" content="${esc(profile.name)}" />`,
     `  <meta name="twitter:title" content="${esc(title)}" />`,
     `  <meta name="twitter:description" content="${esc(desc)}" />`,
-    `  <link rel="alternate" type="application/rss+xml" title="blog" href="${siteRoot}/feed.xml" />`,
+    `  <link rel="alternate" type="application/rss+xml" title="${esc(profile.name)} — blog" href="${siteRoot}/feed.xml" />`,
     `  <meta name="robots" content="${notFound ? 'noindex' : INDEX_ROBOTS}" />`,
     preload,
     extraHead,
@@ -429,6 +430,7 @@ for (const route of [
             isoDate(metadata.post.date)
               ? `  <meta property="article:published_time" content="${isoDate(metadata.post.date)}" />`
               : '',
+            `  <meta property="article:author" content="${esc(profile.name)}" />`,
             ...metadata.post.tags.map(
               (tag) => `  <meta property="article:tag" content="${esc(tag)}" />`,
             ),
@@ -457,6 +459,7 @@ writeFileSync(
 );
 
 // feed.xml — RSS 2.0 so readers and aggregators can follow the blog.
+const lastBuildDate = rfc822(posts[0]?.date);
 const feed = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
@@ -464,7 +467,7 @@ const feed = `<?xml version="1.0" encoding="UTF-8"?>
     <link>${abs('blog')}</link>
     <description>${esc(meta.blog.desc)}</description>
     <language>en</language>
-    <atom:link href="${siteRoot}/feed.xml" rel="self" type="application/rss+xml" />
+${lastBuildDate ? `    <lastBuildDate>${lastBuildDate}</lastBuildDate>\n` : ''}    <atom:link href="${siteRoot}/feed.xml" rel="self" type="application/rss+xml" />
 ${posts
   .map((p) => {
     const url = abs(`blog/${p.slug}`);

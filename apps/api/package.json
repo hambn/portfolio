@@ -19,14 +19,14 @@
   "dependencies": {
     "@portfolio/shared": "*",
     "parse5": "^8.1.1",
-    "ws": "^8.23.0",
+    "ws": "^8.23.1",
     "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/ws": "^8.18.2",
     "esbuild": "^0.28.2",
-    "miniflare": "4.20260730.0",
+    "miniflare": "5.20261127.0-beta",
     "tsx": "^4.23.15",
-    "wrangler": "^4.164.0"
+    "wrangler": "^4.169.0"
   }
 }

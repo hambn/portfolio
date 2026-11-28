@@ -23,14 +23,25 @@ function base64url(bytes: ArrayBuffer): string {
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
+const hmacKeys = new Map<string, Promise<CryptoKey>>();
+
 function hmacKey(secret: string): Promise<CryptoKey> {
-  return crypto.subtle.importKey(
-    'raw',
-    encoder.encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign', 'verify'],
-  );
+  let key = hmacKeys.get(secret);
+  if (!key) {
+    // Keep at most a few distinct secrets in memory (tests rotate secrets).
+    if (hmacKeys.size >= 8) hmacKeys.clear();
+    key = crypto.subtle
+      .importKey('raw', encoder.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, [
+        'sign',
+        'verify',
+      ])
+      .catch((error) => {
+        hmacKeys.delete(secret);
+        throw error;
+      });
+    hmacKeys.set(secret, key);
+  }
+  return key;
 }
 
 async function digest(secret: string, value: string): Promise<string> {

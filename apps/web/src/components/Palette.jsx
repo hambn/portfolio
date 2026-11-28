@@ -4,21 +4,17 @@
 import './palette.css';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useContent } from '../hooks/useContent.js';
+import { PortfolioData } from '../lib/data.js';
 import { feedHref, navigate } from '../lib/router.js';
 import { REPO } from './Footer.jsx';
 import { toggleTheme } from './Nav.jsx';
-
-/** Every word of the query appears somewhere in the item. */
-const matches = (item, words) => {
-  const text = `${item.kind} ${item.label} ${item.more || ''}`.toLowerCase();
-  return words.every((word) => text.includes(word));
-};
 
 export default function Palette({ go, onClose }) {
   const [query, setQuery] = useState('');
   const [active, setActive] = useState(0);
   const { data: posts } = useContent('blogIndex');
   const listRef = useRef(null);
+  const pointer = useRef({ x: -1, y: -1 });
 
   // Closing hands focus back to whatever had it, unless a command moved it.
   useEffect(() => {
@@ -29,8 +25,9 @@ export default function Palette({ go, onClose }) {
     };
   }, []);
 
-  const items = useMemo(
-    () => [
+  const items = useMemo(() => {
+    const email = PortfolioData.peek('links')?.email?.address;
+    const raw = [
       ...Object.entries(go).map(([key, page]) => ({
         id: `page-${page}`,
         kind: 'page',
@@ -46,20 +43,40 @@ export default function Palette({ go, onClose }) {
         run: () => navigate(`blog/${post.slug}`),
       })),
       { id: 'theme', kind: 'action', label: 'toggle theme', hint: 't', run: toggleTheme },
-      { id: 'feed', kind: 'link', label: 'rss feed', run: () => window.open(feedHref()) },
+      ...(email
+        ? [
+            {
+              id: 'copy-email',
+              kind: 'action',
+              label: `copy ${email}`,
+              more: 'email contact address',
+              run: () => navigator.clipboard?.writeText(email).catch(() => {}),
+            },
+          ]
+        : []),
+      {
+        id: 'feed',
+        kind: 'link',
+        label: 'rss feed',
+        run: () => window.open(feedHref(), '_blank', 'noopener'),
+      },
       {
         id: 'source',
         kind: 'link',
         label: 'source on github',
         run: () => window.open(REPO, '_blank', 'noopener'),
       },
-    ],
-    [go, posts],
-  );
+    ];
+    return raw.map((item) => ({
+      ...item,
+      search: `${item.kind} ${item.label} ${item.more || ''}`.toLowerCase(),
+    }));
+  }, [go, posts]);
 
   const shown = useMemo(() => {
     const words = query.toLowerCase().split(/\s+/).filter(Boolean);
-    return items.filter((item) => matches(item, words));
+    if (!words.length) return items;
+    return items.filter((item) => words.every((word) => item.search.includes(word)));
   }, [items, query]);
   const at = Math.min(active, shown.length - 1);
 
@@ -131,7 +148,12 @@ export default function Palette({ go, onClose }) {
                 role="option"
                 aria-selected={i === at}
                 className={`palette-item${i === at ? ' is-active' : ''}`}
-                onPointerMove={() => setActive(i)}
+                onPointerMove={(event) => {
+                  if (event.clientX === pointer.current.x && event.clientY === pointer.current.y)
+                    return;
+                  pointer.current = { x: event.clientX, y: event.clientY };
+                  setActive(i);
+                }}
                 onClick={() => run(item)}
               >
                 <span className="palette-kind">{item.kind}</span>

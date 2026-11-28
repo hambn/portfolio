@@ -86,7 +86,8 @@ export function warmPages() {
     // @font-face rules are registered by now; `block` faces would otherwise
     // hold their text back until the page that uses them is opened.
     document.fonts?.forEach((face) => {
-      if (face.status === 'unloaded') face.load().catch(() => {});
+      if (face.status === 'unloaded' && !face.family.includes('Fallback'))
+        face.load().catch(() => {});
     });
     return Promise.all(
       loadedModules.map((module) => Promise.resolve(module?.warm?.()).catch(() => {})),

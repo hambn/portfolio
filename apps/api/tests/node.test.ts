@@ -121,6 +121,19 @@ test('the Host header neither splits the disk cache nor replaces the origin', as
     );
     assert.equal(status, 400, path);
   }
+  const badHost = await new Promise<number | undefined>((resolve, reject) =>
+    http
+      .request(
+        { host: '127.0.0.1', port, path: '/health', headers: { Host: 'bad host name:999999' } },
+        (response) => {
+          response.resume();
+          resolve(response.statusCode);
+        },
+      )
+      .on('error', reject)
+      .end(),
+  );
+  assert.equal(badHost, 400);
 });
 
 test('scheduled Node refresh coalesces overlapping invocations and can retry', async () => {
